@@ -19,6 +19,7 @@
  */
 
 import { DurableObject } from 'cloudflare:workers';
+import QRCode from 'qrcode';
 import { validateLook, lookKey } from '../public/shared/look.js';
 import type {
   ClientFrame,
@@ -200,13 +201,12 @@ export class Room extends DurableObject<Env> {
       case 'host.resume': {
         const room = this.#room;
         if (!room) return this.#fail(ws, 'ROOM_NOT_FOUND', 'That paddock is gone.');
+        const joinUrl = this.#joinUrl();
         this.#send(ws, {
           t: 'room.created',
           room: room.code,
-          joinUrl: this.#joinUrl(),
-          /* The display renders its own QR when this is empty, so an absent
-             encoder degrades to a typed code rather than to nothing. */
-          qr: '',
+          joinUrl,
+          qr: await this.#qr(joinUrl),
         });
         this.#send(ws, this.#stateFor(null));
         return;
@@ -233,6 +233,26 @@ export class Room extends DurableObject<Env> {
 
       default:
         return this.#fail(ws, 'BAD_REQUEST', 'Unknown frame.');
+    }
+  }
+
+  /* The join code as a square, drawn in hedgerow ink on nothing so the display
+     can sit it on its own paper. Percent-encoded rather than base64: the SVG is
+     ASCII and btoa would only add a step that can mangle it. Never fatal — a
+     room whose QR fails to draw still shows a four-character code that works. */
+  async #qr(joinUrl: string): Promise<string> {
+    if (!joinUrl) return '';
+    try {
+      const svg = await QRCode.toString(joinUrl, {
+        type: 'svg',
+        margin: 0,
+        errorCorrectionLevel: 'M',
+        color: { dark: '#12180f', light: '#00000000' },
+      });
+      return 'data:image/svg+xml,' + encodeURIComponent(svg);
+    } catch (error) {
+      console.error(JSON.stringify({ level: 'warn', message: 'qr failed', error: String(error) }));
+      return '';
     }
   }
 

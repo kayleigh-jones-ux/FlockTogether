@@ -15,11 +15,17 @@
  * Usage: node tools/check-hats.mjs
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { HATS, FLEECE_COLOURS, LOOK_COMBINATIONS } from '../public/shared/look.js';
+import { PLACEMENTS } from '../public/shared/hat-placement.js';
 import { ASSETS } from './asset-manifest.mjs';
 
 const sprites = readFileSync(new URL('../public/shared/sprites.svg', import.meta.url), 'utf8');
+const artDir = new URL('../public/art/', import.meta.url);
+const manifestPath = new URL('manifest.json', artDir);
+const artManifest = existsSync(manifestPath)
+  ? JSON.parse(readFileSync(manifestPath, 'utf8')).assets || {}
+  : null;
 
 let bad = 0;
 const fail = (msg) => { bad += 1; console.log('FAIL  ' + msg); };
@@ -31,12 +37,38 @@ const drawn = new Set(
   [...sprites.matchAll(/<symbol id="sp-hat-([a-z0-9-]+)"/g)].map((m) => m[1]),
 );
 
+/* The shipped art. Since the switch to generated sprites this is what the
+   surfaces actually draw; the SVG symbols below are the legacy set and only
+   some hats still have one. Missing ART is what breaks a player's look. */
+if (!artManifest) {
+  fail('public/art/manifest.json is missing — run `npm run art`');
+} else {
+  const missingArt = HATS.filter((h) => !artManifest[`hat-${h.id}`]);
+  if (missingArt.length) {
+    fail(`selectable but no art: ${missingArt.map((h) => h.id).join(', ')}
+      Generate it (npm run assets) then build it (npm run art).`);
+  } else {
+    pass(`all ${HATS.length} selectable hats have shipped art`);
+  }
+
+  /* Placement is what puts a hat on the head rather than through it. An untuned
+     hat still renders — it takes the default — so this is a warning, not a
+     failure, but it is the list of work /admin exists to clear. */
+  const untuned = HATS.filter((h) => !PLACEMENTS[h.id]).map((h) => h.id);
+  if (untuned.length) {
+    console.log(
+      `NOTE  ${untuned.length} of ${HATS.length} hats are untuned and sit at the default placement:\n` +
+        `      ${untuned.join(', ')}\n` +
+        `      Open /admin, drag each onto the sheep, and paste the result into hat-placement.js.`,
+    );
+  } else {
+    pass('every hat has a tuned placement');
+  }
+}
+
 const undrawn = HATS.filter((h) => !drawn.has(h.id));
 if (undrawn.length) {
-  fail(`selectable but never drawn: ${undrawn.map((h) => h.id).join(', ')}
-      Add a <symbol id="sp-hat-ID" viewBox="0 0 60 60"> to public/shared/sprites.svg.`);
-} else {
-  pass(`all ${HATS.length} selectable hats have a symbol`);
+  console.log(`NOTE  no legacy SVG symbol (art is used instead): ${undrawn.length} hats`);
 }
 
 /* The other direction is a warning, not a failure: a drawn-but-unlisted hat is
@@ -52,15 +84,12 @@ if (orphans.length) {
    entirely, and only for the players who picked it. */
 
 for (const hat of HATS) {
-  const symbol = new RegExp(
-    `<symbol id="sp-hat-${hat.id}"([^>]*)>`,
-  ).exec(sprites);
+  const symbol = new RegExp(`<symbol id="sp-hat-${hat.id}"([^>]*)>`).exec(sprites);
   if (!symbol) continue;
   if (!/viewBox="0 0 60 60"/.test(symbol[1])) {
     fail(`sp-hat-${hat.id} is not on the shared 60x60 box: ${symbol[1].trim()}`);
   }
 }
-if (!bad) pass('every hat symbol is on the shared 60x60 crown anchor');
 
 /* --- 1 vs 3: every selectable hat can be regenerated ----------------------- */
 

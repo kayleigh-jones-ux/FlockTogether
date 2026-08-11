@@ -59,7 +59,7 @@ const BLACK_PUSH =
  * whose outline is 10% thinner is still fine. */
 const STRENGTH = {
   sheep: 0.55,
-  dog: 0.46,
+  dog: 0.20,
   hats: 0.34,
   ribbons: 0.32,
   extras: 0.36,
@@ -107,6 +107,11 @@ const NO_TEXTURE =
 
 /* Hats whose colour IS black. These take BLACK_PUSH instead of COLOUR_PUSH;
  * see the note on BLACK_PUSH for why the two cannot both apply. */
+/* The band handed to deepenNeutrals for assets that must read black. 34 is above
+ * the ink outline so the outline is never lifted; 150 is below white fleece and
+ * below the top hat's grey band, so both survive. See tools/lib/cutout.mjs. */
+const DEEPEN_BLACK = Object.freeze({ lo: 34, hi: 150, to: 20 });
+
 const BLACK_HATS = new Set(['bowler', 'top-hat']);
 
 const HAT_DESCRIPTIONS = {
@@ -127,10 +132,15 @@ const HAT_DESCRIPTIONS = {
   /* A headscarf is worn framing a face, so the model obligingly left the face
    * out — a big blank white oval in the middle that reads as an empty head-shaped
    * hole. It has to be described as a piece of cloth, not as something worn. */
+  /* Two attempts left a blank white oval in the middle — the face the scarf would
+   * frame. The word 'headscarf' is what does it, so the subject is now a folded
+   * square of cloth and the hat reading is left to the knot alone. */
   headscarf:
-    'a headscarf lying folded as a closed triangle of cloth with its two ends knotted together at the bottom point, ' +
-    'plain cream with a simple pattern of small flat blue flowers drawn on it. ' +
-    'It is solid cloth all the way across with NO opening, NO gap, NO hole and NO blank oval in the middle',
+    'a square cloth bandana folded once into a triangle and lying FLAT on a table, seen from straight above, ' +
+    'with its two long ends knotted together in a small knot at one corner. ' +
+    'Plain cream cloth with a simple pattern of small flat blue flowers drawn across it, ' +
+    'solid unbroken cloth from edge to edge — no head, no face, no opening, no gap, no hole, ' +
+    'and absolutely NO blank white oval or egg shape anywhere in it',
   visor: 'a sun visor, bright white with a green peak and no crown, so the top is open',
   'baseball-cap': 'a baseball cap in plain royal blue with a curved peak and a button on top',
   earmuffs: 'a pair of fluffy pink earmuffs joined by a padded headband over the top',
@@ -139,13 +149,15 @@ const HAT_DESCRIPTIONS = {
   /* Both peaks and the flaps, or it is just a cap with a bow on it — which is
    * exactly what the first attempt produced. */
   deerstalker:
-    'a deerstalker hunting cap in plain muted brown, seen from the side, with a peak at the FRONT and a second ' +
-    'matching peak at the BACK, and two soft ear flaps folded up over the crown and tied together on top with a small bow',
+    'a deerstalker hunting cap seen from the side, in ONE single flat shade of muted brown over the whole hat with no ' +
+    'lighter or paler panels anywhere, with a peak at the FRONT and a second matching peak at the BACK, and two ' +
+    'brown ear flaps folded up against the crown and tied on top with a small bow',
   /* Came back two-tone — a pale cream crown on a brown brim, reading as two
    * different hats stuck together. The single colour is now stated as such. */
   cowboy:
-    'a cowboy hat in one single flat shade of medium tan brown all over, the crown and the brim exactly the same ' +
-    'colour as each other, with a creased crown of ordinary modest height and a wide brim upturned at the sides',
+    'a cowboy hat filled with ONE single flat shade of medium tan brown over the entire hat — the crown and the brim ' +
+    'are the identical same colour with no darker area, no lighter area and no shading between them, separated only by ' +
+    'the black outline — with a smooth crown of ordinary modest height and a wide brim upturned at the sides',
   'hard-hat': 'a construction hard hat in bright yellow with a few moulded ridges running front to back over the top',
   'top-hat': 'a tall top hat in plain solid black with a straight cylindrical crown and a grey band',
   crown:
@@ -168,13 +180,10 @@ const HAT_DESCRIPTIONS = {
     'with a thin post on top carrying a two-bladed propeller',
 };
 
-for (const hat of HATS) {
-  if (!HAT_DESCRIPTIONS[hat.id]) {
-    throw new Error(
-      `asset-manifest: hat "${hat.id}" (${hat.name}) from shared/look.js has no description. Add one to HAT_DESCRIPTIONS.`,
-    );
-  }
-}
+/* The completeness check moved to the bottom of this file, once every group of
+   descriptions exists. It used to sit here and only knew about HAT_DESCRIPTIONS,
+   so promoting a SILLY prop into look.js threw an error claiming the prompt was
+   missing when it was written twenty lines further down. */
 
 /* Hats that are NOT in the game yet.
  *
@@ -374,8 +383,9 @@ const SILLY = {
   'deely-boppers': {
     sitsOn: 'crown',
     description:
-      'a novelty party headband with two thin bouncy springs standing up from it, each topped with a round glittery pink ball. ' +
-      'The headband is a narrow flat strip drawn edge-on as a single thin curved line, NOT a ring, NOT an oval, ' +
+      'a novelty party headband with two thin bouncy springs standing up from it, each topped with a round glittery pink ball, ' +
+      'seen straight from the FRONT. The headband is a narrow flat strip like a hairband, drawn edge-on as a single thin ' +
+      'curved line — NOT a wide ring, NOT an oval, NOT an ellipse, NOT a disc, NOT seen in perspective from above, ' +
       'with no gap or hole of any kind in the middle',
   },
   ufo: {
@@ -460,14 +470,24 @@ const NOTHING_WEARING_IT_ANIMAL =
   'drawn on its own as one single object with nothing wearing it and nothing underneath it: ' +
   'no head, no face, no person, no sheep, no mannequin, no stand, no hook — just the creature by itself.';
 
+/** Which ids look.js actually offers. The one authority on "in the game". */
+const IN_GAME = new Set(HATS.map((h) => h.id));
+
 /** Every asset, with the style preamble already composed into `prompt`. */
 export const ASSETS = [
   ...SHEEP.map((a) => ({ ...a, group: 'sheep' })),
-  ...HATS.map((hat) => ({
+  /* Each hat is emitted from exactly ONE of the three description sets. The
+     filter matters: promoting a SILLY prop into look.js used to emit it twice,
+     once from here with an undefined description ("undefined, drawn on its own
+     as a single object") and once from its own block — so the promoted hats
+     would have been regenerated from a prompt that was literally the word
+     undefined. */
+  ...HATS.filter((hat) => HAT_DESCRIPTIONS[hat.id]).map((hat) => ({
     id: `hat-${hat.id}`,
     group: 'hats',
     coloured: !BLACK_HATS.has(hat.id),
     black: BLACK_HATS.has(hat.id),
+    ...(BLACK_HATS.has(hat.id) ? { styleStrength: 0.16, deepen: DEEPEN_BLACK } : {}),
     inGame: true,
     flat: true,
     subject: `${HAT_DESCRIPTIONS[hat.id]}, ${NOTHING_WEARING_IT}`,
@@ -476,7 +496,7 @@ export const ASSETS = [
     id: `hat-${id}`,
     group: 'hats-new',
     coloured: true,
-    inGame: false,
+    inGame: IN_GAME.has(id),
     flat: true,
     subject: `${hat.description}, ${NOTHING_WEARING_IT}`,
   })),
@@ -484,12 +504,14 @@ export const ASSETS = [
     id: `hat-${id}`,
     group: 'hats-silly',
     coloured: true,
-    inGame: false,
+    /* Derived, never asserted: a prop is in the game precisely when look.js
+       says so, and nothing here gets a second opinion. */
+    inGame: IN_GAME.has(id),
     flat: true,
     sitsOn: prop.sitsOn,
     subject: `${prop.description}, ${prop.isAnimal ? NOTHING_WEARING_IT_ANIMAL : NOTHING_WEARING_IT}`,
   })),
-  ...DOG.map((a) => ({ ...a, group: 'dog' })),
+  ...DOG.map((a) => ({ ...a, group: 'dog', deepen: DEEPEN_BLACK })),
   ...RIBBONS.map((a) => ({ ...a, group: 'ribbons' })),
   ...EXTRAS.map((a) => ({ ...a, group: 'extras', coloured: true })),
 ].map((a) => ({
@@ -498,6 +520,7 @@ export const ASSETS = [
   coloured: false,
   black: false,
   flat: false,
+  deepen: null,
   ...a,
   styleStrength: a.styleStrength ?? STRENGTH[a.group],
   prompt: [
@@ -514,6 +537,32 @@ export const ASSETS = [
 }));
 
 export const GROUPS = [...new Set(ASSETS.map((a) => a.group))];
+
+/* Completeness, checked once everything above exists.
+ *
+ * Two ways to get this wrong, and both are silent. A hat in look.js with no
+ * prompt can never be regenerated, so the day the art is rebuilt it vanishes.
+ * A hat emitted twice gets generated twice, costs twice, and whichever prompt
+ * runs last wins — which is how you end up debugging a rubber duck that keeps
+ * coming back as a description of itself. */
+{
+  const byId = new Map();
+  for (const a of ASSETS) {
+    if (!a.group.startsWith('hat')) continue;
+    byId.set(a.id, (byId.get(a.id) || 0) + 1);
+  }
+  const duplicated = [...byId].filter(([, n]) => n > 1).map(([id]) => id);
+  if (duplicated.length) {
+    throw new Error(`asset-manifest: emitted twice — ${duplicated.join(', ')}`);
+  }
+  const missing = HATS.filter((h) => !byId.has(`hat-${h.id}`));
+  if (missing.length) {
+    throw new Error(
+      `asset-manifest: hat(s) ${missing.map((h) => `"${h.id}"`).join(', ')} from shared/look.js have no ` +
+        'description. Add one to HAT_DESCRIPTIONS, EXTRA_HATS or SILLY.',
+    );
+  }
+}
 
 /** USD per style-referenced Krea 2 Large image, from the published price list. */
 export const PRICE_PER_IMAGE = 0.065;

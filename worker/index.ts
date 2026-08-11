@@ -95,6 +95,12 @@ export default {
     if (url.pathname === '/play') {
       return asset(env, request, '/play.html');
     }
+    /* The hat bench. Not linked from anywhere the room can see, and it changes
+       nothing on the server — it produces source you paste into the repo — so
+       it needs no auth beyond being an address nobody guesses. */
+    if (url.pathname === '/admin') {
+      return asset(env, request, '/admin.html');
+    }
 
     /* Everything else that reaches here matched no asset. */
     return new Response('Not found.', { status: 404 });

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hat placement — Flock Together</title>
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+
+<header class="bar">
+  <h1>Hat placement</h1>
+  <p class="bar__sub">Drag the hat onto the sheep. Scroll to scale, hold <kbd>Shift</kbd> and scroll to rotate.</p>
+  <div class="bar__right">
+    <span class="tally" id="tally">0 / 0 tuned</span>
+    <button class="btn btn--go" id="export">Copy placements</button>
+  </div>
+</header>
+
+<main class="work">
+
+  <aside class="hats">
+    <label class="search">
+      <span class="visually-hidden">Filter hats</span>
+      <input type="search" id="filter" placeholder="Filter hats…" autocomplete="off">
+    </label>
+    <ol class="hats__list" id="hat-list"></ol>
+  </aside>
+
+  <section class="stage">
+    <div class="stage__tools">
+      <div class="seg" role="group" aria-label="Sheep pose">
+        <button class="seg__btn" data-pose="sheep-idle" aria-pressed="true">Idle</button>
+        <button class="seg__btn" data-pose="sheep-happy" aria-pressed="false">Happy</button>
+        <button class="seg__btn" data-pose="sheep-confused" aria-pressed="false">Confused</button>
+        <button class="seg__btn" data-pose="sheep-running" aria-pressed="false">Running</button>
+      </div>
+      <label class="check"><input type="checkbox" id="override"> Override this pose only</label>
+      <label class="check"><input type="checkbox" id="guides" checked> Guides</label>
+      <label class="swatch-label">Fleece
+        <select id="fleece"></select>
+      </label>
+    </div>
+
+    <div class="pen" id="pen">
+      <!-- Both srcs are swapped in by admin.js. They start on a transparent
+           pixel rather than empty: an <img> with no src is a broken-image box,
+           which would flash on every load and stay if the module failed. -->
+      <div class="sheep" id="sheep">
+        <img class="sheep__art" id="sheep-art" alt="" draggable="false"
+             src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+        <div class="sheep__fleece" id="sheep-fleece"></div>
+        <img class="hat" id="hat" alt="" draggable="false"
+             src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+        <div class="guide guide--v" id="guide-v"></div>
+        <div class="guide guide--h" id="guide-h"></div>
+      </div>
+    </div>
+
+    <div class="readout">
+      <label>x <input type="number" id="in-x" step="0.005" min="0" max="1"></label>
+      <label>y <input type="number" id="in-y" step="0.005" min="0" max="1"></label>
+      <label>scale <input type="number" id="in-scale" step="0.005" min="0.02" max="2"></label>
+      <label>rot <input type="number" id="in-rot" step="1" min="-180" max="180"></label>
+      <button class="btn" id="reset">Reset hat</button>
+      <span class="readout__state" id="state"></span>
+    </div>
+
+    <div class="flock" id="flock" aria-label="Every tuned hat at paddock size"></div>
+  </section>
+
+</main>
+
+<dialog class="out" id="out">
+  <h2>Paste this into <code>public/shared/hat-placement.js</code></h2>
+  <p>Replace the <code>PLACEMENTS</code> object with what follows.</p>
+  <textarea id="out-text" readonly rows="18" spellcheck="false"></textarea>
+  <div class="out__row">
+    <button class="btn btn--go" id="out-copy">Copy</button>
+    <button class="btn" id="out-close">Close</button>
+    <span id="out-note"></span>
+  </div>
+</dialog>
+
+<script type="module" src="/admin.js"></script>
+</body>
+</html>

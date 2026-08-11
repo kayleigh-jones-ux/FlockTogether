@@ -1,0 +1,220 @@
+/* The hat bench. A tool, not a surface the room ever sees, so it borrows the
+   game's tokens for familiarity but stays deliberately quiet and dark — the
+   sheep is the only thing here that should catch the eye. */
+
+:root { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #0d1109;
+  color: var(--buff);
+  font-family: var(--face-ui);
+  font-size: 0.85rem;
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+kbd {
+  font: inherit; font-size: 0.78rem; padding: 1px 5px;
+  border: 1px solid #2c3823; border-radius: 3px; background: #1a2214;
+}
+
+/* ------------------------------------------------------------------- bar */
+
+.bar {
+  display: flex; align-items: baseline; gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: var(--line-hair) solid #1e2718;
+  background: #0b0e08;
+  position: sticky; top: 0; z-index: 5;
+}
+
+.bar h1 {
+  margin: 0; font-family: var(--face-display); font-size: 1.1rem;
+  font-weight: 800; letter-spacing: -0.02em; color: var(--enamel);
+}
+
+.bar__sub { margin: 0; color: #93a086; }
+.bar__right { margin-left: auto; display: flex; align-items: center; gap: var(--s-3); }
+.tally { font-variant-numeric: tabular-nums; color: #93a086; }
+
+/* --------------------------------------------------------------- controls */
+
+.btn {
+  padding: 7px 12px; background: #1a2214; color: var(--buff);
+  border: var(--line-hair) solid #2c3823; border-radius: 3px;
+  font: inherit; font-weight: 700; cursor: pointer;
+}
+.btn:hover { background: #223019; border-color: #46592f; }
+.btn--go { background: var(--hazard); border-color: var(--hedge); color: var(--hedge); font-weight: 900; }
+.btn--go:hover { background: #ffd426; }
+.btn:focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
+
+input[type='search'], input[type='number'], select {
+  font: inherit; color: var(--buff); background: #141a0f;
+  border: var(--line-hair) solid #2c3823; border-radius: 3px; padding: 6px 8px;
+  accent-color: var(--hazard);
+}
+input[type='number'] { width: 6.5rem; font-variant-numeric: tabular-nums; }
+
+.check { display: flex; align-items: center; gap: var(--s-2); cursor: pointer; }
+.check input { accent-color: var(--hazard); width: 15px; height: 15px; }
+.swatch-label { display: flex; align-items: center; gap: var(--s-2); color: #93a086; }
+
+/* ------------------------------------------------------------------ work */
+
+.work {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  align-items: start;
+  min-height: calc(100vh - 52px);
+}
+
+@media (max-width: 860px) { .work { grid-template-columns: 1fr; } }
+
+/* ------------------------------------------------------------------ hats */
+
+.hats {
+  border-right: var(--line-hair) solid #1e2718;
+  background: #0b0e08;
+  position: sticky; top: 52px;
+  max-height: calc(100vh - 52px);
+  display: flex; flex-direction: column;
+}
+
+.search { padding: var(--s-3); border-bottom: var(--line-hair) solid #1e2718; }
+.search input { width: 100%; }
+
+.hats__list {
+  list-style: none; margin: 0; padding: var(--s-2);
+  overflow-y: auto; display: grid; gap: 2px;
+}
+
+.hats__btn {
+  width: 100%; display: flex; align-items: center; gap: var(--s-3);
+  padding: 5px 7px; border: 0; border-radius: 3px;
+  background: transparent; color: var(--buff); font: inherit;
+  cursor: pointer; text-align: left;
+}
+.hats__btn:hover { background: #1a2214; }
+.hats__btn[aria-pressed='true'] { background: var(--hazard); color: var(--hedge); font-weight: 800; }
+
+.hats__thumb {
+  width: 34px; height: 34px; object-fit: contain; flex: none;
+  background: #141a0f; border-radius: 3px;
+}
+
+/* An untuned hat is the whole job, so it is marked rather than left to be
+   discovered by scrolling and squinting. */
+.hats__btn[data-tuned='false'] .hats__name::after {
+  content: '•'; color: var(--hazard); margin-left: 6px; font-weight: 900;
+}
+.hats__btn[aria-pressed='true'][data-tuned='false'] .hats__name::after { color: var(--hedge); }
+.hats__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ----------------------------------------------------------------- stage */
+
+.stage { padding: var(--s-4); display: grid; gap: var(--s-4); }
+
+.stage__tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); }
+
+.seg { display: flex; }
+.seg__btn {
+  padding: 6px 11px; background: #1a2214; color: var(--buff);
+  border: var(--line-hair) solid #2c3823; font: inherit; cursor: pointer;
+}
+.seg__btn + .seg__btn { border-left: 0; }
+.seg__btn:first-child { border-radius: 3px 0 0 3px; }
+.seg__btn:last-child { border-radius: 0 3px 3px 0; }
+.seg__btn[aria-pressed='true'] { background: var(--hazard); border-color: var(--hazard); color: var(--hedge); font-weight: 800; }
+
+/* The pen is deliberately pasture-coloured: a hat judged against a dark
+   workbench reads differently from the same hat on the field it ships on. */
+.pen {
+  display: grid; place-items: center;
+  background:
+    repeating-linear-gradient(96deg, rgb(255 255 255 / 0.03) 0 3px, transparent 3px 9px),
+    var(--pasture-deep);
+  border: var(--line) solid #2c3823; border-radius: 4px;
+  padding: var(--s-5);
+  min-height: 44vh;
+}
+
+.sheep { position: relative; width: min(460px, 70vw); user-select: none; }
+.sheep__art { display: block; width: 100%; height: auto; }
+
+/* The player's colour, painted through the fleece mask exactly as the game
+   does it — so a hat is judged on a sheep that looks like a real one. */
+.sheep__fleece {
+  position: absolute; inset: 0;
+  background: var(--fleece, transparent);
+  mix-blend-mode: multiply;
+  -webkit-mask-image: var(--fleece-mask);
+  mask-image: var(--fleece-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  pointer-events: none;
+}
+
+.hat {
+  position: absolute;
+  transform-origin: 50% 50%;
+  cursor: grab;
+  touch-action: none;
+}
+.hat:active { cursor: grabbing; }
+
+.guide { position: absolute; background: var(--hazard); opacity: 0.55; pointer-events: none; }
+.guide--v { top: 0; bottom: 0; width: 1px; }
+.guide--h { left: 0; right: 0; height: 1px; }
+.guide[hidden] { display: none; }
+
+.readout { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.readout label { display: flex; align-items: center; gap: 6px; color: #93a086; }
+.readout__state { color: var(--hazard); font-weight: 700; }
+
+/* ----------------------------------------------------------------- flock */
+
+/* Every tuned hat at roughly the size a paddock gives it. Placement that looks
+   right at 460px can be nonsense at 70, and this is where that shows up. */
+.flock {
+  display: flex; flex-wrap: wrap; gap: var(--s-3);
+  padding: var(--s-3);
+  background: var(--pasture-deep);
+  border: var(--line-hair) solid #2c3823; border-radius: 4px;
+}
+
+.flock__cell { position: relative; width: 86px; flex: none; }
+.flock__cell img.s { display: block; width: 100%; height: auto; }
+.flock__cell img.h { position: absolute; }
+.flock__cell figcaption {
+  font-size: 0.66rem; color: var(--stubble-pale); text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------- out */
+
+.out {
+  border: var(--line) solid #46592f; border-radius: 5px;
+  background: #0b0e08; color: var(--buff); max-width: 760px; width: 92vw;
+}
+.out::backdrop { background: rgb(0 0 0 / 0.7); }
+.out h2 { margin: 0 0 var(--s-2); font-size: 1rem; color: var(--enamel); }
+.out p { margin: 0 0 var(--s-3); color: #93a086; }
+.out textarea {
+  width: 100%; font-family: ui-monospace, Menlo, monospace; font-size: 0.76rem;
+  color: var(--buff); background: #141a0f; border: var(--line-hair) solid #2c3823;
+  border-radius: 3px; padding: var(--s-3); resize: vertical;
+}
+.out__row { display: flex; align-items: center; gap: var(--s-3); margin-top: var(--s-3); }
+.out__row span { color: var(--hazard); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}

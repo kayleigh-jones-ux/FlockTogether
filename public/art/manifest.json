@@ -1,0 +1,293 @@
+{
+  "generated": 56,
+  "assets": {
+    "dog-herding": {
+      "w": 320,
+      "h": 158,
+      "aspect": 2.0253
+    },
+    "dog-run": {
+      "w": 320,
+      "h": 184,
+      "aspect": 1.7391
+    },
+    "dog-sit": {
+      "w": 273,
+      "h": 320,
+      "aspect": 0.8531
+    },
+    "eartag": {
+      "w": 263,
+      "h": 320,
+      "aspect": 0.8219
+    },
+    "gate": {
+      "w": 320,
+      "h": 257,
+      "aspect": 1.2451
+    },
+    "hat-antlers": {
+      "w": 256,
+      "h": 255,
+      "aspect": 1.0039
+    },
+    "hat-banana-peel": {
+      "w": 256,
+      "h": 247,
+      "aspect": 1.0364
+    },
+    "hat-baseball-cap": {
+      "w": 256,
+      "h": 174,
+      "aspect": 1.4713
+    },
+    "hat-beanie": {
+      "w": 256,
+      "h": 220,
+      "aspect": 1.1636
+    },
+    "hat-beret": {
+      "w": 256,
+      "h": 139,
+      "aspect": 1.8417
+    },
+    "hat-birthday-cake": {
+      "w": 256,
+      "h": 236,
+      "aspect": 1.0847
+    },
+    "hat-boater": {
+      "w": 256,
+      "h": 127,
+      "aspect": 2.0157
+    },
+    "hat-bobble": {
+      "w": 218,
+      "h": 256,
+      "aspect": 0.8516
+    },
+    "hat-bowler": {
+      "w": 256,
+      "h": 152,
+      "aspect": 1.6842
+    },
+    "hat-bucket": {
+      "w": 256,
+      "h": 174,
+      "aspect": 1.4713
+    },
+    "hat-cactus": {
+      "w": 190,
+      "h": 256,
+      "aspect": 0.7422
+    },
+    "hat-cowboy": {
+      "w": 256,
+      "h": 145,
+      "aspect": 1.7655
+    },
+    "hat-crown": {
+      "w": 256,
+      "h": 157,
+      "aspect": 1.6306
+    },
+    "hat-daisy-chain": {
+      "w": 256,
+      "h": 166,
+      "aspect": 1.5422
+    },
+    "hat-deely-boppers": {
+      "w": 218,
+      "h": 256,
+      "aspect": 0.8516
+    },
+    "hat-deerstalker": {
+      "w": 256,
+      "h": 148,
+      "aspect": 1.7297
+    },
+    "hat-earmuffs": {
+      "w": 256,
+      "h": 209,
+      "aspect": 1.2249
+    },
+    "hat-fish": {
+      "w": 256,
+      "h": 127,
+      "aspect": 2.0157
+    },
+    "hat-flat-cap": {
+      "w": 256,
+      "h": 138,
+      "aspect": 1.8551
+    },
+    "hat-flowerpot": {
+      "w": 115,
+      "h": 256,
+      "aspect": 0.4492
+    },
+    "hat-fried-egg": {
+      "w": 256,
+      "h": 189,
+      "aspect": 1.3545
+    },
+    "hat-hard-hat": {
+      "w": 256,
+      "h": 163,
+      "aspect": 1.5706
+    },
+    "hat-headscarf": {
+      "w": 256,
+      "h": 256,
+      "aspect": 1
+    },
+    "hat-ice-cream": {
+      "w": 110,
+      "h": 256,
+      "aspect": 0.4297
+    },
+    "hat-party-hat": {
+      "w": 166,
+      "h": 256,
+      "aspect": 0.6484
+    },
+    "hat-pigeon": {
+      "w": 226,
+      "h": 256,
+      "aspect": 0.8828
+    },
+    "hat-propeller": {
+      "w": 242,
+      "h": 256,
+      "aspect": 0.9453
+    },
+    "hat-rain-cloud": {
+      "w": 256,
+      "h": 246,
+      "aspect": 1.0407
+    },
+    "hat-reading-glasses": {
+      "w": 256,
+      "h": 104,
+      "aspect": 2.4615
+    },
+    "hat-rubber-duck": {
+      "w": 256,
+      "h": 233,
+      "aspect": 1.0987
+    },
+    "hat-saucepan": {
+      "w": 256,
+      "h": 125,
+      "aspect": 2.048
+    },
+    "hat-sleeping-cat": {
+      "w": 256,
+      "h": 160,
+      "aspect": 1.6
+    },
+    "hat-snail": {
+      "w": 256,
+      "h": 203,
+      "aspect": 1.2611
+    },
+    "hat-sou-wester": {
+      "w": 256,
+      "h": 222,
+      "aspect": 1.1532
+    },
+    "hat-sunglasses": {
+      "w": 256,
+      "h": 102,
+      "aspect": 2.5098
+    },
+    "hat-teacup": {
+      "w": 256,
+      "h": 182,
+      "aspect": 1.4066
+    },
+    "hat-ten-gallon": {
+      "w": 256,
+      "h": 238,
+      "aspect": 1.0756
+    },
+    "hat-top-hat": {
+      "w": 247,
+      "h": 256,
+      "aspect": 0.9648
+    },
+    "hat-traffic-cone": {
+      "w": 223,
+      "h": 256,
+      "aspect": 0.8711
+    },
+    "hat-ufo": {
+      "w": 256,
+      "h": 157,
+      "aspect": 1.6306
+    },
+    "hat-visor": {
+      "w": 256,
+      "h": 132,
+      "aspect": 1.9394
+    },
+    "hat-watermelon": {
+      "w": 256,
+      "h": 164,
+      "aspect": 1.561
+    },
+    "haybale": {
+      "w": 320,
+      "h": 236,
+      "aspect": 1.3559
+    },
+    "ribbon-1st": {
+      "w": 181,
+      "h": 320,
+      "aspect": 0.5656
+    },
+    "ribbon-2nd": {
+      "w": 190,
+      "h": 320,
+      "aspect": 0.5938
+    },
+    "ribbon-3rd": {
+      "w": 183,
+      "h": 320,
+      "aspect": 0.5719
+    },
+    "sheep-confused": {
+      "w": 448,
+      "h": 428,
+      "aspect": 1.0467,
+      "fleece": "sheep-confused-fleece.png",
+      "fleeceRegions": 2
+    },
+    "sheep-happy": {
+      "w": 448,
+      "h": 415,
+      "aspect": 1.0795,
+      "fleece": "sheep-happy-fleece.png",
+      "fleeceRegions": 2
+    },
+    "sheep-idle": {
+      "w": 448,
+      "h": 396,
+      "aspect": 1.1313,
+      "fleece": "sheep-idle-fleece.png",
+      "fleeceRegions": 2
+    },
+    "sheep-running": {
+      "w": 448,
+      "h": 342,
+      "aspect": 1.3099,
+      "fleece": "sheep-running-fleece.png",
+      "fleeceRegions": 2
+    },
+    "trough": {
+      "w": 320,
+      "h": 139,
+      "aspect": 2.3022
+    }
+  }
+}

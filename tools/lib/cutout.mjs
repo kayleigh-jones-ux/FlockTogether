@@ -34,12 +34,15 @@ function dist2(r1, g1, b1, r2, g2, b2) {
  * @param {number} [opts.size=512]      Output square size in px.
  * @param {number} [opts.padding=0.04]  Margin kept around the trimmed art, as a
  *   fraction of `size`, so nothing touches the sprite's edge.
- * @returns {Promise<{png: Buffer, coverage: number, leak: boolean}>}
+ * @param {{lo:number,hi:number,to:number}} [opts.deepen]  Optional: snap neutral
+ *   greys in the luminance band [lo,hi] down to `to`. See deepenNeutrals.
+ * @returns {Promise<{png: Buffer, coverage: number, leak: boolean, deepened: number}>}
  *   `coverage` is the fraction of pixels kept; `leak` is set when the fill
- *   escaped through a gap in the outline and ate most of the art.
+ *   escaped through a gap in the outline and ate most of the art; `deepened` is
+ *   the fraction of pixels the deepen pass moved.
  */
 export async function cutout(input, opts = {}) {
-  const { tolerance = 52, size = 512, padding = 0.04 } = opts;
+  const { tolerance = 52, size = 512, padding = 0.04, deepen = null } = opts;
 
   // Flatten onto white first: if the source already carries alpha we want a
   // known paper colour under it rather than black fringing.
@@ -145,6 +148,8 @@ export async function cutout(input, opts = {}) {
   }
   const coverage = kept / (w * h);
 
+  const deepened = deepen ? deepenNeutrals(data, w * h, deepen) : 0;
+
   // A closed outline yields something in the 8-45% range for these sprites.
   // Far above that means the fill never got in behind the art (paper colour
   // mis-sampled); near zero means it leaked through a gap and ate everything.
@@ -191,7 +196,60 @@ export async function cutout(input, opts = {}) {
     .png({ compressionLevel: 9 })
     .toBuffer();
 
-  return { png, coverage, leak };
+  return { png, coverage, leak, deepened };
 }
 
-export default { cutout };
+/**
+ * Snap neutral greys inside a luminance band down to near-black, in place.
+ *
+ * Some assets are meant to be black — a bowler, a top hat, a border collie — and
+ * the model will not draw them black. The cause is the style reference: it
+ * contains no black FILL anywhere, only black outlines over white and warm grey,
+ * so its tonal statistics pull any large dark area towards grey no matter how the
+ * prompt is worded. Asserting "deep solid black, not grey" did nothing; dropping
+ * the reference strength from 0.46 to 0.20 moved the fill from luminance 171 to
+ * 67, which is charcoal, and going lower starts costing the even outline weight
+ * that makes the set cohere.
+ *
+ * So the last step is done arithmetically instead of asking again. It is safe here
+ * only because of what these sprites are: flat fills of a single tone, with the
+ * outline already far below the band and white far above it. The band is applied
+ * to NEUTRAL pixels only, so a coloured fill of the same luminance — the dark red
+ * beret, the olive bucket hat — is left alone.
+ *
+ * @param {Uint8Array|Buffer} data RGBA pixels, mutated in place.
+ * @param {number} count           Pixel count.
+ * @param {object} band
+ * @param {number} band.lo   Luminance floor. Pixels darker than this are the ink
+ *   outline and must not be touched, or the outline lifts and the sprite greys.
+ * @param {number} band.hi   Luminance ceiling. Above this is white fleece, a grey
+ *   hat band, or highlight, all of which must survive.
+ * @param {number} band.to   Target luminance, e.g. 20 for near-black.
+ * @param {number} [band.sat=26] Max channel spread to still count as neutral.
+ * @returns {number} Fraction of pixels moved.
+ */
+export function deepenNeutrals(data, count, { lo, hi, to, sat = 26 }) {
+  let moved = 0;
+  for (let p = 0; p < count; p++) {
+    const i = p * 4;
+    if (data[i + 3] < 8) continue; // transparent background
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    // Neutral only: a saturated fill of the same luminance is a real colour.
+    if (Math.max(r, g, b) - Math.min(r, g, b) > sat) continue;
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    if (lum < lo || lum > hi) continue;
+    /* Scale rather than flatten to a constant, so whatever slight modelling the
+     * fill has is compressed instead of erased — a single constant makes the
+     * shape read as a silhouette with its interior detail gone. */
+    const k = to / Math.max(lum, 1);
+    data[i] = Math.round(r * k);
+    data[i + 1] = Math.round(g * k);
+    data[i + 2] = Math.round(b * k);
+    moved++;
+  }
+  return moved / count;
+}
+
+export default { cutout, deepenNeutrals };

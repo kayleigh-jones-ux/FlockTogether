@@ -46,6 +46,7 @@ function parseArgs(argv) {
     size: 512,
     seed: 11,
     keepRaw: true,
+    reprocess: false,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -91,6 +92,9 @@ function parseArgs(argv) {
       case '--no-raw':
         opts.keepRaw = false;
         break;
+      case '--reprocess':
+        opts.reprocess = true;
+        break;
       case '--help':
       case '-h':
         opts.help = true;
@@ -116,6 +120,9 @@ Usage: node tools/make-assets.mjs [options]
       --size N         Output sprite size in px, square (default 512).
       --seed N         Base seed; each asset offsets from it (default 11).
       --no-raw         Don't keep the pre-cutout image from the API.
+      --reprocess      Re-run the cutout on the kept raw images instead of
+                       generating. Free — no API calls. Use after changing a
+                       cutout setting (tolerance, size, the deepen band).
   -h, --help           This.
 
 The API key is read from KREA_API_KEY in the environment, or from
@@ -307,6 +314,59 @@ async function main() {
 
   const state = await readState();
 
+  /* --reprocess: redo the cutout from the kept raw images and stop.
+   *
+   * The expensive half of a run is the generation; the cutout is local and
+   * deterministic. Tuning a cutout setting — the paper tolerance, the output
+   * size, the deepen band — used to mean paying to regenerate art that was
+   * already correct. This path re-derives every sprite from raw/ for free, so
+   * cutout settings can be iterated on without touching the API. */
+  if (opts.reprocess) {
+    const rows = [];
+    let done = 0;
+    let missing = 0;
+    for (const asset of selected) {
+      const rawFile = path.join(RAW_DIR, `${asset.id}.png`);
+      let bytes;
+      try {
+        bytes = await fs.readFile(rawFile);
+      } catch {
+        missing++;
+        console.log(`  no raw image for ${asset.id} — regenerate it to reprocess`);
+        continue;
+      }
+      const { png, coverage, leak, deepened } = await cutout(bytes, {
+        size: opts.size,
+        deepen: asset.deepen,
+      });
+      await fs.writeFile(path.join(OUT_DIR, `${asset.id}.png`), png);
+      if (state.assets[asset.id]) {
+        Object.assign(state.assets[asset.id], {
+          coverage: Number(coverage.toFixed(4)),
+          suspect: leak,
+          deepened: Number(deepened.toFixed(4)),
+          size: opts.size,
+        });
+      }
+      rows.push({ id: asset.id, group: asset.group, file: `${asset.id}.png` });
+      done++;
+      console.log(
+        `  ${asset.id}  kept ${(coverage * 100).toFixed(1)}%` +
+          (asset.deepen ? `, deepened ${(deepened * 100).toFixed(1)}%` : '') +
+          (leak ? '  ! suspect cutout' : ''),
+      );
+    }
+    await writeState(state);
+    const sheetRows = selected.filter((a) => state.assets[a.id]).map((a) => ({
+      id: a.id,
+      group: a.group,
+      file: `${a.id}.png`,
+    }));
+    if (sheetRows.length) await writeContactSheet(sheetRows);
+    console.log(`\nReprocessed ${done} sprite(s) from raw, no API calls, $0.00.` + (missing ? ` ${missing} skipped.\n` : '\n'));
+    return;
+  }
+
   // Decide what actually needs generating: a sprite is fresh if the file is on
   // disk and was made from this exact prompt at this size.
   const todo = [];
@@ -398,7 +458,10 @@ async function main() {
 
     if (opts.keepRaw) await fs.writeFile(path.join(RAW_DIR, `${asset.id}.png`), bytes);
 
-    const { png, coverage, leak } = await cutout(bytes, { size: opts.size });
+    const { png, coverage, leak, deepened } = await cutout(bytes, {
+      size: opts.size,
+      deepen: asset.deepen,
+    });
     await fs.writeFile(asset.file, png);
 
     if (leak) {
@@ -416,6 +479,7 @@ async function main() {
       sourceUrl: url,
       coverage: Number(coverage.toFixed(4)),
       suspect: leak,
+      deepened: Number(deepened.toFixed(4)),
       size: opts.size,
       at: new Date().toISOString(),
     };

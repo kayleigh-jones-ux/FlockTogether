@@ -8,9 +8,15 @@ npm run assets -- --dry-run              # what it would cost, no API calls
 npm run assets -- --yes                  # generate everything missing
 npm run assets -- --group hats-silly --yes
 npm run assets -- --only hat-fish --force   # redo one
+npm run assets -- --reprocess            # redo the cutout from raw/, free
 npm run assets:grid                      # PNG contact grids, per group
 open generated/index.html                # browser contact sheet
 ```
+
+`--reprocess` re-derives every sprite from the kept raw images without calling
+the API, so cutout settings can be tuned for nothing. Use it after changing the
+output size, the paper tolerance, or a deepen band; use `--force` only when you
+actually want new art.
 
 The API key is read from `KREA_API_KEY` in the environment or from
 `.env.local.txt` in the project root. That file is gitignored and must stay that
@@ -85,8 +91,25 @@ next to the prompt they apply to:
 - **Naming a material summons a texture.** "Tweed herringbone" and "brown
   checked" produced a rendered weave and a checkerboard, breaking the flat-ink
   style. Materials are now named only where they read as a colour.
-- **"Black" needs asserting.** The reference's darkest tone is the sheep's warm
-  grey face, so the border collie came back grey until black was stated outright
-  and grey explicitly refused.
+- **Black cannot be prompted at all — it has to be computed.** The reference has
+  no black *fill* anywhere, only black outlines over white and warm grey, so any
+  large dark area gets pulled to grey by its tonal statistics. Asserting "deep
+  solid black, not grey" changed nothing. Dropping the reference strength from
+  0.46 to 0.20 moved the fill from luminance 171 to 67 — charcoal, and going
+  lower costs the even outline weight that makes the set cohere. So the bowler,
+  the top hat and the three dogs finish with `deepen` (`tools/lib/cutout.mjs`),
+  which snaps *neutral* greys in a luminance band down to near-black. Neutral-only
+  is what makes it safe: the dark red beret and olive bucket hat sit at the same
+  luminance and are left untouched, and the band's floor is above the ink so the
+  outline never lifts.
+- **A colour push and a black push cannot both apply.** "Vivid saturated poster
+  colour" is a description black fails, so asking for a black bowler *and*
+  vividness pushed it to light grey. Black-bodied assets take `BLACK_PUSH`
+  instead of `COLOUR_PUSH`, never both.
+- **Naming a garment can summon the head it is worn on.** "Headscarf" produced a
+  blank white oval where the face would be, twice, and the antlers and
+  deely-boppers came back as wide ovals rather than headbands. What worked was
+  describing the object as cloth or as a strip seen edge-on, and refusing the
+  hole in as many words as possible.
 - **Numerals survive better described as shapes.** "The single large digit 1"
   renders reliably; quoted text does not. Still checked by eye every run.

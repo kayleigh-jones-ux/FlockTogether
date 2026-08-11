@@ -102,6 +102,30 @@ export const HATS = Object.freeze([
   { id: 'antlers',      name: 'Antlers',       tall: true },
   { id: 'ten-gallon',   name: 'Ten-gallon hat', tall: true },
   { id: 'propeller',    name: 'Propeller beanie', tall: true },
+
+  /* Not hats. Things on a sheep's head, which is funnier and is the point —
+     `tall` still means "runs high above the crown", because that is what the
+     reveal drops first when a paddock gets tight. */
+  { id: 'sunglasses',      name: 'Sunglasses',      tall: false },
+  { id: 'reading-glasses', name: 'Reading glasses', tall: false },
+  { id: 'banana-peel',     name: 'Banana peel',     tall: false },
+  { id: 'fried-egg',       name: 'Fried egg',       tall: false },
+  { id: 'sleeping-cat',    name: 'Sleeping cat',    tall: false },
+  { id: 'fish',            name: 'Fish',            tall: false },
+  { id: 'snail',           name: 'Snail',           tall: false },
+  { id: 'watermelon',      name: 'Watermelon',      tall: false },
+  { id: 'saucepan',        name: 'Saucepan',        tall: false },
+  { id: 'teacup',          name: 'Teacup',          tall: false },
+  { id: 'rubber-duck',     name: 'Rubber duck',     tall: true },
+  { id: 'pigeon',          name: 'Pigeon',          tall: true },
+  { id: 'ice-cream',       name: 'Ice cream',       tall: true },
+  { id: 'flowerpot',       name: 'Flowerpot',       tall: true },
+  { id: 'cactus',          name: 'Cactus',          tall: true },
+  { id: 'birthday-cake',   name: 'Birthday cake',   tall: true },
+  { id: 'traffic-cone',    name: 'Traffic cone',    tall: true },
+  { id: 'rain-cloud',      name: 'Rain cloud',      tall: true },
+  { id: 'deely-boppers',   name: 'Deely boppers',   tall: true },
+  { id: 'ufo',             name: 'UFO',             tall: true },
 ]);
 
 /* Adding a hat means THREE places, and they are checked against each other by

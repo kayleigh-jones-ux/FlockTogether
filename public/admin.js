@@ -12,7 +12,7 @@
  */
 
 import { HATS, FLEECE_COLOURS, colourVar } from '/shared/look.js';
-import { PLACEMENTS, DEFAULT_PLACEMENT, placementFor } from '/shared/hat-placement.js';
+import { PLACEMENTS, DEFAULT_PLACEMENT, LAYER, placementFor } from '/shared/hat-placement.js';
 
 const $ = (id) => document.getElementById(id);
 const POSES = ['sheep-idle', 'sheep-happy', 'sheep-confused', 'sheep-running'];
@@ -82,6 +82,7 @@ function place(imgEl, hatId, p, box) {
      the parent's space. Rotating first would make the rot control run backwards
      the moment a hat was flipped, which is a maddening way to lose an hour. */
   imgEl.style.transform = `rotate(${p.rot}deg)${p.flip ? ' scaleX(-1)' : ''}`;
+  imgEl.style.zIndex = String(p.behind ? LAYER.behind : LAYER.hat);
 }
 
 function render() {
@@ -101,6 +102,7 @@ function render() {
   $('in-scale').value = round(p.scale);
   $('in-rot').value = round(p.rot, 1);
   $('in-flip').checked = !!p.flip;
+  $('in-behind').checked = !!p.behind;
 
   const guides = $('guides').checked;
   for (const g of ['guide-v', 'guide-h']) $(g).hidden = !guides;
@@ -256,20 +258,23 @@ for (const [id, key] of [['in-x', 'x'], ['in-y', 'y'], ['in-scale', 'scale'], ['
   });
 }
 
-$('in-flip').addEventListener('change', (ev) => {
-  commit(current.id, { flip: ev.target.checked });
-});
+$('in-flip').addEventListener('change', (ev) => commit(current.id, { flip: ev.target.checked }));
+$('in-behind').addEventListener('change', (ev) => commit(current.id, { behind: ev.target.checked }));
 
-/* F flips. Half the props face the wrong way, so this is the most-pressed
-   control on the page and it should not require aiming at a checkbox. Ignored
-   while typing into a field, or it would eat the f in a filter. */
+/* F flips, B sends it behind. Between them these are the most-pressed controls
+   on the page — half the props face the wrong way and a good few want to peek
+   out from behind the head — so neither should require aiming at a checkbox.
+   Ignored while a field has focus, or they would eat the f and b in a filter. */
+const SHORTCUTS = { f: 'flip', b: 'behind' };
+
 window.addEventListener('keydown', (ev) => {
-  if (ev.key !== 'f' && ev.key !== 'F') return;
+  const key = SHORTCUTS[(ev.key || '').toLowerCase()];
+  if (!key) return;
   if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
   const el = document.activeElement;
   if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return;
   ev.preventDefault();
-  commit(current.id, { flip: !activeOf(current.id).flip });
+  commit(current.id, { [key]: !activeOf(current.id)[key] });
 });
 
 $('reset').addEventListener('click', () => {
@@ -329,7 +334,7 @@ function source() {
        `flip: false` on forty entries is noise that hides the ones that matter. */
     const head =
       `  '${hat.id}': { x: ${round(b.x)}, y: ${round(b.y)}, scale: ${round(b.scale)}, ` +
-      `rot: ${round(b.rot, 1)}${b.flip ? ', flip: true' : ''}`;
+      `rot: ${round(b.rot, 1)}${b.flip ? ', flip: true' : ''}${b.behind ? ', behind: true' : ''}`;
     const overrides = entry.poses && Object.keys(entry.poses).length ? entry.poses : null;
     if (!overrides) {
       lines.push(`${head} },`);

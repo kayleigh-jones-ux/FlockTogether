@@ -99,8 +99,8 @@ const SHEEP_BODY = [
  * ink style every other sprite holds. Compounding it, hats run at style strength
  * 0.34 so the reference's own flat-ink pull is weakest exactly here. So a
  * material may only be named where it reads as a colour, and this clause states
- * the ban outright. A printed motif — the headscarf's flowers — is still fine,
- * because that is drawn ON the fabric rather than being the weave of it. */
+ * the ban outright. A drawn-on motif is still fine — the daisy crown's flowers are
+ * shapes, not a rendered weave. */
 const NO_TEXTURE =
   'Drawn as flat solid blocks of colour on a plain smooth surface: no fabric texture, no visible weave, ' +
   'no herringbone, no knitted stitches, no checkerboard, no material grain, no straw or leather texture, no sheen.';
@@ -121,30 +121,26 @@ const HAT_DESCRIPTIONS = {
    * as a generic floppy yellow sun hat, indistinguishable from the boater. */
   'sou-wester':
     "a bright yellow rain hat (a sou'wester) seen from the side, with a small rounded crown and a markedly " +
-    'asymmetric brim: short and turned up at the front, sweeping long and wide at the back to throw rain off the neck, ' +
-    'with a thin chin strap hanging loose below',
+    'asymmetric brim: short and turned up at the front, sweeping long and wide at the back to throw rain off the neck. ' +
+    'Just the hat: NO chin strap, no cord, no tie, no ribbon and nothing hanging down from it',
   boater:
     'a boater hat in pale straw yellow with a completely flat circular top, a low straight crown, ' +
     'a narrow flat brim, and a red ribbon band',
   bucket: 'a bucket hat in plain olive green, with a downward-sloping brim all the way round',
   beanie: 'a snug beanie in plain teal, with a thick rolled brim',
   beret: 'a beret in plain dark red, slouching to one side, with a tiny stalk on top',
-  /* A headscarf is worn framing a face, so the model obligingly left the face
-   * out — a big blank white oval in the middle that reads as an empty head-shaped
-   * hole. It has to be described as a piece of cloth, not as something worn. */
-  /* Two attempts left a blank white oval in the middle — the face the scarf would
-   * frame. The word 'headscarf' is what does it, so the subject is now a folded
-   * square of cloth and the hat reading is left to the knot alone. */
-  headscarf:
-    'a square cloth bandana folded once into a triangle and lying FLAT on a table, seen from straight above, ' +
-    'with its two long ends knotted together in a small knot at one corner. ' +
-    'Plain cream cloth with a simple pattern of small flat blue flowers drawn across it, ' +
-    'solid unbroken cloth from edge to edge — no head, no face, no opening, no gap, no hole, ' +
-    'and absolutely NO blank white oval or egg shape anywhere in it',
+  /* Headscarf and earmuffs are deliberately absent. The headscarf is worn
+     framing a face, so the model kept leaving the face out — a blank oval that
+     read as an empty head-shaped hole — and both were dropped as more trouble
+     than they were funny. Removing the description is part of removing a hat:
+     leaving it here would regenerate art for something nobody can pick. */
   visor: 'a sun visor, bright white with a green peak and no crown, so the top is open',
   'baseball-cap': 'a baseball cap in plain royal blue with a curved peak and a button on top',
-  earmuffs: 'a pair of fluffy pink earmuffs joined by a padded headband over the top',
-  'daisy-chain': 'a flower crown ring of white daisies with round yellow centres and small green leaves',
+  'daisy-chain':
+    'a garland of white daisies with round yellow centres and small green leaves, drawn as a single shallow ' +
+    'left-to-right ARC of flowers seen straight from the front, curving gently downwards at both ends. ' +
+    'Only the near row of flowers is drawn: this is the front of the garland alone, NOT a complete ring, ' +
+    'NOT an oval, NOT a circle, with no second row of flowers behind and no far side visible',
   bowler: 'a bowler hat in plain solid black with a rounded dome crown and a narrow brim curled up at the sides',
   /* Both peaks and the flaps, or it is just a cap with a bow on it — which is
    * exactly what the first attempt produced. */
@@ -166,9 +162,9 @@ const HAT_DESCRIPTIONS = {
   /* The first version left a wide pale ellipse at the base that read as an empty
    * head-shaped hole, which is the one thing these props must never show. */
   antlers:
-    'a pair of brown branching deer antlers mounted on a simple thin headband, seen straight from the front. ' +
-    'The headband is a narrow flat strip like a hairband, drawn edge-on as a single thin curved line, ' +
-    'NOT a wide ring, NOT an oval, NOT a circle, with no gap or hole of any kind in the middle',
+    'a pair of brown branching deer antlers on their own, seen straight from the front, the two antlers rising apart ' +
+    'from a small shared base at the bottom. Just the bare antlers: NO headband, no hairband, no strip, no band, ' +
+    'no ring, no oval and no line joining them across the bottom',
   /* Only earns its own slot if it is obviously not the cowboy hat, so the height
    * is stated as a comparison and pushed to the point of absurdity. */
   'ten-gallon':
@@ -289,20 +285,29 @@ const SILLY = {
   flowerpot: {
     sitsOn: 'crown',
     description:
-      'a small terracotta orange flower pot with a rim, holding one single tall red rose in full bloom on a green stem ' +
-      'with two green leaves',
+      'a potted rose in which the ROSE IS LARGE and the pot is small: one single big red rose in full open bloom, ' +
+      'with a bold clearly drawn spiral of petals, on a green stem with two green leaves, filling most of the picture. ' +
+      'It sits in a SHORT SQUAT SHALLOW terracotta orange pot with a rim — a low wide pot no more than a quarter of ' +
+      'the height of the rose above it, deliberately stubby',
   },
   sunglasses: {
     sitsOn: 'eyes',
+    translucent: 130,
     description:
-      'a pair of sunglasses seen straight from the front, with two big rounded very dark black lenses and thick black frames ' +
-      'and short arms folded out to each side',
+      'a pair of sunglasses seen straight from the front, with two big round lenses in thick black frames and short arms ' +
+      'out to each side. The two lenses sit CLOSE TOGETHER, almost touching, joined by a very SHORT NARROW nose bridge ' +
+      'that is just a small notch between them — not a long wide bridge. ' +
+      'Each lens is filled with a flat medium smoky grey-blue tint, clearly lighter than the black frame around it, ' +
+      'like a tinted glass you can see through — not solid black, not opaque, not dark',
   },
   'reading-glasses': {
     sitsOn: 'eyes',
+    translucent: 90,
     description:
-      'a pair of ordinary round reading glasses seen straight from the front, with thin dark wire frames, ' +
-      'two clear round empty lenses, a small bridge between them and short arms out to each side',
+      'a pair of round reading glasses seen straight from the front, with thin dark wire frames and short arms out to ' +
+      'each side. The two lenses sit CLOSE TOGETHER, almost touching, joined by a very SHORT NARROW nose bridge that is ' +
+      'just a small notch between them — not a long wide bridge. ' +
+      'Each lens is filled with a flat very pale cool grey, like plain clear glass you look straight through',
   },
   'rubber-duck': {
     sitsOn: 'crown',
@@ -352,8 +357,10 @@ const SILLY = {
   'ice-cream': {
     sitsOn: 'crown',
     description:
-      'an ice cream cone standing upright, seen from the side, with a pale tan waffle cone below and two round scoops ' +
-      'stacked on top — one pink, one mint green — and a red cherry on the very top',
+      'a DROPPED ice cream, seen from the side: the pale tan waffle cone lies toppled over on its side, and the two ' +
+      'round scoops — one pink, one mint green — have fallen out and squashed into a soft splat beside it, ' +
+      'with a red cherry rolled loose. The whole thing is low, spread out and flat along the bottom as if it just ' +
+      'landed on the ground. Sad and funny, not neat',
   },
   pigeon: {
     isAnimal: true,
@@ -365,8 +372,10 @@ const SILLY = {
   cactus: {
     sitsOn: 'crown',
     description:
-      'a small potted cactus: a fat rounded green cactus with two short arms and simple little spines, ' +
-      'in a plain terracotta orange pot, with one tiny pink flower on top',
+      'a potted cactus in which the CACTUS IS LARGE and the pot is small: a big fat rounded bright green cactus ' +
+      'with two short arms and simple little spines, filling most of the picture, with a bright pink flower on top. ' +
+      'It sits in a SHORT SQUAT SHALLOW terracotta orange pot — a low wide dish of a pot no more than a quarter of ' +
+      'the height of the cactus above it, deliberately stubby',
   },
   'fried-egg': {
     sitsOn: 'crown',
@@ -383,10 +392,10 @@ const SILLY = {
   'deely-boppers': {
     sitsOn: 'crown',
     description:
-      'a novelty party headband with two thin bouncy springs standing up from it, each topped with a round glittery pink ball, ' +
-      'seen straight from the FRONT. The headband is a narrow flat strip like a hairband, drawn edge-on as a single thin ' +
-      'curved line — NOT a wide ring, NOT an oval, NOT an ellipse, NOT a disc, NOT seen in perspective from above, ' +
-      'with no gap or hole of any kind in the middle',
+      'a pair of novelty party deely-boppers on their own, seen straight from the FRONT: two thin bouncy coiled springs ' +
+      'rising apart from a small shared base at the bottom, each topped with a round glittery pink ball. ' +
+      'Just the two springs and their balls: NO headband, no hairband, no strip, no band, no ring, no oval, no disc, ' +
+      'and no line joining them across the bottom',
   },
   ufo: {
     sitsOn: 'crown',
@@ -509,6 +518,7 @@ export const ASSETS = [
     inGame: IN_GAME.has(id),
     flat: true,
     sitsOn: prop.sitsOn,
+    translucent: prop.translucent ?? null,
     subject: `${prop.description}, ${prop.isAnimal ? NOTHING_WEARING_IT_ANIMAL : NOTHING_WEARING_IT}`,
   })),
   ...DOG.map((a) => ({ ...a, group: 'dog', deepen: DEEPEN_BLACK })),
@@ -521,6 +531,7 @@ export const ASSETS = [
   black: false,
   flat: false,
   deepen: null,
+  translucent: null,
   ...a,
   styleStrength: a.styleStrength ?? STRENGTH[a.group],
   prompt: [

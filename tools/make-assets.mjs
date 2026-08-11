@@ -335,9 +335,10 @@ async function main() {
         console.log(`  no raw image for ${asset.id} — regenerate it to reprocess`);
         continue;
       }
-      const { png, coverage, leak, deepened } = await cutout(bytes, {
+      const { png, coverage, leak, deepened, seeThrough } = await cutout(bytes, {
         size: opts.size,
         deepen: asset.deepen,
+      translucent: asset.translucent,
       });
       await fs.writeFile(path.join(OUT_DIR, `${asset.id}.png`), png);
       if (state.assets[asset.id]) {
@@ -345,6 +346,7 @@ async function main() {
           coverage: Number(coverage.toFixed(4)),
           suspect: leak,
           deepened: Number(deepened.toFixed(4)),
+      seeThrough: Number(seeThrough.toFixed(4)),
           size: opts.size,
         });
       }
@@ -353,6 +355,7 @@ async function main() {
       console.log(
         `  ${asset.id}  kept ${(coverage * 100).toFixed(1)}%` +
           (asset.deepen ? `, deepened ${(deepened * 100).toFixed(1)}%` : '') +
+          (asset.translucent != null ? `, see-through ${(seeThrough * 100).toFixed(1)}%` : '') +
           (leak ? '  ! suspect cutout' : ''),
       );
     }
@@ -458,9 +461,10 @@ async function main() {
 
     if (opts.keepRaw) await fs.writeFile(path.join(RAW_DIR, `${asset.id}.png`), bytes);
 
-    const { png, coverage, leak, deepened } = await cutout(bytes, {
+    const { png, coverage, leak, deepened, seeThrough } = await cutout(bytes, {
       size: opts.size,
       deepen: asset.deepen,
+      translucent: asset.translucent,
     });
     await fs.writeFile(asset.file, png);
 
@@ -480,6 +484,7 @@ async function main() {
       coverage: Number(coverage.toFixed(4)),
       suspect: leak,
       deepened: Number(deepened.toFixed(4)),
+      seeThrough: Number(seeThrough.toFixed(4)),
       size: opts.size,
       at: new Date().toISOString(),
     };

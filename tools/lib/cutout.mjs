@@ -36,13 +36,15 @@ function dist2(r1, g1, b1, r2, g2, b2) {
  *   fraction of `size`, so nothing touches the sprite's edge.
  * @param {{lo:number,hi:number,to:number}} [opts.deepen]  Optional: snap neutral
  *   greys in the luminance band [lo,hi] down to `to`. See deepenNeutrals.
+ * @param {number} [opts.translucent]  Optional: set enclosed interior regions
+ *   (lenses) to this alpha, 0-255. See translucentInteriors.
  * @returns {Promise<{png: Buffer, coverage: number, leak: boolean, deepened: number}>}
  *   `coverage` is the fraction of pixels kept; `leak` is set when the fill
  *   escaped through a gap in the outline and ate most of the art; `deepened` is
  *   the fraction of pixels the deepen pass moved.
  */
 export async function cutout(input, opts = {}) {
-  const { tolerance = 52, size = 512, padding = 0.04, deepen = null } = opts;
+  const { tolerance = 52, size = 512, padding = 0.04, deepen = null, translucent = null } = opts;
 
   // Flatten onto white first: if the source already carries alpha we want a
   // known paper colour under it rather than black fringing.
@@ -149,6 +151,7 @@ export async function cutout(input, opts = {}) {
   const coverage = kept / (w * h);
 
   const deepened = deepen ? deepenNeutrals(data, w * h, deepen) : 0;
+  const seeThrough = translucent != null ? translucentInteriors(data, w, h, { alpha: translucent }) : 0;
 
   // A closed outline yields something in the 8-45% range for these sprites.
   // Far above that means the fill never got in behind the art (paper colour
@@ -196,7 +199,83 @@ export async function cutout(input, opts = {}) {
     .png({ compressionLevel: 9 })
     .toBuffer();
 
-  return { png, coverage, leak, deepened };
+  return { png, coverage, leak, deepened, seeThrough };
+}
+
+/**
+ * Make enclosed interior regions partly transparent, in place.
+ *
+ * Glasses sit over the sheep's eyes, so the lenses have to be see-through — and
+ * no prompt can produce that, because the API returns an opaque image and the
+ * lens is just a filled shape like any other. It has to be done to the alpha
+ * channel afterwards.
+ *
+ * A lens is found geometrically rather than by colour: it is the region you
+ * cannot reach from outside the sprite without crossing ink. The frame is a
+ * closed dark loop, so flooding inwards from the transparent border through
+ * non-ink pixels reaches everything EXCEPT the lens interiors. That is the same
+ * trick the background cutout uses, run once more one level further in.
+ *
+ * The frame itself is ink and keeps its full alpha, so the glasses still read as
+ * glasses — only the glass goes soft.
+ *
+ * @param {Uint8Array|Buffer} data RGBA pixels, mutated in place.
+ * @param {number} w
+ * @param {number} h
+ * @param {object} opts
+ * @param {number} opts.alpha         Target alpha for enclosed pixels, 0-255.
+ * @param {number} [opts.inkMax=78]   Luminance at or below which a pixel counts
+ *   as the ink frame. Must sit below the lens tint or the lens is mistaken for
+ *   frame and nothing is found — which is why the prompt asks for a mid smoky
+ *   grey lens rather than a black one.
+ * @returns {number} Fraction of pixels made translucent.
+ */
+export function translucentInteriors(data, w, h, { alpha, inkMax = 78 }) {
+  const n = w * h;
+  const isInk = (p) => {
+    const i = p * 4;
+    if (data[i + 3] < 8) return false; // transparent is not ink
+    return 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2] <= inkMax;
+  };
+  const isOutside = (p) => data[p * 4 + 3] < 8;
+
+  /* Reachable = transparent background, plus any non-ink pixel connected to it.
+   * Anything left over is walled in by ink. */
+  const reached = new Uint8Array(n);
+  const stack = [];
+  const push = (p) => {
+    if (reached[p] || isInk(p)) return;
+    reached[p] = 1;
+    stack.push(p);
+  };
+
+  for (let x = 0; x < w; x++) {
+    if (isOutside(x)) push(x);
+    if (isOutside((h - 1) * w + x)) push((h - 1) * w + x);
+  }
+  for (let y = 0; y < h; y++) {
+    if (isOutside(y * w)) push(y * w);
+    if (isOutside(y * w + w - 1)) push(y * w + w - 1);
+  }
+
+  while (stack.length) {
+    const p = stack.pop();
+    const x = p % w;
+    const y = (p - x) / w;
+    if (x > 0) push(p - 1);
+    if (x < w - 1) push(p + 1);
+    if (y > 0) push(p - w);
+    if (y < h - 1) push(p + w);
+  }
+
+  let moved = 0;
+  for (let p = 0; p < n; p++) {
+    if (reached[p] || isInk(p)) continue;
+    if (data[p * 4 + 3] < 8) continue; // already background
+    data[p * 4 + 3] = Math.min(data[p * 4 + 3], alpha);
+    moved++;
+  }
+  return moved / n;
 }
 
 /**

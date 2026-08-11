@@ -210,6 +210,16 @@ body {
 .screen > .look-scroll { grid-area: mid; }
 .screen > .look-foot { grid-area: foot; }
 
+/* The customise screen is the one screen with four bands, because the tabs must
+   stay put while the panel under them scrolls. Everything else keeps the shared
+   three-row frame, so no other screen can shift when this one changes. */
+#screen-look {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: 'head' 'tabs' 'mid' 'foot';
+}
+
+#screen-look > .look-tabs { grid-area: tabs; }
+
 /* play.js moves focus here when the phase changes under a player who was
    focused in the outgoing screen. The ring is drawn inside the edge because
    the screen is clipped to its own cell. */
@@ -495,9 +505,47 @@ body {
 
 /* Ten hue families of three shades. The families are the layout, not a wall
    of thirty squares: each strip is one hue, read light to deep. */
+/* --- the two tabs -------------------------------------------------------- */
+
+.look-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
+}
+
+/* Full-width halves rather than a pair of small tabs: this is operated with a
+   thumb, at a party, and the only two destinations should each be a target you
+   cannot miss. */
+.look-tab {
+  padding: var(--s-3) var(--s-2);
+  min-height: 2.75rem;
+  border: var(--line) solid var(--hedge);
+  border-radius: 3px;
+  background: var(--enamel-shade);
+  color: var(--hedge);
+  font-family: var(--face-ui);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+}
+
+.look-tab[aria-selected='true'] {
+  background: var(--hazard);
+  box-shadow: inset 0 -3px 0 var(--hedge);
+}
+
+.look-tab:focus-visible { outline: var(--line) solid var(--hedge); outline-offset: 2px; }
+
+.look-panel { display: grid; gap: var(--s-4); }
+.look-panel[hidden] { display: none; }
+
+/* Colour families, now that no chip carries a printed name. Three shades stack
+   inside a family and the families flow across, so a column reads as one hue
+   from pale to deep — which is the only structure left once the words are gone. */
 .fam-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
   gap: var(--s-3);
 }
 
@@ -548,12 +596,34 @@ body {
   text-wrap: balance;
 }
 
+/* 2.75rem is the floor, not the look: with the name gone the swatch IS the
+   control, and it has to stay a thumb-sized target rather than shrinking to
+   the size of the colour it shows. */
 .chip-swatch {
   width: 100%;
-  height: 2rem;
+  height: 2.75rem;
   border: var(--line-hair) solid var(--hedge);
   border-radius: 2px;
 }
+
+/* Unavailable used to be carried by striking out the name. With no name on
+   screen the swatch has to say it itself — a bar across the colour, in ink so
+   it reads on a pale fleece and on a deep one alike. */
+.chip--colour .chip-swatch { position: relative; }
+
+.chip--colour[data-state='clash'] .chip-swatch::after,
+.chip--colour[data-state='spent'] .chip-swatch::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: calc(50% - 1.5px);
+  height: 3px;
+  background: var(--hedge);
+  box-shadow: 0 -2px 0 var(--enamel), 0 2px 0 var(--enamel);
+}
+
+.chip--colour[data-state='spent'] .chip-swatch { opacity: 0.5; }
 
 .chip-hat {
   width: 2.6rem;

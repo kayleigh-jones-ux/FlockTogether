@@ -68,6 +68,23 @@ export const FLEECE_COLOURS = Object.freeze([
   { id: 'clover',       name: 'Clover',        hex: '#eeb0d0', family: 'pink' },
   { id: 'foxglove',     name: 'Foxglove',      hex: '#cc4f92', family: 'pink' },
   { id: 'mulberry',     name: 'Mulberry',      hex: '#862c5c', family: 'pink' },
+
+  /* Real sheep colours, which the ten hue families conspicuously lacked.
+   *
+   * Two of these need care rather than a swatch off a wheel. WHITE has to be
+   * distinguishable from the enamel an unchosen sheep already is, or a player
+   * who picks it appears not to have chosen at all — so it is cooler and
+   * lighter than the default fleece rather than the same. BLACK has to stay off
+   * the hedgerow ink (#12180f) it is outlined in; a true black fleece swallows
+   * its own outline and the sheep stops having a shape. #2c302b is dark enough
+   * to read as a black sheep and light enough to keep the line around it. */
+  { id: 'white',        name: 'White',         hex: '#f7f5ef', family: 'stone' },
+  { id: 'grey',         name: 'Grey',          hex: '#a9ada3', family: 'stone' },
+  { id: 'black',        name: 'Black',         hex: '#2c302b', family: 'stone' },
+
+  { id: 'fawn',         name: 'Fawn',          hex: '#d7b189', family: 'brown' },
+  { id: 'toffee',       name: 'Toffee',        hex: '#a06a3c', family: 'brown' },
+  { id: 'bark',         name: 'Bark',          hex: '#5c3a1e', family: 'brown' },
 ]);
 
 /* --- Hats ----------------------------------------------------------------
@@ -87,10 +104,8 @@ export const HATS = Object.freeze([
   { id: 'bucket',       name: 'Bucket hat',    tall: false },
   { id: 'beanie',       name: 'Beanie',        tall: false },
   { id: 'beret',        name: 'Beret',         tall: false },
-  { id: 'headscarf',    name: 'Headscarf',     tall: false },
   { id: 'visor',        name: 'Sun visor',     tall: false },
   { id: 'baseball-cap', name: 'Baseball cap',  tall: false },
-  { id: 'earmuffs',     name: 'Earmuffs',      tall: false },
   { id: 'daisy-chain',  name: 'Daisy chain',   tall: false },
   { id: 'bowler',       name: 'Bowler',        tall: true },
   { id: 'deerstalker',  name: 'Deerstalker',   tall: true },

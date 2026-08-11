@@ -146,13 +146,17 @@ input[type='number'] { width: 6.5rem; font-variant-numeric: tabular-nums; }
   min-height: 44vh;
 }
 
-.sheep { position: relative; width: min(460px, 70vw); user-select: none; }
-.sheep__art { display: block; width: 100%; height: auto; }
+/* isolate so a prop sent behind the sheep stops at the sheep and does not fall
+   through to the pen. Without it a negative-stacking child escapes to whatever
+   ancestor happens to own the stacking context. */
+.sheep { position: relative; width: min(460px, 70vw); user-select: none; isolation: isolate; }
+.sheep__art { display: block; width: 100%; height: auto; position: relative; z-index: 1; }
 
 /* The player's colour, painted through the fleece mask exactly as the game
    does it — so a hat is judged on a sheep that looks like a real one. */
 .sheep__fleece {
   position: absolute; inset: 0;
+  z-index: 2;
   background: var(--fleece, transparent);
   mix-blend-mode: multiply;
   -webkit-mask-image: var(--fleece-mask);
@@ -190,8 +194,8 @@ input[type='number'] { width: 6.5rem; font-variant-numeric: tabular-nums; }
   border: var(--line-hair) solid #2c3823; border-radius: 4px;
 }
 
-.flock__cell { position: relative; width: 86px; flex: none; }
-.flock__cell img.s { display: block; width: 100%; height: auto; }
+.flock__cell { position: relative; width: 86px; flex: none; isolation: isolate; }
+.flock__cell img.s { display: block; width: 100%; height: auto; position: relative; z-index: 1; }
 .flock__cell img.h { position: absolute; }
 .flock__cell figcaption {
   font-size: 0.66rem; color: var(--stubble-pale); text-align: center;

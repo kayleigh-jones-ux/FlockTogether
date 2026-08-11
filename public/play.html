@@ -100,16 +100,24 @@
         </div>
       </div>
 
+      <!-- Two tabs, not one scroll. Thirty-six colours and forty hats in a
+           single column meant scrolling past everything you did not want to
+           reach the other half; either choice is now one thumb-reach away. -->
+      <div class="look-tabs" role="tablist" aria-label="What to change">
+        <button class="look-tab" type="button" role="tab" id="tab-colour"
+                aria-controls="panel-colour" aria-selected="true">Colour</button>
+        <button class="look-tab" type="button" role="tab" id="tab-hat"
+                aria-controls="panel-hat" aria-selected="false" tabindex="-1">Hat</button>
+      </div>
+
       <div class="look-scroll" id="look-scroll">
-        <div class="look-group">
-          <h3 class="legend look-legend" id="colour-legend">Fleece colour</h3>
-          <!-- Ten families of three shades, built by play.js from look.js. -->
-          <div class="fam-grid" id="colour-grid" role="group" aria-labelledby="colour-legend"></div>
+        <div class="look-panel" id="panel-colour" role="tabpanel" aria-labelledby="tab-colour">
+          <!-- Twelve families of three shades, built by play.js from look.js. -->
+          <div class="fam-grid" id="colour-grid" role="group" aria-label="Fleece colour"></div>
         </div>
 
-        <div class="look-group">
-          <h3 class="legend look-legend" id="hat-legend">Hat</h3>
-          <div class="hat-grid" id="hat-grid" role="group" aria-labelledby="hat-legend"></div>
+        <div class="look-panel" id="panel-hat" role="tabpanel" aria-labelledby="tab-hat" hidden>
+          <div class="hat-grid" id="hat-grid" role="group" aria-label="Hat"></div>
         </div>
       </div>
 

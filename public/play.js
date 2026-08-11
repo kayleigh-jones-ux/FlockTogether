@@ -54,6 +54,11 @@ const el = {
   lookName: $('look-name'),
   colourGrid: $('colour-grid'),
   hatGrid: $('hat-grid'),
+  lookScroll: $('look-scroll'),
+  tabColour: $('tab-colour'),
+  tabHat: $('tab-hat'),
+  panelColour: $('panel-colour'),
+  panelHat: $('panel-hat'),
   lookNote: $('look-note'),
   lookGo: $('look-go'),
   lookBack: $('look-back'),
@@ -497,6 +502,53 @@ function isLocked() {
   return !!(you && (you.locked || you.look));
 }
 
+/* --- the two tabs --------------------------------------------------------
+   Both panels stay in the DOM and only one is shown: rebuilding a grid of
+   seventy-odd chips on every tab press would drop the scroll position and
+   re-run every image, and the hidden panel costs nothing to leave standing. */
+
+let lookTab = 'colour';
+
+function setLookTab(which, { focus = false } = {}) {
+  lookTab = which === 'hat' ? 'hat' : 'colour';
+  const onColour = lookTab === 'colour';
+
+  el.tabColour.setAttribute('aria-selected', String(onColour));
+  el.tabHat.setAttribute('aria-selected', String(!onColour));
+  /* Roving tabindex: the tablist is one stop, arrow keys move within it. */
+  el.tabColour.tabIndex = onColour ? 0 : -1;
+  el.tabHat.tabIndex = onColour ? -1 : 0;
+
+  el.panelColour.hidden = !onColour;
+  el.panelHat.hidden = onColour;
+
+  /* Each tab keeps its own scroll, so switching back does not dump them at the
+     top of a list they had already worked their way down. */
+  el.lookScroll.scrollTop = onColour ? colourScrollTop : hatScrollTop;
+  if (focus) (onColour ? el.tabColour : el.tabHat).focus();
+}
+
+let colourScrollTop = 0;
+let hatScrollTop = 0;
+
+if (el.lookScroll) {
+  el.lookScroll.addEventListener('scroll', () => {
+    if (lookTab === 'colour') colourScrollTop = el.lookScroll.scrollTop;
+    else hatScrollTop = el.lookScroll.scrollTop;
+  });
+}
+
+el.tabColour.addEventListener('click', () => setLookTab('colour'));
+el.tabHat.addEventListener('click', () => setLookTab('hat'));
+
+for (const tab of [el.tabColour, el.tabHat]) {
+  tab.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    ev.preventDefault();
+    setLookTab(lookTab === 'colour' ? 'hat' : 'colour', { focus: true });
+  });
+}
+
 /* --- building the chips, once ------------------------------------------- */
 
 function colourChip(colour) {
@@ -508,8 +560,14 @@ function colourChip(colour) {
   swatch.className = 'chip-swatch';
   swatch.style.background = fleeceValue(colour);
 
+  /* The name is spoken, never printed. Thirty-six swatches with "Stubble gold"
+     under each one is a wall of text you have to read to use; without it the
+     grid is scannable by colour, which is the only way anyone picks a colour
+     anyway. It stays in the accessible name because a swatch that is only a
+     colour is unusable to anyone who cannot see it — and unspeakable to voice
+     control, which needs something to say. */
   const name = document.createElement('span');
-  name.className = 'chip-name';
+  name.className = 'visually-hidden';
   name.textContent = colour.name;
 
   chip.append(swatch, name);

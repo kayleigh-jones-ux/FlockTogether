@@ -207,14 +207,6 @@
     </g>
   </symbol>
 
-  <!-- Headscarf. Tied off at the back, knot and all. -->
-  <symbol id="sp-hat-headscarf" viewBox="0 0 60 60">
-    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
-      <path fill="var(--raddle-2)" d="M13 56a17 16 0 0 1 34 0Z"/>
-      <path fill="var(--raddle-2)" d="M16 48c-7-1-11 3-10 6s7 3 10 0Z"/>
-    </g>
-  </symbol>
-
   <!-- Sun visor. A band and a peak, open over the top. -->
   <symbol id="sp-hat-visor" viewBox="0 0 60 60">
     <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
@@ -228,15 +220,6 @@
     <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
       <path fill="var(--raddle-3)" d="M42 49c8 1 14 4 14 6s-7 3-14 2Z"/>
       <path fill="var(--raddle-3)" d="M14 55a16 15 0 0 1 32 0Z"/>
-    </g>
-  </symbol>
-
-  <!-- Earmuffs. Band over the crown, a muff at each ear. -->
-  <symbol id="sp-hat-earmuffs" viewBox="0 0 60 60">
-    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
-      <path fill="none" d="M14 50a16 16 0 0 1 32 0"/>
-      <circle cx="14" cy="50" r="7" fill="var(--tractor-red)"/>
-      <circle cx="46" cy="50" r="7" fill="var(--tractor-red)"/>
     </g>
   </symbol>
 

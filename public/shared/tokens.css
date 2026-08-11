@@ -126,6 +126,16 @@
   --fleece-foxglove: #cc4f92;
   --fleece-mulberry: #862c5c;
 
+  /* The colours a sheep actually comes in. White is cooler than --enamel on
+     purpose, so a chosen white sheep does not read as an unchosen one; black
+     stays off --hedge so a black fleece keeps the outline that gives it shape. */
+  --fleece-white: #f7f5ef;
+  --fleece-grey: #a9ada3;
+  --fleece-black: #2c302b;
+  --fleece-fawn: #d7b189;
+  --fleece-toffee: #a06a3c;
+  --fleece-bark: #5c3a1e;
+
   /* --- Type ------------------------------------------------------------  */
   --face-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
   --face-ui: 'Archivo', ui-sans-serif, system-ui, sans-serif;

@@ -14,6 +14,16 @@
  *   scale  hat width as a fraction of the sheep's width
  *   rot    degrees, clockwise
  *   flip   mirror horizontally
+ *   behind draw the prop UNDER the sheep instead of over it
+ *
+ * `behind` buys depth for nothing. A fish or a pigeon tucked behind the head
+ * reads as peeking out from behind the sheep, where the same sprite drawn on
+ * top reads as stuck to its face. It is also the only way to make something
+ * large — a UFO, a rain cloud — hover without burying the head it belongs to.
+ *
+ * The fleece tint never touches a prop drawn behind: the colour is painted
+ * through the fleece mask, so it only exists where the wool is, and the wool is
+ * opaque. Whatever sticks out past the body is untinted, which is what you want.
  *
  * `flip` exists because the sheep always faces right and the props do not. Each
  * was generated alone, with nothing to face, so a fish or a pigeon comes back
@@ -38,7 +48,13 @@ export const DEFAULT_PLACEMENT = Object.freeze({
   scale: 0.34,
   rot: 0,
   flip: false,
+  behind: false,
 });
+
+/* Layer numbers, shared so the admin bench and the two surfaces cannot disagree
+   about what "behind" means. The fleece tint sits between the art and anything
+   drawn over it, because it must colour the wool without colouring the hat. */
+export const LAYER = Object.freeze({ behind: 0, sheep: 1, fleece: 2, hat: 3 });
 
 export const PLACEMENTS = {
   /* Tuned via /admin. Anything absent falls back to DEFAULT_PLACEMENT and is

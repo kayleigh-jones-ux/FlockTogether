@@ -1,0 +1,115 @@
+/* The question editor. Shares the hat bench's workbench chrome (admin.css) and
+   adds only what a dense editable list needs: this is Operate, so scanability
+   and a stable row rhythm outrank expression. */
+
+.qwork { padding: var(--s-4); display: grid; gap: var(--s-4); max-width: 62rem; }
+
+/* ------------------------------------------------------------------ gate */
+
+.gate {
+  display: grid;
+  gap: var(--s-3);
+  justify-items: start;
+  max-width: 34rem;
+  padding: var(--s-5);
+  border: var(--line) solid #2c3823;
+  border-radius: 4px;
+  background: #0b0e08;
+}
+
+.gate h2 { margin: 0; font-size: 1rem; color: var(--enamel); }
+.gate p { margin: 0; color: #93a086; line-height: 1.5; }
+.gate code { color: var(--hazard); }
+.gate input { width: 100%; }
+.gate__err { color: var(--tractor-red); font-weight: 700; min-height: 1.2em; }
+
+/* --------------------------------------------------------------- toolbar */
+
+.qtools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.qtools__spacer { flex: 1; }
+.qtools .search { padding: 0; border: 0; }
+.qtools .search input { min-width: 12rem; }
+
+.rule {
+  margin: 0;
+  padding: var(--s-3);
+  border-left: 3px solid var(--hazard);
+  background: #10160c;
+  color: #93a086;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------------ list */
+
+.qlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+
+/* One grid, so the switch, the timer and the delete stay in the same column on
+   every row no matter how long the question wraps. A ragged right edge in a
+   list this long is what makes it unscannable. */
+.qrow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 5.5rem auto;
+  align-items: start;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border: var(--line-hair) solid #1e2718;
+  border-radius: 3px;
+  background: #0b0e08;
+}
+
+.qrow:focus-within { border-color: #46592f; }
+
+/* A question that is off is still readable — it is a question you might switch
+   back on, not a deleted one — but it stops competing with the live ones. */
+.qrow[data-on='false'] { opacity: 0.55; }
+.qrow[data-on='false'] .q-text { text-decoration: line-through; }
+
+.qrow[hidden] { display: none; }
+
+.qrow__on { display: flex; align-items: center; min-height: 2rem; }
+.qrow__on input { accent-color: var(--hazard); width: 17px; height: 17px; }
+
+.qrow__text { display: block; min-width: 0; }
+
+.q-text {
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  font: inherit;
+  line-height: 1.4;
+  color: var(--buff);
+  background: transparent;
+  border: 0;
+  padding: 6px 0;
+}
+.q-text:focus { outline: none; }
+
+.q-secs { width: 100%; text-align: right; }
+
+.qrow__len {
+  grid-column: 2;
+  font-size: var(--bench-micro, 0.68rem);
+  color: #7d8a71;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The length warning fires well before the server's limit: a question that is
+   technically accepted but sets three lines deep on the display has already
+   failed the surface it exists for. */
+.qrow[data-long='true'] .qrow__len { color: var(--hazard); font-weight: 700; }
+
+.qrow__del {
+  padding: 5px 9px;
+  background: transparent;
+  border-color: #2c3823;
+  color: #93a086;
+}
+.qrow__del:hover { background: #2a1410; border-color: var(--tractor-red); color: var(--enamel); }
+
+.qsave { min-height: 1.4em; color: var(--hazard); font-weight: 700; }
+.qsave[data-state='bad'] { color: var(--tractor-red); }
+
+@media (max-width: 620px) {
+  .qrow { grid-template-columns: auto minmax(0, 1fr) 4.5rem; }
+  .qrow__del { grid-column: 3; justify-self: end; }
+}

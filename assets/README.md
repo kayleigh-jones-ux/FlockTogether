@@ -110,6 +110,22 @@ next to the prompt they apply to:
   blank white oval where the face would be, twice, and the antlers and
   deely-boppers came back as wide ovals rather than headbands. What worked was
   describing the object as cloth or as a strip seen edge-on, and refusing the
-  hole in as many words as possible.
+  hole in as many words as possible. The headscarf was dropped in the end.
+- **"Remove X" leaves X's fittings behind.** Dropping the sou'wester's chin strap
+  left the buckle loop stitched under the brim; dropping the headband from the
+  antlers and the deely-boppers left a curved connector across their feet. Naming
+  the part is not enough — the fix is to describe the halves as fully separate
+  objects with a gap between them, and to refuse each fitting by name.
+- **Two halves drawn separately drift apart in colour.** The moment the antlers
+  stopped sharing a base they came back one grey and one brown, so anything drawn
+  as a separated pair has to say the two are the same colour.
+- **See-through glass is an alpha edit, not a prompt.** The API returns an opaque
+  image, so a lens can only be made transparent afterwards. `translucentInteriors`
+  finds a lens geometrically — it is the region you cannot reach from outside
+  without crossing ink, the background flood fill run one level further in — and
+  fades and tints it. That also means the sunglasses/reading-glasses distinction
+  is two numbers in the manifest that `--reprocess` retunes for free, rather than
+  a prompt that has to be re-rolled. A lens must not be near-black in the prompt,
+  or it is indistinguishable from the ink frame and the region is never found.
 - **Numerals survive better described as shapes.** "The single large digit 1"
   renders reliably; quoted text does not. Still checked by eye every run.

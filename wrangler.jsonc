@@ -15,14 +15,23 @@
   //
   // NEVER make this a single global object. Rooms are independent parties and
   // must not queue behind each other.
+  // QUESTIONS is deliberately a single object: the bank belongs to the game
+  // rather than to a party, so every room reads the same one and an edit is
+  // live for the next room that asks. Small, rarely written, frequently read.
   "durable_objects": {
-    "bindings": [{ "name": "ROOM", "class_name": "Room" }]
+    "bindings": [
+      { "name": "ROOM", "class_name": "Room" },
+      { "name": "QUESTIONS", "class_name": "QuestionBank" }
+    ]
   },
 
   // SQLite-backed, so a room survives eviction between rounds. A party has long
   // idle stretches — everyone staring at the display, nobody touching a phone —
   // and hibernation is what makes those free.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Room"] },
+    { "tag": "v2", "new_sqlite_classes": ["QuestionBank"] }
+  ],
 
   // The two front ends ship as static assets. Anything that does not match a
   // file falls through to the Worker, which is how "/", "/play", "/socket" and

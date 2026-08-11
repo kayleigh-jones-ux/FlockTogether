@@ -8,8 +8,46 @@
  */
 
 import { Room } from './room';
+import { QuestionBank } from './questions';
 
-export { Room };
+export { Room, QuestionBank };
+
+/* The hat bench changes nothing on the server — it hands you source to paste —
+ * so an unguessable address is proportionate protection for it. The question
+ * editor is different: it writes state every room then plays from, on a public
+ * workers.dev URL. So it takes a token, and it FAILS CLOSED. With no
+ * ADMIN_TOKEN set nothing is editable at all, rather than everything being
+ * editable by anyone who tries /api/questions.
+ */
+function authorise(request: Request, env: Env): Response | null {
+  const expected = env.ADMIN_TOKEN;
+  if (!expected) {
+    return Response.json(
+      {
+        error: 'No ADMIN_TOKEN is set, so the question editor is locked.',
+        fix: 'npx wrangler secret put ADMIN_TOKEN',
+      },
+      { status: 503 },
+    );
+  }
+  const header = request.headers.get('Authorization') ?? '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+
+  /* Compared in constant time. The difference is unmeasurable over the public
+     internet, but a token check that returns early on the first wrong byte is
+     the kind of thing that gets copied into somewhere it does matter. */
+  if (!safeEqual(token, expected)) {
+    return Response.json({ error: 'Wrong or missing token.' }, { status: 401 });
+  }
+  return null;
+}
+
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
 
 /* Codes are read aloud off a TV and typed on a phone in a dim room, so the
    alphabet drops every glyph that gets misread: no O, 0, I, 1 or L. */
@@ -100,6 +138,35 @@ export default {
        it needs no auth beyond being an address nobody guesses. */
     if (url.pathname === '/admin') {
       return asset(env, request, '/admin.html');
+    }
+    if (url.pathname === '/admin/questions') {
+      return asset(env, request, '/questions.html');
+    }
+
+    /* --- the question bank --------------------------------------------- */
+    if (url.pathname === '/api/questions') {
+      const denied = authorise(request, env);
+      if (denied) return denied;
+
+      const bank = env.QUESTIONS.getByName('bank');
+
+      if (request.method === 'GET') {
+        return Response.json(await bank.list());
+      }
+      if (request.method === 'PUT') {
+        let body: unknown;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: 'That was not JSON.' }, { status: 400 });
+        }
+        const result = await bank.replaceAll((body as { questions?: unknown })?.questions ?? body);
+        return Response.json(result, { status: 'error' in result ? 400 : 200 });
+      }
+      if (request.method === 'POST' && url.searchParams.get('reset') === 'seed') {
+        return Response.json(await bank.resetToSeed());
+      }
+      return new Response('Method not allowed.', { status: 405 });
     }
 
     /* Everything else that reaches here matched no asset. */

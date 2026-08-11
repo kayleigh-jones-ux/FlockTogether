@@ -122,7 +122,8 @@ const HAT_DESCRIPTIONS = {
   'sou-wester':
     "a bright yellow rain hat (a sou'wester) seen from the side, with a small rounded crown and a markedly " +
     'asymmetric brim: short and turned up at the front, sweeping long and wide at the back to throw rain off the neck. ' +
-    'Just the hat: NO chin strap, no cord, no tie, no ribbon and nothing hanging down from it',
+    'Just the bare hat and nothing else: NO chin strap, no cord, no tie, no ribbon, NO buckle, NO loop, NO tab, ' +
+    'no clasp, no ring, no fastening of any kind, and nothing at all hanging from or attached under the brim',
   boater:
     'a boater hat in pale straw yellow with a completely flat circular top, a low straight crown, ' +
     'a narrow flat brim, and a red ribbon band',
@@ -163,7 +164,9 @@ const HAT_DESCRIPTIONS = {
    * head-shaped hole, which is the one thing these props must never show. */
   antlers:
     'two separate brown branching deer antlers, seen straight from the front, standing apart from each other with a ' +
-    'clear empty gap between them and nothing at all connecting them. Each antler is a bare branching horn that simply ' +
+    'clear empty gap between them and nothing at all connecting them. BOTH antlers are filled with exactly the same ' +
+    'single shade of warm brown as each other — a matching mirrored pair, never two different colours. ' +
+    'Each antler is a bare branching horn that simply ' +
     'ends at the bottom. NO headband, no hairband, no strip, no band, no ring, no oval, no base, no mount, ' +
     'and absolutely nothing white or curved joining them along the bottom',
   /* Only earns its own slot if it is obviously not the cowboy hat, so the height
@@ -296,18 +299,20 @@ const SILLY = {
     translucent: { alpha: 178, darken: 0.42 },
     description:
       'a pair of sunglasses seen straight from the front, with two big round lenses in thick black frames and short arms ' +
-      'out to each side. The two lenses sit CLOSE TOGETHER, almost touching, joined by a very SHORT NARROW nose bridge ' +
-      'that is just a small notch between them — not a long wide bridge. ' +
+      'out to each side. The two lenses are pushed RIGHT UP AGAINST each other so their rims very nearly touch in the middle, ' +
+      'joined by a tiny nose bridge that is barely more than the point where the two rims meet. ' +
+      'The gap between the lenses is as small as it can be — no long bridge, no wide gap, no space between them. ' +
       'Each lens is filled with a flat medium smoky grey-blue tint, clearly lighter than the black frame around it, ' +
       'like a tinted glass you can see through — not solid black, not opaque, not dark',
   },
   'reading-glasses': {
     sitsOn: 'eyes',
-    translucent: { alpha: 58, darken: 1.12 },
+    translucent: { alpha: 38, darken: 1.25 },
     description:
       'a pair of round reading glasses seen straight from the front, with thin dark wire frames and short arms out to ' +
-      'each side. The two lenses sit CLOSE TOGETHER, almost touching, joined by a very SHORT NARROW nose bridge that is ' +
-      'just a small notch between them — not a long wide bridge. ' +
+      'each side. The two lenses are pushed RIGHT UP AGAINST each other so their rims very nearly touch in the middle, ' +
+      'joined by a tiny nose bridge that is barely more than the point where the two rims meet. ' +
+      'The gap between the lenses is as small as it can be — no long bridge, no wide gap, no space between them. ' +
       'Each lens is filled with a flat very pale cool grey, like plain clear glass you look straight through',
   },
   'rubber-duck': {
@@ -393,10 +398,11 @@ const SILLY = {
   'deely-boppers': {
     sitsOn: 'crown',
     description:
-      'a pair of novelty party deely-boppers on their own, seen straight from the FRONT: two thin bouncy coiled springs ' +
-      'rising apart from a small shared base at the bottom, each topped with a round glittery pink ball. ' +
-      'Just the two springs and their balls: NO headband, no hairband, no strip, no band, no ring, no oval, no disc, ' +
-      'and no line joining them across the bottom',
+      'two completely separate novelty party deely-bopper springs, seen straight from the FRONT, standing apart from ' +
+      'each other with a clear empty gap between them and nothing whatsoever connecting them. Each is one thin bouncy ' +
+      'coiled spring topped with a round glittery pink ball, and each simply ends at the bottom. Both springs and both ' +
+      'balls are exactly the same colours as each other. NO headband, no hairband, no strip, no band, no ring, no oval, ' +
+      'no disc, no base, and absolutely nothing curved or white joining them along the bottom',
   },
   ufo: {
     sitsOn: 'crown',

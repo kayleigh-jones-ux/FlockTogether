@@ -1,0 +1,55 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "flock-together",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-01",
+
+  // The Claude grouping call goes through @anthropic-ai/sdk, and the QR encoder
+  // reaches for Buffer. Both are fine on workerd with the Node compat layer.
+  "compatibility_flags": ["nodejs_compat"],
+
+  // One Durable Object per room. A room is the coordination atom: it owns the
+  // phase, every player, every hidden answer, and the sockets of everyone
+  // looking at it. Routing is by the 4-character room code via getByName, so
+  // the code a player types off the TV lands them in exactly the right object.
+  //
+  // NEVER make this a single global object. Rooms are independent parties and
+  // must not queue behind each other.
+  "durable_objects": {
+    "bindings": [{ "name": "ROOM", "class_name": "Room" }]
+  },
+
+  // SQLite-backed, so a room survives eviction between rounds. A party has long
+  // idle stretches — everyone staring at the display, nobody touching a phone —
+  // and hibernation is what makes those free.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+
+  // The two front ends ship as static assets. Anything that does not match a
+  // file falls through to the Worker, which is how "/", "/play", "/socket" and
+  // "/healthz" reach the fetch handler without needing run_worker_first.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+
+  "observability": {
+    "enabled": true
+  },
+
+  // The knobs that were environment variables on the Node server. PUBLIC_URL is
+  // deliberately absent: on Workers the join URL is derived from the request's
+  // own origin, which is always correct and never needs configuring.
+  "vars": {
+    "ANSWER_SECONDS": "45",
+    "REVEAL_MS": "9000",
+    "SCORES_MS": "8000",
+    "LOBBY_MIN_PLAYERS": "2",
+    "MAX_PLAYERS": "20",
+    "DEFAULT_ROUNDS": "9"
+  }
+
+  // ANTHROPIC_API_KEY is a SECRET, never a var. Set it with:
+  //   npx wrangler secret put ANTHROPIC_API_KEY
+  // and put it in .dev.vars for local development. Without it, grouping falls
+  // back to text matching exactly as it does on the Node server.
+}

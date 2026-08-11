@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    /* workerd is a modern V8 isolate, not Node and not a browser. Target it
+       directly rather than downlevelling to something it does not need. */
+    "target": "es2022",
+    "lib": ["es2022"],
+    "module": "es2022",
+    "moduleResolution": "bundler",
+
+    /* Cloudflare's generated runtime types. Regenerate with `npm run cf:types`
+       after ANY change to wrangler.jsonc — the Env interface is derived from
+       the bindings there, so a new binding is invisible until you do. */
+    "types": ["./worker-configuration.d.ts"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+
+    /* The shared wire contract is imported by the Worker AND by the surfaces.
+       allowJs lets the Worker import public/shared/look.js while it is still
+       JavaScript, so the server and the phones cannot drift on what a look is
+       before the surfaces are converted. */
+    "allowJs": true,
+    "checkJs": false
+  },
+
+  /* public/ is deliberately absent for now: those files are plain ES modules
+     served as-is and are being converted separately. Adding them here before
+     they are TypeScript would report hundreds of errors that mean nothing. */
+  "include": ["worker/**/*.ts", "worker-configuration.d.ts"],
+  "exclude": ["node_modules", "dist", ".wrangler"]
+}

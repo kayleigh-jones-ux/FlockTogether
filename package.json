@@ -11,12 +11,26 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "sim": "node tools/simulate.js",
-    "bench": "node tools/build-artifact.js && node tools/verify-artifact.mjs && node tools/playtest-artifact.mjs"
+    "bench": "node tools/build-artifact.js && node tools/verify-artifact.mjs && node tools/playtest-artifact.mjs",
+
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy",
+    "cf:tail": "wrangler tail",
+    "cf:types": "wrangler types",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run cf:types && npm run typecheck && wrangler deploy --dry-run --outdir=.wrangler/dryrun"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
     "express": "^5.2.1",
     "qrcode": "^1.5.4",
     "ws": "^8.21.2"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.21.0",
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.120.1"
   }
 }

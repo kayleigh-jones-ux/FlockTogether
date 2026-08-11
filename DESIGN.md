@@ -427,6 +427,26 @@ changing family.
   signage and stencilled on bales. The 0.75rem floor is deliberate — below about
   12px, uppercase at 0.14em tracking stops being readable one-handed mid-party.
 
+#### Phone controls
+
+Three fixed steps that are not on the fluid ramp and should not be. Each is
+fixed because something other than the composition decides its size, and each
+was being read as drift for want of being written down.
+
+- **Field** (`.slot`: Archivo 700, **1.25rem**): every text input on the phone.
+  Fixed, and never below 1rem, because iOS zooms the viewport when a focused
+  input is under 16px — which on a `position: fixed` pen means the player is
+  suddenly panning around a game that no longer fits. This is a platform floor,
+  not a typographic choice, so the fluid ramp must not be allowed near it.
+- **Code field** (`.slot--code`: Numerals at **1.9rem**, ls 0.22em): the room
+  code, and only the room code. Four characters copied off a television across a
+  room, so it is sized to be legible while typing rather than to sit on the
+  ramp; the length is fixed at four, so it cannot overflow the narrowest phone.
+- **Latch** (`.latch`: Bricolage 800, **1.3rem**, min-height 60px): the one
+  primary action on any phase — send, join, confirm. Sized with the 60px target
+  rather than against other type, because it is a thumb destination first and a
+  label second.
+
 ### Named Rules
 
 **The Downscaled-Display Rule.** Every display-side size is anchored to a `vw`

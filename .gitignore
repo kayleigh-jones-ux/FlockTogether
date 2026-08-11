@@ -74,8 +74,13 @@ tmp/
 # network at a party, and self-hosted Bricolage Grotesque + Archivo are what
 # carry the display voice. Do not add public/fonts here.
 
-# Generated art. The script and its prompts are tracked; the PNGs it produced are
-# not — they are reproducible from tools/make-assets.mjs and total ~25MB. The raw
-# pre-cutout images and the run state are pure scratch.
+# Generated art. The cut-out PNGs in assets/generated ARE tracked, and so is
+# public/art — about 11MB between them. That is deliberate, and this comment used
+# to claim the opposite: they are not cheaply reproducible. Regenerating the set
+# costs a real Krea bill (~$0.065 an image) and comes back subtly different every
+# time, so losing them is losing money and continuity, not just a build step.
+#
+# The raw pre-cutout images and the run state are genuine scratch: raw/ is the
+# same art before background removal, and .state.json is one run's bookkeeping.
 assets/generated/raw/
 assets/generated/.state.json

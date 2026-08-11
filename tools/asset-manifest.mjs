@@ -162,9 +162,10 @@ const HAT_DESCRIPTIONS = {
   /* The first version left a wide pale ellipse at the base that read as an empty
    * head-shaped hole, which is the one thing these props must never show. */
   antlers:
-    'a pair of brown branching deer antlers on their own, seen straight from the front, the two antlers rising apart ' +
-    'from a small shared base at the bottom. Just the bare antlers: NO headband, no hairband, no strip, no band, ' +
-    'no ring, no oval and no line joining them across the bottom',
+    'two separate brown branching deer antlers, seen straight from the front, standing apart from each other with a ' +
+    'clear empty gap between them and nothing at all connecting them. Each antler is a bare branching horn that simply ' +
+    'ends at the bottom. NO headband, no hairband, no strip, no band, no ring, no oval, no base, no mount, ' +
+    'and absolutely nothing white or curved joining them along the bottom',
   /* Only earns its own slot if it is obviously not the cowboy hat, so the height
    * is stated as a comparison and pushed to the point of absurdity. */
   'ten-gallon':
@@ -292,7 +293,7 @@ const SILLY = {
   },
   sunglasses: {
     sitsOn: 'eyes',
-    translucent: 130,
+    translucent: { alpha: 178, darken: 0.42 },
     description:
       'a pair of sunglasses seen straight from the front, with two big round lenses in thick black frames and short arms ' +
       'out to each side. The two lenses sit CLOSE TOGETHER, almost touching, joined by a very SHORT NARROW nose bridge ' +
@@ -302,7 +303,7 @@ const SILLY = {
   },
   'reading-glasses': {
     sitsOn: 'eyes',
-    translucent: 90,
+    translucent: { alpha: 58, darken: 1.12 },
     description:
       'a pair of round reading glasses seen straight from the front, with thin dark wire frames and short arms out to ' +
       'each side. The two lenses sit CLOSE TOGETHER, almost touching, joined by a very SHORT NARROW nose bridge that is ' +

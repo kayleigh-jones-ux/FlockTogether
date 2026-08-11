@@ -524,7 +524,9 @@ body {
   background: var(--enamel-shade);
   color: var(--hedge);
   font-family: var(--face-ui);
-  font-size: 1rem;
+  /* The documented Body step. A tab label is UI text and there was no reason to
+     invent a step for it — the size it needs is one the system already has. */
+  font-size: 0.95rem;
   font-weight: 800;
   letter-spacing: 0.01em;
   cursor: pointer;

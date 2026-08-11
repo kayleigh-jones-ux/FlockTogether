@@ -151,7 +151,15 @@ export async function cutout(input, opts = {}) {
   const coverage = kept / (w * h);
 
   const deepened = deepen ? deepenNeutrals(data, w * h, deepen) : 0;
-  const seeThrough = translucent != null ? translucentInteriors(data, w, h, { alpha: translucent }) : 0;
+  const seeThrough =
+    translucent != null
+      ? translucentInteriors(
+          data,
+          w,
+          h,
+          typeof translucent === 'number' ? { alpha: translucent } : translucent,
+        )
+      : 0;
 
   // A closed outline yields something in the 8-45% range for these sprites.
   // Far above that means the fill never got in behind the art (paper colour
@@ -224,13 +232,21 @@ export async function cutout(input, opts = {}) {
  * @param {number} h
  * @param {object} opts
  * @param {number} opts.alpha         Target alpha for enclosed pixels, 0-255.
+ * @param {number} [opts.darken=1]    Multiplier applied to the enclosed region's
+ *   RGB. The model returns both pairs of glasses at much the same mid tone, so
+ *   asking for "dark" lenses is not enough to tell sunglasses from reading
+ *   glasses — and it cannot be asked for either, because a near-black lens is
+ *   indistinguishable from the ink frame and the region would never be found.
+ *   Darkening here instead keeps the region findable and the pair distinct, and
+ *   because it is a post-process both knobs can be retuned with --reprocess for
+ *   nothing rather than by regenerating.
  * @param {number} [opts.inkMax=78]   Luminance at or below which a pixel counts
  *   as the ink frame. Must sit below the lens tint or the lens is mistaken for
  *   frame and nothing is found — which is why the prompt asks for a mid smoky
  *   grey lens rather than a black one.
  * @returns {number} Fraction of pixels made translucent.
  */
-export function translucentInteriors(data, w, h, { alpha, inkMax = 78 }) {
+export function translucentInteriors(data, w, h, { alpha, darken = 1, inkMax = 78 }) {
   const n = w * h;
   const isInk = (p) => {
     const i = p * 4;
@@ -271,8 +287,14 @@ export function translucentInteriors(data, w, h, { alpha, inkMax = 78 }) {
   let moved = 0;
   for (let p = 0; p < n; p++) {
     if (reached[p] || isInk(p)) continue;
-    if (data[p * 4 + 3] < 8) continue; // already background
-    data[p * 4 + 3] = Math.min(data[p * 4 + 3], alpha);
+    const i = p * 4;
+    if (data[i + 3] < 8) continue; // already background
+    if (darken !== 1) {
+      data[i] = Math.round(data[i] * darken);
+      data[i + 1] = Math.round(data[i + 1] * darken);
+      data[i + 2] = Math.round(data[i + 2] * darken);
+    }
+    data[i + 3] = Math.min(data[i + 3], alpha);
     moved++;
   }
   return moved / n;

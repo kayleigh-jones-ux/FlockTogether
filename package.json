@@ -11,6 +11,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "sim": "node tools/simulate.js",
+    "hats": "node tools/check-hats.mjs",
     "bench": "node tools/build-artifact.js && node tools/verify-artifact.mjs && node tools/playtest-artifact.mjs",
 
     "cf:dev": "wrangler dev",

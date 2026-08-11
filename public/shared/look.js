@@ -100,7 +100,18 @@ export const HATS = Object.freeze([
   { id: 'crown',        name: 'Crown',         tall: true },
   { id: 'party-hat',    name: 'Party hat',     tall: true },
   { id: 'antlers',      name: 'Antlers',       tall: true },
+  { id: 'ten-gallon',   name: 'Ten-gallon hat', tall: true },
+  { id: 'propeller',    name: 'Propeller beanie', tall: true },
 ]);
+
+/* Adding a hat means THREE places, and they are checked against each other by
+ * `npm run hats` — nothing here is a list you can update on its own:
+ *   1. this array                          — what a player may pick
+ *   2. sprites.svg `sp-hat-<id>`           — what they actually see
+ *   3. asset-manifest.mjs HAT_DESCRIPTIONS — the words that generate its art
+ * An id present here but missing from sprites.svg is the worst of the three: it
+ * is not an error anywhere at runtime, it is a player wearing something nobody
+ * else can see. */
 
 /* Every hat symbol is authored in a 60x60 box whose BOTTOM CENTRE (30,60) sits
  * on the sheep's crown. The sheep sprite is 132x104 with its head centred near

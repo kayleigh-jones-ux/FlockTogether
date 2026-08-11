@@ -4,7 +4,11 @@
     One stroke language throughout: hedgerow ink at 5 units, round caps and
     joins, no gradients, no filters. Every symbol is flat farm hardware.
 
-    Fills are deliberately left to CSS where a symbol carries state:
+    State is driven from OUTSIDE, but only through what crosses a <use>. These
+    symbols are always drawn through <use>, so their content lives in a shadow
+    tree: a document rule like `.sheep__svg .fleece { fill: ... }` never matches
+    it. Inherited values and custom properties do get through. So a symbol that
+    carries state reads it from a property, and the class is a label only:
       .fleece  — the sheep's wool; set --fleece on any ancestor to colour it
       .raddle  — the marking dye blotch; set `color` on the <svg> to drive it
       .ink     — hedgerow-dark structure
@@ -53,12 +57,12 @@
            surfaces. Layered, the eye reads as a light disc with a dark pupil on
            a dark head and as a plain ink dot on a light one. Solid fills only:
            a ring would close up at paddock size. -->
-      <ellipse cx="113" cy="60.5" rx="7" ry="5" fill="var(--enamel)" stroke="none"/>
-      <circle cx="107.5" cy="49" r="4.5" fill="var(--enamel)" stroke="none"/>
-      <circle cx="116.5" cy="50" r="4.5" fill="var(--enamel)" stroke="none"/>
-      <circle cx="107.5" cy="49" r="2.8" fill="var(--hedge)" stroke="none"/>
-      <circle cx="116.5" cy="50" r="2.8" fill="var(--hedge)" stroke="none"/>
-      <path d="M110 59.5q3 2.8 6 0" fill="none"/>
+      <circle cx="107.5" cy="49" r="4.2" fill="var(--enamel)" stroke="none"/>
+      <circle cx="116.5" cy="50" r="4.2" fill="var(--enamel)" stroke="none"/>
+      <circle cx="107.5" cy="49" r="2.6" fill="var(--hedge)" stroke="none"/>
+      <circle cx="116.5" cy="50" r="2.6" fill="var(--hedge)" stroke="none"/>
+      <ellipse cx="112.5" cy="59.5" rx="6.6" ry="4" fill="var(--enamel)" stroke="none"/>
+      <path d="M108.6 58.4h7.8l-3.9 4.6Z" fill="var(--hedge)" stroke="none"/>
     </g>
   </symbol>
 
@@ -130,6 +134,241 @@
   <symbol id="sp-tally" viewBox="0 0 60 48">
     <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round">
       <path d="M10 8v32M22 8v32M34 8v32M46 8v32M6 40 50 8"/>
+    </g>
+  </symbol>
+
+  <!-- ======================================================================
+       HATS. Twenty symbols, one per id in look.js, every one in the same
+       60x60 box with the crown contact point at (30,60). The sheep faces
+       right, so a peak or a brim leans towards +x.
+
+       Two rules hold the set together. Anything that must survive the
+       reveal's tight paddocks sits low: the twelve hats look.js marks
+       tall:false keep out of the top third, which is the first thing a
+       cramped cell loses. And nothing crosses y=57.5 — a symbol clips at its
+       own viewBox, so a brim drawn any lower loses its ink edge.
+       ====================================================================== -->
+
+  <!-- Flat cap. Tweed, peak forward, the crown slumped low over it. -->
+  <symbol id="sp-hat-flat-cap" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--earth-deep)" d="M38 47 54 51c2 1 2 4 0 4l-16 2Z"/>
+      <path fill="var(--earth)" d="M13 53a17 13 0 0 1 34 0Z"/>
+    </g>
+  </symbol>
+
+  <!-- Bobble hat. Knitted red, turned-up cuff, enamel pom. -->
+  <symbol id="sp-hat-bobble" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--tractor-red)" d="M14 51a16 15 0 0 1 32 0Z"/>
+      <rect x="12" y="47" width="36" height="10" rx="4" fill="var(--enamel-shade)"/>
+      <circle cx="30" cy="32" r="5" fill="var(--enamel)"/>
+    </g>
+  </symbol>
+
+  <!-- Sou'wester. Yellow oilskin, brim flared all round to shed rain. -->
+  <symbol id="sp-hat-sou-wester" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--hazard)" d="M8 44c-6 8 0 13 22 13s26-6 18-13Z"/>
+      <path fill="var(--hazard)" d="M16 50a14 12 0 0 1 28 0Z"/>
+    </g>
+  </symbol>
+
+  <!-- Straw boater. Flat brim, shallow crown, ribbon band. -->
+  <symbol id="sp-hat-boater" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <ellipse cx="30" cy="51" rx="24" ry="6" fill="var(--stubble-pale)"/>
+      <path fill="var(--stubble-pale)" d="M16 51V39a2 2 0 0 1 2-2h24a2 2 0 0 1 2 2v12Z"/>
+      <rect x="19" y="42" width="22" height="6" fill="var(--tractor-red)" stroke="none"/>
+    </g>
+  </symbol>
+
+  <!-- Bucket hat. Soft canvas, brim turned down all round. -->
+  <symbol id="sp-hat-bucket" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--growth-pale)" d="M10 47c-2 6 4 10 20 10s22-4 20-10Z"/>
+      <path fill="var(--growth-pale)" d="M15 48v-4a15 8 0 0 1 30 0v4Z"/>
+    </g>
+  </symbol>
+
+  <!-- Beanie. Pulled down, deep enamel cuff, no pom — that is the bobble. -->
+  <symbol id="sp-hat-beanie" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--pasture)" d="M15 51a15 17 0 0 1 30 0Z"/>
+      <rect x="13" y="47" width="34" height="10" rx="3" fill="var(--enamel)"/>
+    </g>
+  </symbol>
+
+  <!-- Beret. Worn at a tilt, with the little stalk on top. -->
+  <symbol id="sp-hat-beret" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <ellipse cx="30" cy="47" rx="19" ry="10" fill="var(--raddle-5)" transform="rotate(-8 30 47)"/>
+      <circle cx="32" cy="36" r="3.5" fill="var(--raddle-5)"/>
+    </g>
+  </symbol>
+
+  <!-- Headscarf. Tied off at the back, knot and all. -->
+  <symbol id="sp-hat-headscarf" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--raddle-2)" d="M13 56a17 16 0 0 1 34 0Z"/>
+      <path fill="var(--raddle-2)" d="M16 48c-7-1-11 3-10 6s7 3 10 0Z"/>
+    </g>
+  </symbol>
+
+  <!-- Sun visor. A band and a peak, open over the top. -->
+  <symbol id="sp-hat-visor" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--growth)" d="M42 48c8 0 13 3 13 5s-6 4-13 4Z"/>
+      <rect x="14" y="48" width="32" height="9" rx="4" fill="var(--enamel)"/>
+    </g>
+  </symbol>
+
+  <!-- Baseball cap. Rounder and taller than the flat cap, longer peak. -->
+  <symbol id="sp-hat-baseball-cap" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--raddle-3)" d="M42 49c8 1 14 4 14 6s-7 3-14 2Z"/>
+      <path fill="var(--raddle-3)" d="M14 55a16 15 0 0 1 32 0Z"/>
+    </g>
+  </symbol>
+
+  <!-- Earmuffs. Band over the crown, a muff at each ear. -->
+  <symbol id="sp-hat-earmuffs" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="none" d="M14 50a16 16 0 0 1 32 0"/>
+      <circle cx="14" cy="50" r="7" fill="var(--tractor-red)"/>
+      <circle cx="46" cy="50" r="7" fill="var(--tractor-red)"/>
+    </g>
+  </symbol>
+
+  <!-- Daisy chain. Threaded stem, five flowers. The petals are unoutlined on
+       purpose: a 5-unit ink ring on a flower this size closes it into a dot. -->
+  <symbol id="sp-hat-daisy-chain" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="none" stroke="var(--pasture)" d="M12 52a18 12 0 0 1 36 0"/>
+      <g fill="var(--enamel)" stroke="none">
+        <circle cx="12" cy="52" r="5"/>
+        <circle cx="17" cy="44" r="5"/>
+        <circle cx="30" cy="40" r="5"/>
+        <circle cx="43" cy="44" r="5"/>
+        <circle cx="48" cy="52" r="5"/>
+      </g>
+      <g fill="var(--stubble)" stroke="none">
+        <circle cx="12" cy="52" r="2"/>
+        <circle cx="17" cy="44" r="2"/>
+        <circle cx="30" cy="40" r="2"/>
+        <circle cx="43" cy="44" r="2"/>
+        <circle cx="48" cy="52" r="2"/>
+      </g>
+    </g>
+  </symbol>
+
+  <!-- Bowler. Hard dome, tight curled brim. -->
+  <symbol id="sp-hat-bowler" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <ellipse cx="30" cy="50" rx="22" ry="7" fill="var(--hedge-soft)"/>
+      <path fill="var(--hedge-soft)" d="M16 50a14 19 0 0 1 28 0Z"/>
+    </g>
+  </symbol>
+
+  <!-- Deerstalker. A peak fore and aft, flaps tied up over the crown. -->
+  <symbol id="sp-hat-deerstalker" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--earth-deep)" d="M18 49 6 53c-1 1-1 3 0 3l12 1Z"/>
+      <path fill="var(--earth-deep)" d="M42 49 54 53c1 1 1 3 0 3l-12 1Z"/>
+      <path fill="var(--earth)" d="M14 53a16 16 0 0 1 32 0Z"/>
+      <path fill="var(--earth)" d="M30 35 21 30v10Z"/>
+      <path fill="var(--earth)" d="M30 35 39 30v10Z"/>
+    </g>
+  </symbol>
+
+  <!-- Cowboy hat. Wide curled brim, creased crown, plain band. -->
+  <symbol id="sp-hat-cowboy" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--earth-deep)" d="M4 52c8-6 44-6 52 0-6 6-46 6-52 0Z"/>
+      <path fill="var(--earth-deep)" d="M17 52c-2-14 2-22 6-22 2 0 3 3 8 3s6-3 8-3c4 0 6 8 4 22Z"/>
+      <rect x="20" y="45" width="20" height="5" fill="var(--stubble)" stroke="none"/>
+    </g>
+  </symbol>
+
+  <!-- Hard hat. Hi-vis shell with a reflective stripe — site kit, not a toy. -->
+  <symbol id="sp-hat-hard-hat" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--hazard)" d="M8 53c6-4 38-4 44 0-4 5-40 5-44 0Z"/>
+      <path fill="var(--hazard)" d="M14 53a16 18 0 0 1 32 0Z"/>
+      <rect x="19" y="46" width="22" height="4" fill="var(--enamel)" stroke="none"/>
+    </g>
+  </symbol>
+
+  <!-- Top hat. The tallest silhouette in the set, with a red band. -->
+  <symbol id="sp-hat-top-hat" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <ellipse cx="30" cy="51" rx="23" ry="6" fill="var(--hedge)"/>
+      <path fill="var(--hedge)" d="M17 51V17a2 2 0 0 1 2-2h22a2 2 0 0 1 2 2v34Z"/>
+      <rect x="20" y="40" width="20" height="7" fill="var(--tractor-red)" stroke="none"/>
+    </g>
+  </symbol>
+
+  <!-- Crown. Five points, jewelled. Gold, so it never reads as a party hat. -->
+  <symbol id="sp-hat-crown" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--hazard)" d="M14 57 12 31l10 8 8-14 8 14 10-8-2 26Z"/>
+      <circle cx="30" cy="49" r="3.5" fill="var(--tractor-red)" stroke="none"/>
+      <circle cx="21" cy="50" r="2.5" fill="var(--raddle-3)" stroke="none"/>
+      <circle cx="39" cy="50" r="2.5" fill="var(--raddle-3)" stroke="none"/>
+    </g>
+  </symbol>
+
+  <!-- Party hat. Red and white cone, pom on the point. -->
+  <symbol id="sp-hat-party-hat" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--tractor-red)" d="M16 57 30 21 44 57Z"/>
+      <g fill="var(--enamel)" stroke="none">
+        <path d="M26.5 37h7l2.5 6h-12Z"/>
+        <path d="M21.8 49h16.4l1.5 4h-19.4Z"/>
+      </g>
+      <circle cx="30" cy="19" r="4" fill="var(--enamel)"/>
+    </g>
+  </symbol>
+
+  <!-- Antlers. Stroke only: a branch has no inside to fill. -->
+  <symbol id="sp-hat-antlers" viewBox="0 0 60 60">
+    <g fill="none" stroke="var(--earth)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M26 57c-4-9-7-16-7-24"/>
+      <path d="M23 47 15 43M20 39 11 36"/>
+      <path d="M34 57c4-9 7-16 7-24"/>
+      <path d="M37 47 45 43M40 39 49 36"/>
+    </g>
+  </symbol>
+
+  <!-- Ten-gallon. Redrawn from assets/generated/hat-ten-gallon.png. Deliberately
+       NOT a bigger cowboy hat in the same brown: side by side at sheep size the
+       two would read as one hat picked twice, and the whole point of a look is
+       that it is yours. So the crown goes pale tan over a cream brim, and the
+       silhouette does the rest — the tallest crown in the set, on a brim wide
+       enough to overhang the sheep's whole head. -->
+  <symbol id="sp-hat-ten-gallon" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--stubble-pale)" d="M18 50c-3-20 2-38 6-38 2 0 3 4 6 4s4-4 6-4c4 0 9 18 6 38Z"/>
+      <rect x="19" y="42" width="22" height="5" fill="var(--earth-deep)" stroke="none"/>
+      <path fill="var(--enamel)" d="M3 48c8 8 46 8 54 0 1 6-10 10-27 10S2 54 3 48Z"/>
+    </g>
+  </symbol>
+
+  <!-- Propeller beanie. Redrawn from assets/generated/hat-propeller.png. The
+       four panels are separate paths rather than one dome with lines drawn over
+       it, so each panel carries the group stroke and the seams come out as real
+       outlines — at reveal size the seams are most of what says "propeller
+       beanie" before the propeller itself is resolvable. -->
+  <symbol id="sp-hat-propeller" viewBox="0 0 60 60">
+    <g stroke="var(--hedge)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="var(--raddle-3)" d="M10 55h10L30 36A20 19 0 0 0 10 55Z"/>
+      <path fill="var(--stubble)" d="M20 55h10V36Z"/>
+      <path fill="var(--tractor-red)" d="M30 55h10L30 36Z"/>
+      <path fill="var(--raddle-6)" d="M40 55h10A20 19 0 0 0 30 36Z"/>
+      <path fill="var(--steel)" d="M30 36V26"/>
+      <path fill="var(--steel)" d="M27 25c-3-5-13-5-15 0s12 5 15 0Z"/>
+      <path fill="var(--steel)" d="M33 25c3-5 13-5 15 0s-12 5-15 0Z"/>
+      <circle cx="30" cy="25" r="4" fill="var(--enamel)"/>
     </g>
   </symbol>
 </svg>

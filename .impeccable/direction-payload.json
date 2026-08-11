@@ -1,0 +1,68 @@
+{
+  "title": "Choose the visual world for Flock Together",
+  "question": "The roll assigned House Meter. Keep it, take an alternate, or re-roll.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "House Meter",
+      "kicker": "THE ROLL",
+      "lineage": "Mid-century applause meters, broadcast VU desks, backlit gauge panels",
+      "thesis": "The screen is one electromechanical instrument that measures the room, so a majority is a needle slamming over rather than a number in a list.",
+      "palette": ["#5C1A22", "#EFE6D2", "#E8A33D", "#C8322B", "#9A8F76"],
+      "materials": ["oxblood enamel panel", "ivory instrument faces", "engraved brass ticks", "incandescent lamp glow"],
+      "viewport": "A full-bleed oxblood panel: silkscreened header with a lit ROOM OPEN lamp, the question set huge on one wide ivory meter face, a ballistic timer needle sweeping an engraved scale toward a red arc, and a grid of 20 tiny round player gauges that flick from rest to deflected as each answer lands.",
+      "risk": "Instrument panels read cold and corporate if the needles do not move with real damped physics and the panel legends are set timidly.",
+      "sketch": ".impeccable/sketches/assigned.webp",
+      "board": "https://impeccable.style/worlds/cards/signals-instruments-night-flight-six-pack.webp"
+    },
+    {
+      "id": "challenger-riso",
+      "label": "Riso Overlap",
+      "lineage": "Risograph spot-ink printing, two fluoro inks misregistered on toothy paper",
+      "thesis": "Answers are flat spot-ink blocks, and where they overlap the inks multiply into a third colour, so a group is literally where the room's ink stacks up.",
+      "palette": ["#F5EFE0", "#FF4D8D", "#1F45C4", "#F0B429"],
+      "materials": ["warm paper tooth", "fluoro pink and federal blue", "halftone grain", "cut-paper blocks"],
+      "viewport": "Cut-paper answer blocks in single spot inks scattered on paper ground, sliding into overlapping stacks at reveal so the densest ink pile is the winner.",
+      "case": "Strong world and the ink-overlap metaphor is genuinely beautiful for clustering, but riso grammar has no native language for a countdown or a running tally, and its signature misregistration is a hover effect that a shared TV screen never triggers.",
+      "risk": "Loses the timer and the tally, the two things the display must show every single round.",
+      "sketch": ".impeccable/sketches/challenger-riso.webp",
+      "hero": "https://impeccable.style/worlds/cards/risograph-web-system-hero.webp"
+    },
+    {
+      "id": "challenger-album",
+      "label": "Sticker Album",
+      "lineage": "Collector sticker-album spreads with numbered ghosted slots",
+      "thesis": "Every player is a numbered slot printed with a ghosted outline, and answering fills it with a glossy sticker sitting proud of the page.",
+      "palette": ["#E7E2D6", "#B9B3A4", "#1B1B1B", "#D93F2B", "#F2C230"],
+      "materials": ["matte album paper", "ghosted outline print", "glossy proud stickers", "spot-colour dividers"],
+      "viewport": "A numbered album spread where empty slots advertise exactly who has not answered yet, filling one glossy sticker at a time.",
+      "case": "Solves the who-has-answered problem better than anything else on the table, and the nostalgia lands instantly with a party. But album slots are fixed positions by definition, so it has no grammar for rows re-sorting into ranked groups, which is the reveal.",
+      "risk": "Fuses well for the lobby and poorly for the reveal, which is the actual product.",
+      "sketch": ".impeccable/sketches/challenger-album.webp",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-sticker-album-spread.webp"
+    },
+    {
+      "id": "challenger-sixpack",
+      "label": "Night Instrument Six-Pack",
+      "lineage": "Small-aircraft night instrument panel, six luminous gauges",
+      "thesis": "Six calm luminous dials hold the room's trust through the round, read as a practiced cross-check sweep.",
+      "palette": ["#0B0B0C", "#101214", "#F2F2EF", "#7BE08A", "#E8A33D"],
+      "materials": ["matte black panel", "radium-green needle glow", "luminous white markings", "caution lamps"],
+      "viewport": "Two ranked rows of three luminous gauges on an ink-black panel, each owning one truth about the round.",
+      "case": "Same material family as the assigned direction but a quieter, dimmer rendition of it. A cockpit's whole register is calm solitary trust through cloud, which is the exact opposite of fifteen people shouting at a screen, and it lands squarely in the near-black-plus-neon-accent cluster.",
+      "risk": "Wrong emotional register for a party, and the darkest option in a screenshared video window.",
+      "sketch": ".impeccable/sketches/challenger-sixpack.webp",
+      "hero": "https://impeccable.style/worlds/cards/signals-instruments-night-flight-six-pack-hero.webp"
+    }
+  ],
+  "reroll": true,
+  "canon": true,
+  "canonCard": {
+    "label": "The category standard",
+    "thesis": "What a party game screen ships: rounded geometric sans, saturated purple-to-magenta gradient, bouncy card flips, confetti on the winner.",
+    "viewport": "Centred question card on a gradient field, answer tiles in a responsive grid, a circular countdown ring, confetti burst at reveal.",
+    "risk": "Indistinguishable from every other phone-joins-the-TV game, but instantly legible to anyone who has played one.",
+    "sketch": ".impeccable/sketches/canon.webp"
+  },
+  "steer": true
+}

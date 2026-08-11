@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flock Together</title>
+<link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/tv.css">
+</head>
+<body class="tv">
+
+<!--
+  THESIS: A majority is not a bar chart, it is the paddock the flock actually
+  crowded into. This screen refuses the party-game card grid on a purple
+  gradient; the answers occupy land, and the biggest field wins.
+  OWN-WORLD: Aerial farmland seen from above. Saturated pasture green ground,
+  fields tinted by raddle dye, every division drawn in 8px hedgerow ink. White
+  enamel farm signs are the only content wells; galvanised gate steel and
+  hazard-yellow paint are the only controls; tractor red is reserved for the
+  prize rosette. Bricolage Grotesque speaks, Archivo labels, monumental wide
+  figures count.
+  STORY: The room reads the question, everyone guesses what everyone else will
+  say, the gate shuts, the dog sorts the flock, and the paddock that filled up
+  takes the rosette.
+  FIRST VIEWPORT: Hazard-yellow gate sign across the top carrying the name, the
+  room code as a lot number and a nine-paddock rotation strip. Beneath it one
+  open field: during a question the question stands mid-field on an enamel
+  stake, monumental figures count down beside a five-bar gate swinging shut on
+  its hinge, and the flock waits as one sheep per player, fleece plain until
+  their answer sprays a raddle mark on it.
+  FORM: Paddock Rotation, candidate 7 of the ordered list, seed key 75aaed95.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+
+<header class="gatesign">
+  <h1 class="wordmark">Flock&nbsp;Together</h1>
+
+  <div class="lot" hidden data-region="lot">
+    <span class="legend lot__label">Paddock</span>
+    <strong class="numerals lot__code" data-bind="room">····</strong>
+  </div>
+
+  <nav class="rotation" hidden data-region="rotation" aria-label="Round progress">
+    <span class="legend rotation__label">Rotation</span>
+    <ol class="rotation__pips" data-bind="pips"></ol>
+  </nav>
+</header>
+
+<main class="field" data-phase="boot">
+
+  <!-- LOBBY ------------------------------------------------------------- -->
+  <section class="scene scene--lobby" data-scene="lobby" hidden>
+    <div class="joinsign enamel-sign">
+      <p class="legend joinsign__eyebrow">Scan to join the flock</p>
+      <div class="joinsign__qr" data-bind="qr"></div>
+      <p class="joinsign__url" data-bind="joinUrl"></p>
+      <p class="joinsign__code">
+        <span class="legend">or enter code</span>
+        <strong class="numerals" data-bind="roomBig">····</strong>
+      </p>
+    </div>
+
+    <div class="lobbyflock">
+      <h2 class="headline" data-bind="lobbyHeadline">Waiting for the flock</h2>
+      <p class="lobbyflock__note legend" data-bind="lobbyNote">Two sheep needed to open the gate</p>
+      <ul class="flock flock--lobby" data-bind="lobbyFlock"></ul>
+      <button class="latch" type="button" data-action="start" disabled>
+        <span class="latch__bar"></span>
+        <span class="latch__text">Open the gate</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- QUESTION ---------------------------------------------------------- -->
+  <section class="scene scene--question" data-scene="question" hidden>
+    <div class="askrow">
+      <div class="stake">
+        <h2 class="question enamel-sign" data-bind="question"></h2>
+      </div>
+
+      <div class="clock" data-state="calm">
+        <span class="legend clock__label">Gate shuts in</span>
+        <strong class="numerals clock__figures" data-bind="seconds" aria-live="off">45</strong>
+        <span class="legend clock__unit">seconds</span>
+      </div>
+    </div>
+
+    <p class="tally legend" data-bind="answerTally">0 of 0 marked</p>
+
+    <ul class="flock flock--waiting" data-bind="waitingFlock"></ul>
+
+    <div class="gate" data-bind="gate" aria-hidden="true">
+      <span class="gate__post"></span>
+      <svg class="gate__leaf" viewBox="0 0 168 104" preserveAspectRatio="none"><use href="#sp-gate"/></svg>
+    </div>
+  </section>
+
+  <!-- GROUPING ---------------------------------------------------------- -->
+  <section class="scene scene--grouping" data-scene="grouping" hidden>
+    <div class="working">
+      <svg class="working__dog" viewBox="0 0 140 96" aria-hidden="true"><use href="#sp-dog"/></svg>
+      <h2 class="headline">The dog's working</h2>
+      <p class="working__note legend">Sorting the flock into paddocks</p>
+    </div>
+  </section>
+
+  <!-- REVEAL ------------------------------------------------------------ -->
+  <section class="scene scene--reveal" data-scene="reveal" hidden>
+    <p class="legend reveal__eyebrow" data-bind="revealEyebrow">The flock sorted itself</p>
+    <ol class="paddocks" data-bind="paddocks"></ol>
+    <div class="missed" data-bind="missed" hidden>
+      <p class="legend missed__label">Missed the gate</p>
+      <ul class="missed__list" data-bind="missedList"></ul>
+    </div>
+    <p class="sourcenote legend" data-bind="sourceNote"></p>
+  </section>
+
+  <!-- SCORES / FINAL ---------------------------------------------------- -->
+  <section class="scene scene--record" data-scene="record" hidden>
+    <div class="record">
+      <div class="record__head">
+        <h2 class="headline record__title" data-bind="recordTitle">Grazing record</h2>
+        <p class="legend record__why" data-bind="recordWhy"></p>
+      </div>
+      <ol class="record__rows" data-bind="recordRows"></ol>
+    </div>
+  </section>
+
+</main>
+
+<p class="link" data-bind="link" hidden role="status"></p>
+
+<script type="module" src="/tv.js"></script>
+</body>
+</html>

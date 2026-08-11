@@ -1,0 +1,1105 @@
+/* ==========================================================================
+   FLOCK TOGETHER — THE PHONE CONTROLLER
+   Paddock Rotation, held in one hand.
+
+   This surface carries ONE decision. The room is looking at the display, so
+   nothing here competes with it: the question is the only thing to read, the
+   slate is the only thing to touch, and the raddle mark is the only reward
+   this screen needs to show — because it lands on the big screen at the same
+   moment, on the same sheep.
+
+   Every value comes from public/shared/tokens.css. Anything not defined there
+   is derived with color-mix() or calc() from something that is.
+   ========================================================================== */
+
+/* --------------------------------------------------------------- the ground */
+
+:root {
+  /* The player's own raddle. play.js overwrites this on the body the moment
+     it knows the playerId, via raddleFor() in shared/raddle.js. */
+  --mark: var(--raddle-1);
+
+  /* Reserved height for the connection strip. Always held, so a dropped
+     socket never pushes the layout down. */
+  --strip: 1.5rem;
+}
+
+/* play.js switches states with the [hidden] attribute, which is the version
+   that also leaves the accessibility tree. It must beat every author rule in
+   this file and the `svg { display: block }` reset in tokens.css. */
+[hidden] {
+  display: none !important;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  /* Aerial farmland: hedgerow lines dividing a committed pasture ground. */
+  background-color: var(--pasture-deep);
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 4.5rem,
+      color-mix(in srgb, var(--hedge) 42%, transparent) 4.5rem 4.72rem
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 7rem,
+      color-mix(in srgb, var(--hedge) 32%, transparent) 7rem 7.22rem
+    ),
+    linear-gradient(168deg, var(--pasture) 0%, var(--pasture-deep) 62%);
+  /* The controller is a fixed frame; the page itself never scrolls. */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* The whole controller is a fixed frame. --vh is written by play.js from
+   visualViewport so the send lever stays above an open keyboard.
+
+   It is also the size container every height-sensitive rule below is keyed
+   off. A `max-height` media query reads the layout viewport, which the
+   keyboard does not resize, so it can never see the frame the player is
+   actually looking at; the container can, because the frame is --vh. */
+.pen {
+  position: fixed;
+  inset: 0;
+  height: var(--vh, 100dvh);
+  container-type: size;
+  container-name: pen;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--s-3);
+  padding:
+    calc(env(safe-area-inset-top) + var(--strip) + var(--s-2))
+    calc(env(safe-area-inset-right) + var(--s-4))
+    calc(env(safe-area-inset-bottom) + var(--s-4))
+    calc(env(safe-area-inset-left) + var(--s-4));
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------ connection strip */
+
+.wire {
+  position: fixed;
+  z-index: 9;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding:
+    calc(env(safe-area-inset-top) + var(--s-1))
+    var(--s-4)
+    var(--s-1);
+  background: var(--hazard);
+  color: var(--hedge);
+  border-bottom: var(--line) solid var(--hedge);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ topbar */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 2.75rem;
+}
+
+.brand {
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  color: var(--enamel);
+}
+
+.round {
+  color: color-mix(in srgb, var(--enamel) 78%, var(--pasture));
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------- the ear tag */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  padding: var(--s-1) var(--s-3) var(--s-1) var(--s-1);
+  background: var(--enamel);
+  border: var(--line-bold) solid var(--hedge);
+  border-radius: var(--radius-sign);
+  box-shadow: var(--lift-token);
+}
+
+.tag-svg {
+  flex: none;
+  width: 2.1rem;
+  height: auto;
+  color: var(--mark); /* the tag body is fill="currentColor" */
+}
+
+.tag-name {
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1.1;
+  color: var(--hedge);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag--large {
+  padding: var(--s-2) var(--s-5) var(--s-2) var(--s-2);
+  box-shadow: var(--lift-sign);
+}
+
+.tag--large .tag-svg {
+  width: 3.6rem;
+}
+
+.tag--large .tag-name {
+  font-size: clamp(1.5rem, 8vw, 2.1rem);
+}
+
+/* -------------------------------------------------------------- the deck
+   Every screen occupies the same grid cell, so the frame never resizes and
+   a phase change cannot make the page jump. Inactive screens keep their
+   space (visibility, not display) and are taken out of the tab order. */
+
+.deck {
+  display: grid;
+  grid-template-areas: 'stack';
+  min-height: 0;
+}
+
+.screen {
+  grid-area: stack;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'head' 'mid' 'foot';
+  gap: var(--s-4);
+  min-height: 0;
+  visibility: hidden;
+  overflow: hidden;
+}
+
+/* Explicit placement. Screens without a head must still centre their middle:
+   auto-placement would otherwise shift everything up a row and stretch the
+   foot into the flexible track. */
+.screen > .screen-head { grid-area: head; }
+.screen > .stack-mid { grid-area: mid; }
+.screen > .stack-mid ~ * { grid-area: foot; }
+.screen > .q-mid { grid-area: mid; }
+.screen > .q-bottom { grid-area: foot; }
+.screen > .form { grid-area: mid; align-self: start; }
+.screen > .aside:not(.stack-mid ~ *) { grid-area: foot; }
+.screen > .look-head { grid-area: head; }
+.screen > .look-scroll { grid-area: mid; }
+.screen > .look-foot { grid-area: foot; }
+
+/* play.js moves focus here when the phase changes under a player who was
+   focused in the outgoing screen. The ring is drawn inside the edge because
+   the screen is clipped to its own cell. */
+.screen:focus-visible {
+  outline: var(--line) solid var(--hazard);
+  outline-offset: -3px;
+}
+
+.screen.is-on {
+  visibility: visible;
+  animation: arrive var(--t-base) var(--ease-out-expo) both;
+}
+
+@keyframes arrive {
+  from { opacity: 0; transform: translateY(var(--s-3)); }
+  to   { opacity: 1; transform: none; }
+}
+
+.screen-head {
+  min-width: 0;
+}
+
+/* A calm centred middle for the states with nothing to do. */
+.stack-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-4);
+  min-height: 0;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------- voices */
+
+.hero {
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: clamp(1.6rem, 8.5vw, 2.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--enamel);
+  text-wrap: balance;
+}
+
+.aside {
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--enamel) 82%, var(--pasture));
+  text-wrap: pretty;
+}
+
+.legend--onfield {
+  color: color-mix(in srgb, var(--growth-pale) 88%, var(--enamel));
+}
+
+/* Enamel sign used as a plain note. */
+.note {
+  padding: var(--s-3) var(--s-4);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+/* ============================================================= 1. JOIN === */
+
+.form {
+  align-self: start;
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-4);
+}
+
+.field {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.field .legend {
+  color: color-mix(in srgb, var(--hedge) 72%, var(--enamel));
+}
+
+/* Stock-book slot: enamel ground, hedge edge, pressed in. */
+.slot {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: var(--s-2) var(--s-3);
+  font-family: var(--face-ui);
+  font-weight: 700;
+  font-size: 1.25rem; /* >= 1.25rem so iOS never zooms on focus */
+  background: var(--enamel-shade);
+  color: var(--hedge);
+  border: var(--line-bold) solid var(--hedge);
+  border-radius: var(--radius-sign);
+  box-shadow: var(--press-in);
+}
+
+.slot--code {
+  font-family: var(--face-ui);
+  font-weight: var(--numerals-weight);
+  font-stretch: var(--numerals-stretch);
+  font-size: 1.9rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.known-room {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  color: var(--hedge);
+}
+
+.known-room .legend {
+  color: color-mix(in srgb, var(--hedge) 70%, var(--enamel));
+}
+
+.known-code {
+  font-size: 1.6rem;
+  letter-spacing: 0.16em;
+}
+
+/* Painted error: names the problem and the way out. Earth, not red —
+   tractor red belongs to winning. */
+.painted-error {
+  padding: var(--s-2) var(--s-3);
+  border: var(--line-hair) solid var(--hedge);
+  background: color-mix(in srgb, var(--stubble-pale) 55%, var(--enamel));
+  color: var(--earth-deep);
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+/* ------------------------------------------------- focus on an enamel sign
+   The shared ring in tokens.css is hazard held 3px clear of the control, and
+   hazard on enamel is 1.44:1 — on a sign the ring all but disappears, and the
+   offset keeps the control's hedge border from rescuing it. Every control in
+   the join form gets a hedge halo outside the hazard, so both edges of the
+   ring clear 3:1 (hazard on hedge 10.89:1, hedge on enamel 15.74:1). The
+   spread is the ring's own width plus its offset plus a stroke of hedge. */
+
+.form .slot:focus-visible {
+  box-shadow: var(--press-in), 0 0 0 calc(var(--line) * 3) var(--hedge);
+}
+
+.form .latch:focus-visible {
+  box-shadow: var(--lift-sign), 0 0 0 calc(var(--line) * 3) var(--hedge);
+}
+
+/* No hardware of its own, so the sign's ground is painted in behind the text
+   to stop the halo showing through it. */
+.form .quiet:focus-visible {
+  background: var(--enamel);
+  box-shadow: 0 0 0 calc(var(--line) * 3) var(--hedge);
+}
+
+/* --------------------------------------------------- the latch / the lever
+   Hazard-painted farm hardware with real press travel. */
+
+.latch {
+  display: block;
+  width: 100%;
+  min-height: 60px;
+  padding: var(--s-3) var(--s-4);
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+  background: var(--hazard);
+  color: var(--hedge);
+  border: var(--line-bold) solid var(--hedge);
+  border-radius: var(--radius-sign);
+  box-shadow: var(--lift-sign);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform var(--t-fast) var(--ease-gate),
+    box-shadow var(--t-fast) var(--ease-gate);
+}
+
+.latch:active {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 var(--hedge), 0 2px 8px -6px var(--hedge);
+}
+
+.latch[disabled] {
+  background: var(--steel);
+  color: color-mix(in srgb, var(--hedge) 62%, var(--steel));
+  transform: translateY(6px);
+  box-shadow: 0 0 0 var(--hedge);
+  cursor: default;
+}
+
+/* Quiet secondary action: chalk underline, no hardware. */
+.quiet {
+  padding: var(--s-1) 0;
+  min-height: 2.75rem;
+  background: none;
+  border: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--earth-deep);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.quiet--onfield {
+  color: var(--stubble-pale);
+}
+
+/* ===================================================== 2. CUSTOMISE =====
+   The one screen on this surface with more than one decision on it, so it is
+   built as three fixed bands: the sheep they are making, the chips they are
+   choosing from (the only thing that scrolls), and the lever. Head and foot
+   are content-sized and the middle takes the rest, so the lever sits on the
+   safe-area padding of .pen whatever the phone does. */
+
+.look-head {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+/* Silkscreened, like every other panel label — the sheep below it is what
+   carries this screen, so the title stays a label and does not compete. */
+.look-title {
+  color: color-mix(in srgb, var(--enamel) 84%, var(--pasture));
+}
+
+/* The sheep is the centrepiece: they are looking at themselves. It is given
+   the room a phone can spare and nothing is allowed to push it about — the
+   caption below it is a fixed two lines whatever the names are. */
+.look-stage {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-1);
+}
+
+.look-sheep {
+  width: min(52vw, 11rem);
+  height: auto;
+  fill: var(--enamel); /* the fleece path takes --fleece; ink stays enamel */
+}
+
+/* Names what they are looking at, so it is Archivo: this labels, it does not
+   speak. Two lines are always reserved — the longest pair of names must not
+   be able to push the sheep about as they flick through. */
+.look-name {
+  min-height: 2.6rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--enamel);
+}
+
+/* Only this band scrolls, and only inside itself. */
+.look-scroll {
+  display: grid;
+  align-content: start;
+  gap: var(--s-5);
+  min-height: 0;
+  padding-right: var(--s-1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.look-group {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.look-legend {
+  color: color-mix(in srgb, var(--enamel) 72%, var(--pasture));
+}
+
+/* Ten hue families of three shades. The families are the layout, not a wall
+   of thirty squares: each strip is one hue, read light to deep. */
+.fam-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--s-3);
+}
+
+.fam {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.fam-name {
+  color: color-mix(in srgb, var(--enamel) 62%, var(--pasture));
+}
+
+.fam-shades {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-2);
+}
+
+.hat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.75rem, 1fr));
+  gap: var(--s-2);
+}
+
+/* A chip is a small enamel sign, like everything else that carries content
+   here. Enamel is also what keeps a hedge-inked hat sprite legible. */
+.chip {
+  position: relative;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: var(--s-1);
+  min-height: 44px; /* thumb-sized, at a party, one-handed */
+  padding: var(--s-1);
+  background: var(--enamel);
+  color: var(--hedge);
+  border: var(--line) solid var(--hedge);
+  border-radius: var(--radius-sign);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.chip-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.chip-swatch {
+  width: 100%;
+  height: 2rem;
+  border: var(--line-hair) solid var(--hedge);
+  border-radius: 2px;
+}
+
+.chip-hat {
+  width: 2.6rem;
+  height: auto;
+  background: var(--enamel-shade);
+  border-radius: 2px;
+  fill: var(--enamel);
+  color: var(--hedge);
+}
+
+/* Chosen: hazard ground, and a tick — never the ring alone, because a colour
+   chip is already a rectangle of colour. */
+.chip[aria-pressed='true'] {
+  background: var(--hazard);
+  box-shadow: var(--lift-token);
+}
+
+.chip[aria-pressed='true']::after {
+  content: '✓';
+  position: absolute;
+  top: -0.15rem;
+  right: 0.2rem;
+  font-weight: 900;
+  font-size: 0.95rem;
+  color: var(--hedge);
+}
+
+/* Taken, either against the other half of the pair they have picked or
+   against every one of them. The reason is text, in .look-note and in the
+   chip's own accessible name; this is only the visual half of it. */
+.chip[data-state='clash'] .chip-name,
+.chip[data-state='gone'] .chip-name {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  color: color-mix(in srgb, var(--hedge) 62%, var(--enamel));
+}
+
+.chip[data-state='clash'] .chip-swatch,
+.chip[data-state='clash'] .chip-hat,
+.chip[data-state='gone'] .chip-swatch,
+.chip[data-state='gone'] .chip-hat {
+  opacity: 0.4;
+}
+
+.chip[data-state='gone'] {
+  background: var(--enamel-shade);
+}
+
+/* The hazard ring is 1.44:1 on enamel, so the chip carries the same hedge
+   halo the join form's controls do — both edges of the ring clear 3:1. */
+.chip:focus-visible {
+  outline-color: var(--hedge);
+  box-shadow: 0 0 0 calc(var(--line) * 3) var(--hedge);
+}
+
+.chip[aria-pressed='true']:focus-visible {
+  box-shadow: var(--lift-token), 0 0 0 calc(var(--line) * 3) var(--hedge);
+}
+
+.look-foot {
+  display: grid;
+  gap: var(--s-2);
+  justify-items: stretch;
+}
+
+/* Reserved for two lines: the rule, a clash or a rejection all land here and
+   none of them may move the lever. */
+.look-note {
+  min-height: 2.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: pretty;
+  color: color-mix(in srgb, var(--enamel) 80%, var(--pasture));
+}
+
+.look-note.is-warn {
+  color: var(--stubble-pale);
+}
+
+.look-foot .quiet {
+  justify-self: center;
+}
+
+/* ========================================================= 3. LOBBY ===== */
+
+.lobby-foot {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-2);
+}
+
+/* Held even when empty, so the count arriving never nudges the flock line. */
+.choosing {
+  min-height: 1.1rem;
+  color: color-mix(in srgb, var(--enamel) 70%, var(--pasture));
+}
+
+.flockline {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--enamel);
+}
+
+.ico {
+  flex: none;
+  height: auto;
+  fill: var(--enamel);
+}
+
+.ico--sheep { width: 3.4rem; color: transparent; }
+.ico--gate  { width: 2.6rem; fill: none; }
+.ico--tally { width: 2.2rem; fill: none; color: var(--growth); }
+
+/* ====================================================== 3. QUESTION ===== */
+
+/* The one thing they must read. Size is authored per length by play.js
+   (data-len) rather than truncated. */
+.question {
+  padding: var(--s-3) var(--s-4);
+  font-family: var(--face-display);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  /* Never truncated: a question longer than the sign scrolls inside it. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Measured frame, not vh: vh ignores the keyboard, so a vh cap would let
+     the question keep its full share of a viewport that is no longer there
+     and push the countdown out of the middle track. */
+  max-height: calc(var(--vh, 100dvh) * 0.42);
+}
+
+.question[data-len='short'] { font-size: clamp(1.9rem, 9.5vw, 2.7rem); }
+.question[data-len='mid']   { font-size: clamp(1.5rem, 7.2vw, 2.1rem); }
+.question[data-len='long']  { font-size: clamp(1.2rem, 5.6vw, 1.7rem); }
+
+.q-mid {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--s-3);
+  align-content: start;
+  min-height: 0;
+  /* This sits in the one collapsible track of .screen. It must never paint
+     outside it, whatever the frame does — the slate is under here. */
+  overflow: hidden;
+}
+
+/* The gate rail: a dark painted track for the countdown. Dark ground is what
+   lets the urgent figures go tractor-red and stay legible. */
+.rail {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'gate clock'
+    'gate label';
+  align-items: center;
+  gap: 0 var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  background: var(--hedge);
+  border: var(--line) solid color-mix(in srgb, var(--hedge) 60%, var(--steel-dark));
+  border-radius: var(--radius-sign);
+  box-shadow: var(--lift-panel);
+}
+
+.rail .ico--gate { grid-area: gate; }
+
+.clock {
+  grid-area: clock;
+  font-size: clamp(2.6rem, 14vw, 3.6rem);
+  color: var(--enamel);
+}
+
+.clock-label {
+  grid-area: label;
+  color: color-mix(in srgb, var(--enamel) 62%, var(--hedge));
+}
+
+/* One authored urgency change, applied once at the 10s threshold. */
+.screen--question.urgent .rail {
+  border-color: var(--tractor-red);
+}
+
+.screen--question.urgent .clock {
+  color: var(--tractor-red);
+}
+
+.screen--question.urgent .slate {
+  box-shadow: var(--press-in), 0 0 0 var(--line) var(--tractor-red);
+  animation: edge-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes edge-pulse {
+  50% { box-shadow: var(--press-in), 0 0 0 var(--line-bold) var(--tractor-red); }
+}
+
+/* The player's own sheep. The raddle path inside the sprite is
+   fill="currentColor", so `color` is the whole mechanism: transparent until
+   the answer lands, then sprayed. */
+.flank {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+.sheep {
+  width: min(62%, 15rem);
+  height: auto;
+  /* On a short phone the flock shrinks rather than the send lever getting
+     squeezed off the bottom. The viewBox keeps the sheep in proportion. */
+  max-height: 100%;
+  fill: var(--enamel); /* fleece and head inherit; strokes stay hedge ink */
+  color: transparent;
+}
+
+.flank.marked .sheep {
+  color: var(--mark);
+  animation: spray var(--t-slow) var(--ease-gate) both;
+}
+
+/* A soft radial bloom behind the fleece, standing in for the dye mark. */
+.flank::after {
+  content: '';
+  position: absolute;
+  left: 34%;
+  top: 34%;
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-token);
+  background: radial-gradient(circle, var(--mark) 0 52%, transparent 72%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.flank.marked::after {
+  animation: splat var(--t-slow) var(--ease-out-expo) both;
+}
+
+@keyframes spray {
+  0%   { color: transparent; transform: scale(1); }
+  35%  { color: color-mix(in srgb, var(--mark) 70%, var(--enamel)); transform: scale(1.05); }
+  100% { color: var(--mark); transform: scale(1); }
+}
+
+@keyframes splat {
+  0%   { opacity: 0.95; transform: scale(0.25); }
+  70%  { opacity: 0.5;  transform: scale(1.7); }
+  100% { opacity: 0;    transform: scale(2.1); }
+}
+
+/* --- the working end: slate + lever, bottom third, above the home bar --- */
+
+.q-bottom {
+  display: grid;
+  gap: var(--s-2);
+  align-content: end;
+}
+
+.slate {
+  width: 100%;
+  min-height: 3.5rem;
+  padding: var(--s-3) var(--s-4);
+  font-family: var(--face-ui);
+  font-weight: 700;
+  font-size: 1.35rem; /* iOS zoom guard */
+  background: var(--enamel);
+  color: var(--hedge);
+  border: var(--line-bold) solid var(--hedge);
+  border-radius: var(--radius-sign);
+  box-shadow: var(--press-in);
+}
+
+/* play.js writes state into this placeholder ('Type again to replace it',
+   'Your answer went in'), so it is read, not decoration. 68% hedge clears
+   4.5:1 on the enamel ground and on the --enamel-shade read-only ground. */
+.slate::placeholder {
+  font-weight: 500;
+  color: color-mix(in srgb, var(--hedge) 68%, var(--enamel));
+}
+
+.slate:read-only {
+  background: var(--enamel-shade);
+  color: var(--hedge);
+}
+
+.lock-note {
+  min-height: 1.15rem; /* space reserved so locking in shifts nothing */
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--enamel) 80%, var(--pasture));
+}
+
+.lock-note.is-warn {
+  color: var(--stubble-pale);
+}
+
+/* Lever and confirmation share one cell of identical height. */
+.action {
+  display: grid;
+  grid-template-areas: 'act';
+  min-height: 60px;
+  margin-top: var(--s-1);
+}
+
+.action > * { grid-area: act; }
+
+.locked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  background: color-mix(in srgb, var(--pasture-lit) 55%, var(--hedge));
+  border: var(--line-bold) solid var(--hedge);
+  border-radius: var(--radius-sign);
+  box-shadow: var(--lift-token);
+}
+
+.locked-text {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  color: var(--enamel);
+}
+
+/* Which of the two occupies the cell is toggled by play.js with the [hidden]
+   attribute, so the hidden one leaves the accessibility tree as well. */
+
+/* ====================================================== 4. GROUPING ===== */
+
+/* The collie is hedge-dark, which would vanish into deep pasture, so it works
+   a lit patch of field — the same grass value the aerial map uses elsewhere. */
+.dog {
+  width: min(62%, 13rem);
+  height: auto;
+  padding: var(--s-4) var(--s-3);
+  fill: var(--hedge);
+  background: radial-gradient(
+    ellipse at 50% 58%,
+    var(--growth) 0 52%,
+    color-mix(in srgb, var(--growth) 40%, transparent) 68%,
+    transparent 82%
+  );
+  animation: working 2.4s ease-in-out infinite;
+}
+
+@keyframes working {
+  0%, 100% { transform: translateX(-7%) rotate(-1deg); }
+  50%      { transform: translateX(7%) rotate(1.5deg); }
+}
+
+.said {
+  padding: var(--s-3) var(--s-4);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.said strong {
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+}
+
+/* ======================================================== 5. REVEAL ===== */
+
+.rosette {
+  width: min(34%, 6rem);
+  height: auto;
+  color: var(--tractor-red);
+  animation: pin var(--t-slow) var(--ease-gate) both;
+}
+
+.rosette--big {
+  width: min(48%, 9rem);
+}
+
+@keyframes pin {
+  0%   { opacity: 0; transform: scale(0.3) rotate(-22deg); }
+  65%  { opacity: 1; transform: scale(1.12) rotate(5deg); }
+  100% { opacity: 1; transform: none; }
+}
+
+.reveal-foot {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.group-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--s-1) var(--s-3);
+  padding: var(--s-3) var(--s-4);
+}
+
+.group-card .legend {
+  color: color-mix(in srgb, var(--hedge) 68%, var(--enamel));
+  grid-column: 1;
+}
+
+.group-label {
+  grid-column: 1;
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.group-count {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  justify-items: center;
+  gap: var(--s-1);
+}
+
+.group-count .numerals {
+  font-size: 2.4rem;
+  color: var(--hedge);
+}
+
+.group-count .legend {
+  grid-column: 1;
+  color: color-mix(in srgb, var(--hedge) 60%, var(--enamel));
+}
+
+.tally {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--enamel);
+}
+
+.tally .legend {
+  color: color-mix(in srgb, var(--enamel) 78%, var(--pasture));
+}
+
+.tally .numerals {
+  margin-left: auto;
+  font-size: 2rem;
+}
+
+/* =============================================== 6. SCORES / FINAL ====== */
+
+.bigscore {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-2);
+}
+
+.bigscore .numerals {
+  font-size: clamp(4.5rem, 26vw, 7rem);
+  color: var(--enamel);
+}
+
+.bigscore .legend {
+  color: color-mix(in srgb, var(--enamel) 78%, var(--pasture));
+}
+
+.screen--scores[data-final='true'] .bigscore .numerals {
+  color: var(--stubble);
+}
+
+/* ------------------------------------------------------- reduced motion
+   Nothing travels. Every state is drawn in its resolved position: the mark
+   is already sprayed, the rosette is already pinned, the dog is already set. */
+
+@media (prefers-reduced-motion: reduce) {
+  .latch:active { transform: none; }
+  .latch[disabled] { transform: none; }
+  .screen.is-on { animation: none; }
+  .dog { animation: none; }
+  .flank.marked .sheep { animation: none; color: var(--mark); }
+  .flank.marked::after { animation: none; opacity: 0; }
+  .rosette { animation: none; }
+  .screen--question.urgent .slate {
+    animation: none;
+    box-shadow: var(--press-in), 0 0 0 var(--line-bold) var(--tractor-red);
+  }
+}
+
+/* --------------------------------------------------------- short phones */
+
+@media (max-height: 620px) {
+  .question { max-height: calc(var(--vh, 100dvh) * 0.34); }
+  .sheep { width: min(46%, 10rem); }
+  .clock { font-size: clamp(2.1rem, 11vw, 2.8rem); }
+  .dog { width: min(40%, 9rem); }
+  .rosette { width: min(26%, 4.5rem); }
+}
+
+/* ------------------------------------------------------- a short frame
+   Keyed off .pen, not the viewport: with the keyboard up the frame is barely
+   half the viewport, and the two `auto` tracks of .screen (question, working
+   end) are content-locked, so all of the shortfall lands on the middle track
+   that holds the countdown. These rules give the shortfall somewhere to go.
+   Ordered after the media query above so they resolve last. */
+
+@container pen (max-height: 780px) {
+  /* Keep the countdown's room out of the question's reach. The question is
+     the one thing here built to scroll, so it is the one thing that gives. */
+  .screen--question .question { max-height: calc(var(--vh, 100dvh) * 0.3); }
+  .screen--question .sheep { width: min(46%, 10rem); }
+}
+
+@container pen (max-height: 620px) {
+  /* Nothing left for the flock. The countdown and the working end are sized
+     by their content and stay whole; the question takes what is left and
+     scrolls inside the sign. The sheep is the thing that can go. */
+  .screen--question {
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    gap: var(--s-3);
+  }
+
+  .screen--question .screen-head { min-height: 0; }
+
+  .screen--question .question {
+    max-height: 100%;
+    padding: var(--s-2) var(--s-3);
+  }
+
+  .q-mid { grid-template-rows: auto; }
+
+  .flank { display: none; }
+
+  /* The rail collapses to one row: the clock beside the gate. */
+  .rail { grid-template-areas: 'gate clock'; }
+
+  .clock { font-size: clamp(1.9rem, 9vw, 2.4rem); }
+
+  /* The label goes to screen readers only — the figure still carries it. */
+  .clock-label {
+    grid-area: clock;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .q-bottom { gap: var(--s-1); }
+
+  .action { margin-top: 0; }
+}

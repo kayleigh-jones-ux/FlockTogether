@@ -1,0 +1,15 @@
+# Normalise to LF in the repository regardless of who checks it out. This is a
+# Windows working copy but the game is meant to run on Linux and, potentially,
+# on a Cloudflare Worker — a stray CRLF in a shell script or a .dev.vars file
+# is the kind of thing that only fails once it is somewhere you cannot debug.
+* text=auto eol=lf
+
+# Binary: never touch, never diff as text.
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.ico binary
+
+# Generated wholesale; a diff of it is noise even when it is checked in.
+flock-together-bench.html linguist-generated=true
+package-lock.json linguist-generated=true

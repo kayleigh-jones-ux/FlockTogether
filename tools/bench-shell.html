@@ -1,0 +1,886 @@
+<!-- The published artifact supplies its own <!doctype>, <head> and <body>, so
+     this file is body CONTENT only. It previously shipped as a complete HTML
+     document, which meant the served page carried a second <html>/<head>/<body>
+     nested inside the first — the parser drops those tags and splices their
+     children into the body, so it *appeared* to work while putting the whole
+     bench in a position the contract never promised to support. A fragment
+     still opens fine on its own from disk: browsers synthesise the wrapper. -->
+<style>
+/*__TOKENS__*/
+
+/* ---------------------------------------------------------------------------
+   THE BENCH.
+   The game owns the saturated pasture world; this frame is the workbench it
+   sits on, so it stays dark, quiet and subordinate — hedge ink ground, buff
+   labels, hazard only on the control you are actually touching.
+
+   Deliberately single-theme. The surfaces under test are one committed visual
+   world, and a light bench would light-leak into every judgement made here.
+--------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: dark;
+
+  /* The bench's own type scale — three steps, deliberately. A dense control
+     rail wants a compressed range, but it does not want five sizes a hair
+     apart: micro labels, one body size for everything you read or click, and
+     the title. Ratios 1.25 and 1.59. */
+  --bench-micro: 0.68rem;
+  --bench-body: 0.85rem;
+  --bench-title: 1.35rem;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    repeating-linear-gradient(96deg, rgb(255 255 255 / 0.014) 0 3px, transparent 3px 8px),
+    #0d1109;
+  color: var(--buff);
+  font-family: var(--face-ui);
+}
+
+.bench {
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+@media (max-width: 900px) {
+  .bench { grid-template-columns: 1fr; }
+}
+
+/* ----------------------------------------------------------------- rail --- */
+
+.rail {
+  border-right: var(--line) solid #1e2718;
+  padding: var(--s-5) var(--s-4) var(--s-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  background: #0b0e08;
+}
+
+.rail__title {
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: var(--bench-title);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--enamel);
+}
+
+.rail__sub {
+  margin-top: var(--s-2);
+  font-size: var(--bench-body);
+  line-height: 1.45;
+  color: #93a086;
+}
+
+.group { display: grid; gap: var(--s-2); }
+
+.group > .legend {
+  color: #93a086;
+  font-size: var(--bench-micro);
+}
+
+.row { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+
+/* Controls are farm hardware, quieted down for a workbench. */
+.btn {
+  flex: 1 1 auto;
+  padding: 9px 12px;
+  background: #1a2214;
+  color: var(--buff);
+  border: var(--line-hair) solid #2c3823;
+  border-radius: 3px;
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--bench-body);
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease-out-expo),
+              border-color var(--t-fast) var(--ease-out-expo);
+}
+
+.btn:hover { background: #223019; border-color: #46592f; }
+
+.btn[aria-pressed='true'] {
+  background: var(--hazard);
+  border-color: var(--hazard);
+  color: var(--hedge);
+}
+
+.btn--go {
+  background: var(--hazard);
+  border-color: var(--hedge);
+  color: var(--hedge);
+  font-weight: 900;
+}
+
+.btn--go:hover { background: #ffd426; border-color: var(--hedge); }
+
+.btn:focus-visible { outline: var(--line) solid var(--hazard); outline-offset: 2px; }
+
+select, input[type='range'], input[type='number'] {
+  width: 100%;
+  font: inherit;
+  font-size: var(--bench-body);
+  color: var(--buff);
+  background: #141a0f;
+  border: var(--line-hair) solid #2c3823;
+  border-radius: 3px;
+  padding: 7px 8px;
+  accent-color: var(--hazard);
+}
+
+input[type='range'] { padding: 0; }
+
+.val {
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  color: var(--enamel);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--bench-body);
+  cursor: pointer;
+}
+
+.check input { accent-color: var(--hazard); width: 15px; height: 15px; }
+
+.rail__note {
+  margin-top: auto;
+  padding-top: var(--s-4);
+  border-top: var(--line-hair) solid #1e2718;
+  font-size: var(--bench-micro);
+  line-height: 1.55;
+  color: #7d8a71;
+}
+
+.rail__note strong { color: var(--stubble-pale); font-weight: 700; }
+
+/* ---------------------------------------------------------------- stage --- */
+
+.stage {
+  padding: var(--s-5);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  gap: var(--s-5);
+  align-content: start;
+}
+
+@media (max-width: 1180px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+}
+
+.pane { display: grid; gap: var(--s-2); min-width: 0; }
+
+.pane__label {
+  font-size: var(--bench-micro);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  color: #93a086;
+}
+
+.pane__label b { font-size: var(--bench-body); color: var(--enamel); font-weight: 700; letter-spacing: 0; text-transform: none; }
+
+.screenbox {
+  position: relative;
+  border: var(--line) solid #2c3823;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 18px 44px -18px rgb(0 0 0 / 0.9);
+}
+
+/* A surface that fails to boot must say so on the surface itself. A black
+   rectangle is indistinguishable from a game that has not started yet, which
+   is exactly how a dead frame went unnoticed. Sits above the iframe until the
+   frame reports itself live, then gets out of the way entirely. */
+.boot {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  text-align: center;
+  font-size: var(--bench-body);
+  line-height: 1.5;
+  color: #93a086;
+  background: #0b0e08;
+}
+
+.boot[data-state='live'] { display: none; }
+
+.boot[data-state='dead'] {
+  color: var(--enamel);
+  background: #2a1410;
+  align-content: start;
+  justify-items: start;
+  text-align: left;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--bench-micro);
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.boot b { color: var(--hazard); font-weight: 700; }
+
+.screenbox--tv { aspect-ratio: 16 / 9; }
+
+.screenbox--phone { width: 320px; aspect-ratio: 390 / 844; }
+
+@media (max-width: 1180px) {
+  .screenbox--phone { width: 280px; }
+}
+
+iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--pasture-deep); }
+
+/* The phone frame is rendered at true device width and scaled down, so its
+   container queries and clamps see the viewport a real phone would. */
+.phonescale { width: 390px; height: 844px; transform-origin: 0 0; }
+
+/* --------------------------------------------------------------- ticker --- */
+
+.ticker {
+  grid-column: 1 / -1;
+  border: var(--line-hair) solid #1e2718;
+  border-radius: 4px;
+  background: #0a0d07;
+  padding: var(--s-3);
+  max-height: 190px;
+  overflow: auto;
+  font-size: var(--bench-body);
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker p { margin: 0; color: #8b9880; }
+.ticker b { color: var(--stubble-pale); font-weight: 700; }
+.ticker .win { color: var(--hazard); font-weight: 700; }
+.ticker .head { color: var(--enamel); font-weight: 800; margin-top: var(--s-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}
+</style>
+
+<div class="bench">
+
+  <aside class="rail">
+    <div>
+      <h1 class="rail__title">Flock&nbsp;Together<br>test bench</h1>
+      <p class="rail__sub">Both real surfaces, driven by the real rules. Force the cases nobody has looked at yet.</p>
+    </div>
+
+    <div class="group">
+      <span class="legend">Flock size</span>
+      <input type="range" id="c-players" min="2" max="20" value="12">
+      <span class="rail__sub"><span class="val" id="v-players">12</span> players &mdash; you are one of them</span>
+    </div>
+
+    <div class="group">
+      <span class="legend">Grouping</span>
+      <div class="row">
+        <button class="btn" id="g-semantic" aria-pressed="true">Semantic</button>
+        <button class="btn" id="g-fuzzy" aria-pressed="false">Fuzzy</button>
+      </div>
+      <span class="rail__sub" id="g-note">What Claude returns: meaning, not spelling.</span>
+    </div>
+
+    <div class="group">
+      <span class="legend">Force a case</span>
+      <select id="c-scenario">
+        <option value="normal">Normal play</option>
+        <option value="tie">Tie at the top</option>
+        <option value="singletons">Everyone unique</option>
+        <option value="unanimous">Everyone agrees</option>
+        <option value="silent">Nobody answers</option>
+        <option value="eight">Eight groups</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <span class="legend">Timings</span>
+      <select id="c-speed">
+        <option value="fast">Fast &mdash; 6s to answer</option>
+        <option value="normal" selected>Normal &mdash; 15s</option>
+        <option value="real">As shipped &mdash; 45s</option>
+      </select>
+      <select id="c-rounds">
+        <option value="3">3 rounds</option>
+        <option value="6" selected>6 rounds</option>
+        <option value="9">9 rounds (shipped default)</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <span class="legend">Run</span>
+      <div class="row">
+        <button class="btn btn--go" id="c-start">Start a game</button>
+      </div>
+      <div class="row">
+        <button class="btn" id="c-lobby">Lobby</button>
+        <button class="btn" id="c-jump">Reveal</button>
+        <button class="btn" id="c-scores">Scores</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="legend">Options</span>
+      <label class="check"><input type="checkbox" id="c-autojoin" checked> Auto-join my phone</label>
+      <label class="check"><input type="checkbox" id="c-bots"> Let a bot answer for me</label>
+      <label class="check"><input type="checkbox" id="c-still"> Simulate reduced motion</label>
+    </div>
+
+    <p class="rail__note">
+      <strong>What this is.</strong> The shipped CSS and JS from <code>public/</code>, running on the
+      real rules, with the network replaced by messages between frames.
+      <br><br>
+      <strong>What it isn't.</strong> Real phones can't join &mdash; a published page has no server
+      and no shared state. Semantic grouping here is pre-clustered to show what Claude returns;
+      the live API call is the one path still untested.
+    </p>
+  </aside>
+
+  <main class="stage">
+    <section class="pane">
+      <p class="pane__label legend"><b>The shared display</b><span id="phase-label">idle</span></p>
+      <div class="screenbox screenbox--tv">
+        <iframe id="f-tv" title="Shared display"></iframe>
+        <p class="boot" id="boot-tv" data-state="waiting">starting the display&hellip;</p>
+      </div>
+    </section>
+
+    <section class="pane">
+      <p class="pane__label legend"><b>Your phone</b></p>
+      <div class="screenbox screenbox--phone" id="phonebox">
+        <iframe id="f-play" class="phonescale" title="Phone controller"></iframe>
+        <p class="boot" id="boot-play" data-state="waiting">starting the phone&hellip;</p>
+      </div>
+    </section>
+
+    <section class="ticker" id="ticker" aria-live="polite" aria-label="Round log"></section>
+  </main>
+
+</div>
+
+<script type="text/plain" id="doc-tv"><!--__TV_DOC__--></script>
+<script type="text/plain" id="doc-play"><!--__PLAY_DOC__--></script>
+
+<script>
+/* ===========================================================================
+   THE BENCH ENGINE
+   A faithful port of the rules in src/game.js. Kept deliberately small and
+   readable so a discrepancy with the server is easy to spot:
+     - answers hidden until the timer ends
+     - largest group wins; EVERY tied largest group scores
+     - non-submitters score nothing and are listed separately
+     - scoreboard at exactly three rounds, deduped, never twice running
+     - rounds auto-advance
+   =========================================================================== */
+
+const $ = (id) => document.getElementById(id);
+
+const NAMES = ['Ama','Bex','Caleb','Dilan','Esme','Freya','Grace','Hugo','Ines','Jonah',
+               'Kirra','Lena','Mateo','Nadia','Otis','Priya','Quinn','Rafa','Sunmi','Theo'];
+
+/* Answer sets carry a cluster KEY as well as text. Semantic grouping groups by
+   key; fuzzy grouping only sees the text — which is exactly where the two
+   diverge, and the reason the API path matters. */
+const BANK = [
+  { q: 'Name a hot beverage.', a: [
+    ['coffee','coffee'],['Coffee','coffee'],['a coffee','coffee'],['tea','tea'],['Tea','tea'],
+    ['hot chocolate','cocoa'],['cocoa','cocoa'],['green tea','tea'],['espresso','coffee'],['Horlicks','malt'] ] },
+  { q: 'Name something you always lose.', a: [
+    ['my keys','keys'],['keys','keys'],['Keys','keys'],['my phone','phone'],['phone','phone'],
+    ['socks','socks'],['odd socks','socks'],['my glasses','glasses'],['the remote','remote'],['chargers','charger'] ] },
+  { q: 'Name a fizzy drink.', a: [
+    ['coke','cola'],['Coca Cola','cola'],['a coke','cola'],['pop','cola'],['soda','cola'],
+    ['lemonade','lemonade'],['Sprite','lemonade'],['Fanta','orange'],['ginger beer','ginger'],['tonic','tonic'] ] },
+  { q: 'Name something in a hotel bathroom.', a: [
+    ['towels','towel'],['a towel','towel'],['TOWELS','towel'],['tiny soap','soap'],['soap','soap'],
+    ['shampoo','shampoo'],['a hairdryer','hairdryer'],['toilet','toilet'],['mirror','mirror'],['slippers','slippers'] ] },
+  { q: 'Name a topping that ruins a pizza.', a: [
+    ['pineapple','pineapple'],['Pineapple','pineapple'],['pineapple!!','pineapple'],['anchovies','anchovy'],
+    ['anchovy','anchovy'],['olives','olive'],['sweetcorn','corn'],['mushrooms','mushroom'],['egg','egg'],['tuna','tuna'] ] },
+  { q: 'Name a yellow thing.', a: [
+    ['banana','banana'],['a banana','banana'],['Banana','banana'],['the sun','sun'],['sun','sun'],
+    ['lemon','lemon'],['a lemon','lemon'],['cheese','cheese'],['a taxi','taxi'],['custard','custard'] ] },
+  { q: 'Name something people are afraid of.', a: [
+    ['spiders','spider'],['a spider','spider'],['SPIDERS','spider'],['heights','heights'],['the dark','dark'],
+    ['snakes','snake'],['public speaking','speaking'],['flying','flying'],['clowns','clown'],['dentists','dentist'] ] },
+  { q: 'Name a board game.', a: [
+    ['Monopoly','monopoly'],['monopoly','monopoly'],['MONOPOLY','monopoly'],['Scrabble','scrabble'],
+    ['scrabble','scrabble'],['chess','chess'],['Cluedo','cluedo'],['Risk','risk'],['Catan','catan'],['Uno','uno'] ] },
+  { q: 'Name something you take to the beach.', a: [
+    ['a towel','towel'],['towel','towel'],['sunscreen','suncream'],['suncream','suncream'],['sun cream','suncream'],
+    ['a bucket','bucket'],['sandwiches','food'],['a book','book'],['sunglasses','sunglasses'],['a ball','ball'] ] },
+];
+
+/* botsForMe defaults OFF so the answer field on the phone is yours to type in.
+   With it on, a bot fills your seat a second after the question lands and the
+   one interactive thing in the bench plays itself. */
+const cfg = { players: 12, grouping: 'semantic', scenario: 'normal', answerMs: 15000, rounds: 6,
+              autojoin: true, botsForMe: false, still: false };
+
+const G = { phase: 'idle', players: [], roundIndex: 0, totalRounds: 0, question: null,
+            endsAt: null, groups: [], noAnswer: [], scoreboardReason: null, groupingSource: null,
+            answers: new Map(), qs: [], scoreRounds: new Set(), timers: [], token: 0 };
+
+const clearTimers = () => { G.timers.forEach(clearTimeout); G.timers = []; };
+const after = (ms, fn) => { const t = G.token; G.timers.push(setTimeout(() => { if (t === G.token) fn(); }, ms)); };
+
+/* --- grouping ------------------------------------------------------------ */
+
+const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-z0-9 ]/g, ' ').replace(/\b(a|an|the)\b/g, ' ').replace(/\s+/g, ' ').trim()
+  .replace(/s$/, '');
+
+function lev(a, b) {
+  if (a === b) return 0;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+const title = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+
+function groupFuzzy(list) {
+  const buckets = [];
+  for (const ans of list) {
+    const n = norm(ans.text);
+    let hit = buckets.find((b) => b.n === n)
+           || buckets.find((b) => n.length >= 4 && b.n.length >= 4 && lev(b.n, n) <= 2);
+    if (hit) hit.items.push(ans); else buckets.push({ n, items: [ans] });
+  }
+  return buckets.map((b) => ({ label: title(b.items[0].text.trim()), answers: b.items }));
+}
+
+function groupSemantic(list) {
+  const by = new Map();
+  for (const ans of list) {
+    const k = ans.key || norm(ans.text);
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(ans);
+  }
+  return [...by.entries()].map(([k, items]) => ({ label: title(k), answers: items }));
+}
+
+/* --- state frames (mirrors the server's per-phase serializers) ------------ */
+
+function displayState() {
+  const revealed = ['reveal', 'scores', 'final'].includes(G.phase);
+  return {
+    t: 'state', room: 'DEMO', phase: G.phase, roundIndex: G.roundIndex, totalRounds: G.totalRounds,
+    question: G.phase === 'question' ? G.question : (revealed || G.phase === 'grouping' ? G.question : null),
+    endsAt: G.phase === 'question' ? G.endsAt : null,
+    players: G.players.map((p) => ({ id: p.id, name: p.name, score: p.score,
+                                     answered: G.answers.has(p.id), connected: true })),
+    groups: revealed ? G.groups.map((g, i) => ({ id: 'g' + (i + 1), label: g.label, scored: !!g.scored,
+              answers: g.answers.map((a) => ({ playerId: a.playerId, name: a.name, text: a.text })) })) : [],
+    noAnswer: revealed ? G.noAnswer.map((p) => ({ playerId: p.id, name: p.name })) : [],
+    scoreboardReason: G.scoreboardReason, groupingSource: revealed ? G.groupingSource : null,
+  };
+}
+
+function playerState() {
+  const s = displayState();
+  const me = G.players[0];
+  if (!me) return s;
+  const revealed = ['reveal', 'scores', 'final'].includes(G.phase);
+  const mine = revealed ? G.groups.find((g) => g.answers.some((a) => a.playerId === me.id)) : null;
+  return { ...s, you: { id: me.id, name: me.name, score: me.score, answered: G.answers.has(me.id),
+                        myGroupId: mine ? 'g' + (G.groups.indexOf(mine) + 1) : null,
+                        scoredThisRound: !!(mine && mine.scored) } };
+}
+
+const post = (which, frame) => {
+  const f = which === 'tv' ? $('f-tv') : $('f-play');
+  f.contentWindow && f.contentWindow.postMessage({ __bench: 'frame', frame }, '*');
+};
+
+const emit = () => { post('tv', displayState()); post('play', playerState()); setPhaseLabel(); };
+
+/* --- the loop ------------------------------------------------------------ */
+
+function reset() {
+  G.token++;
+  clearTimers();
+  G.players = Array.from({ length: cfg.players }, (_, i) => ({
+    id: 'p_' + i, name: i === 0 ? 'You' : NAMES[(i * 7) % NAMES.length] + (i > 19 ? i : ''), score: 0,
+  }));
+  /* Names must be unique or two sheep read as one player. */
+  const seen = new Set();
+  G.players.forEach((p, i) => { let n = p.name; let k = 2; while (seen.has(n)) n = p.name + ' ' + k++; seen.add(n); p.name = n; });
+  G.phase = 'lobby'; G.roundIndex = 0; G.totalRounds = cfg.rounds; G.question = null;
+  G.groups = []; G.noAnswer = []; G.answers.clear(); G.scoreboardReason = null; G.groupingSource = null;
+  G.qs = [...BANK].sort(() => Math.random() - 0.5).slice(0, cfg.rounds);
+
+  /* Exactly three moments: a third in, before the last, and the end. */
+  G.scoreRounds = new Set([Math.ceil(cfg.rounds / 3) - 1, cfg.rounds - 2, cfg.rounds - 1]
+    .filter((i) => i >= 0 && i < cfg.rounds));
+  log('head', 'New game — ' + cfg.players + ' players, ' + cfg.rounds + ' rounds');
+  emit();
+}
+
+function startRound() {
+  G.phase = 'question';
+  G.question = G.qs[G.roundIndex].q;
+  G.answers.clear();
+  G.endsAt = Date.now() + cfg.answerMs;
+  log('head', 'Round ' + (G.roundIndex + 1) + '/' + G.totalRounds + ' — ' + G.question);
+  emit();
+
+  const bank = G.qs[G.roundIndex].a;
+  const picks = choosePicks(bank, G.players.length);
+
+  G.players.forEach((p, i) => {
+    if (i === 0 && !cfg.botsForMe) return;           // leave the human seat empty
+    const pick = picks[i];
+    if (!pick) return;                                // this player sits the round out
+    const delay = 900 + Math.random() * Math.max(1200, cfg.answerMs - 2200);
+    after(delay, () => {
+      if (G.phase !== 'question') return;
+      G.answers.set(p.id, { playerId: p.id, name: p.name, text: pick[0], key: pick[1] });
+      emit();
+    });
+  });
+
+  after(cfg.answerMs, closeGate);
+}
+
+/* Scenario shaping happens here, by choosing which answers the flock reaches
+   for — never by faking the grouping result afterwards. */
+function choosePicks(bank, n) {
+  const keys = [...new Set(bank.map((x) => x[1]))];
+  const byKey = (k) => bank.filter((x) => x[1] === k);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const out = [];
+
+  switch (cfg.scenario) {
+    case 'silent':
+      return out;
+    case 'unanimous': {
+      const k = keys[0];
+      for (let i = 0; i < n; i++) out.push(pick(byKey(k)));
+      return out;
+    }
+    case 'singletons':
+      for (let i = 0; i < n; i++) out.push(bank[i % bank.length]);
+      return out;
+    case 'tie': {
+      const [a, b] = keys;
+      const half = Math.floor(n / 2);
+      for (let i = 0; i < n; i++) out.push(pick(byKey(i < half ? a : b)));
+      return out;
+    }
+    case 'eight': {
+      const eight = keys.slice(0, 8);
+      for (let i = 0; i < n; i++) out.push(pick(byKey(eight[i % eight.length])));
+      return out;
+    }
+    default: {
+      /* A believable spread: a clear favourite, a runner-up, a long tail, and
+         a couple of people who never answer. */
+      const weights = [0.34, 0.22, 0.14, 0.1, 0.08, 0.05, 0.04, 0.03];
+      for (let i = 0; i < n; i++) {
+        if (Math.random() < 0.1) { out.push(null); continue; }
+        let r = Math.random(), acc = 0, ki = 0;
+        for (let j = 0; j < keys.length; j++) { acc += weights[j] ?? 0.02; if (r <= acc) { ki = j; break; } }
+        out.push(pick(byKey(keys[ki])));
+      }
+      return out;
+    }
+  }
+}
+
+function closeGate() {
+  G.phase = 'grouping';
+  G.endsAt = null;
+  emit();
+  /* Real clustering takes seconds; the dog's outrun exists to cover it. */
+  after(cfg.grouping === 'semantic' ? 1900 : 700, resolveRound);
+}
+
+function resolveRound() {
+  const list = [...G.answers.values()];
+  const raw = list.length === 0 ? []
+            : (cfg.grouping === 'semantic' ? groupSemantic(list) : groupFuzzy(list));
+  raw.sort((a, b) => b.answers.length - a.answers.length);
+
+  const max = raw.reduce((m, g) => Math.max(m, g.answers.length), 0);
+  raw.forEach((g) => { g.scored = max > 0 && g.answers.length === max; });
+  raw.filter((g) => g.scored).forEach((g) => g.answers.forEach((a) => {
+    const p = G.players.find((x) => x.id === a.playerId); if (p) p.score += 1;
+  }));
+
+  G.groups = raw;
+  G.noAnswer = G.players.filter((p) => !G.answers.has(p.id));
+  G.groupingSource = cfg.grouping === 'semantic' ? 'claude' : 'fallback';
+  G.phase = 'reveal';
+  emit();
+  logReveal();
+
+  after(4200, () => {
+    if (G.scoreRounds.has(G.roundIndex)) {
+      const last = G.roundIndex === G.totalRounds - 1;
+      G.scoreboardReason = last ? 'final' : (G.roundIndex === G.totalRounds - 2 ? 'penultimate' : 'third');
+      G.phase = last ? 'final' : 'scores';
+      emit();
+      log('', G.phase === 'final' ? 'FINAL' : 'Scoreboard (' + G.scoreboardReason + ')');
+      if (last) return;
+      after(3600, nextRound);
+    } else {
+      nextRound();
+    }
+  });
+}
+
+function nextRound() {
+  G.scoreboardReason = null;
+  if (G.roundIndex + 1 >= G.totalRounds) { G.phase = 'final'; G.scoreboardReason = 'final'; emit(); return; }
+  G.roundIndex += 1;
+  startRound();
+}
+
+/* --- log ----------------------------------------------------------------- */
+
+function log(cls, msg) {
+  const p = document.createElement('p');
+  if (cls) p.className = cls;
+  p.innerHTML = msg;
+  $('ticker').appendChild(p);
+  $('ticker').scrollTop = $('ticker').scrollHeight;
+}
+
+function logReveal() {
+  if (!G.groups.length) { log('', 'Nobody answered — no paddock scored.'); return; }
+  G.groups.forEach((g) => {
+    const who = g.answers.map((a) => a.text).join(' / ');
+    log('', (g.scored ? '<span class="win">WIN</span>' : '&nbsp;&nbsp;&nbsp;&nbsp;') +
+        ' <b>' + g.answers.length + '</b> ' + g.label + ' &mdash; ' + who);
+  });
+  if (G.noAnswer.length) log('', 'Missed the gate: ' + G.noAnswer.map((p) => p.name).join(', '));
+}
+
+function setPhaseLabel() {
+  const names = { idle: 'idle', lobby: 'lobby', question: 'question', grouping: 'the dog’s working',
+                  reveal: 'reveal', scores: 'scoreboard', final: 'final' };
+  $('phase-label').textContent = names[G.phase] || G.phase;
+}
+
+/* --- jumps (design testing, not play) ------------------------------------ */
+
+function jumpToReveal() {
+  if (G.phase === 'idle') reset();
+  G.token++; clearTimers();
+  G.question = (G.qs[G.roundIndex] || BANK[0]).q;
+  const bank = (G.qs[G.roundIndex] || BANK[0]).a;
+  const picks = choosePicks(bank, G.players.length);
+  G.answers.clear();
+  G.players.forEach((p, i) => { if (picks[i]) G.answers.set(p.id, { playerId: p.id, name: p.name, text: picks[i][0], key: picks[i][1] }); });
+  log('head', 'Jumped to reveal — ' + cfg.scenario);
+  resolveRound();
+}
+
+function jumpToScores() {
+  if (G.phase === 'idle') reset();
+  G.token++; clearTimers();
+  G.players.forEach((p, i) => { if (p.score === 0) p.score = Math.max(0, Math.round((G.players.length - i) / 2)); });
+  G.scoreboardReason = 'penultimate';
+  G.phase = 'scores';
+  emit();
+  log('head', 'Jumped to the grazing record');
+}
+
+/* --- wiring -------------------------------------------------------------- */
+
+/* Documents arrive base64-encoded so their inner closing script tags cannot
+   terminate the carrier element. atob yields latin1 bytes, so decode through
+   TextDecoder or every em dash and curly quote in the copy comes back wrong.
+
+   Do not spell that tag out literally anywhere in this script, not even inside
+   a comment or a string. The HTML parser scans the raw text of a script
+   element for the closing sequence and does not know or care that JavaScript
+   would have treated it as a comment: it ends the element on the spot. This
+   very comment used to name the tag, which cut the bench in half here — the
+   engine above survived, every line below it (the frame boot, the message
+   listener, every button) was parsed as page text and never ran. The button
+   that did nothing did nothing because it had no listener. */
+function decodeDoc(id) {
+  const raw = $(id).textContent.trim();
+  const bin = atob(raw);
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+function boot() {
+  $('f-tv').srcdoc = decodeDoc('doc-tv');
+  $('f-play').srcdoc = decodeDoc('doc-play');
+  fitPhone();
+}
+
+function fitPhone() {
+  const box = $('phonebox');
+  const s = box.clientWidth / 390;
+  $('f-play').style.transform = 'scale(' + s + ')';
+}
+
+window.addEventListener('resize', fitPhone);
+
+/* --- boot watch ----------------------------------------------------------
+   Three things can go wrong between "the page loaded" and "the game plays",
+   and they used to be indistinguishable from each other and from an idle
+   bench: the frame document never parsed, its classic script never ran, or
+   its module threw on the way up. Each now has a distinct reported state. */
+
+const bootState = { tv: 'waiting', play: 'waiting' };
+
+function setBoot(surface, state, detail) {
+  bootState[surface] = state;
+  const node = $('boot-' + surface);
+  if (!node) return;
+  node.dataset.state = state;
+  if (state === 'live') return;
+  if (state === 'dead') {
+    node.innerHTML = '<b>This surface failed to start.</b><br>' +
+      String(detail || 'no detail').replace(/</g, '&lt;');
+    log('', '<b>' + surface + ' surface failed:</b> ' + String(detail || '').replace(/</g, '&lt;'));
+  }
+}
+
+/* The frame's own script announces itself the moment it runs, so a frame that
+   never announces has failed before any of our code — a parse or CSP problem,
+   not a bug in the surface. Distinguishing those two is the whole point. */
+setTimeout(() => {
+  for (const s of ['tv', 'play']) {
+    if (bootState[s] === 'waiting') {
+      setBoot(s, 'dead', 'The frame never ran its script at all — the document did not parse, or scripting is blocked in this frame.');
+    } else if (bootState[s] === 'booted') {
+      setBoot(s, 'dead', 'The frame started but its module never connected — tv.js/play.js threw on the way up, and no error reached this bench.');
+    }
+  }
+}, 4000);
+
+window.addEventListener('message', (ev) => {
+  const d = ev.data;
+  if (!d || !d.__bench) return;
+
+  if (d.__bench === 'boot') { if (bootState[d.surface] === 'waiting') bootState[d.surface] = 'booted'; return; }
+  if (d.__bench === 'error') { setBoot(d.surface, 'dead', d.detail); return; }
+
+  if (d.__bench === 'ready') {
+    setBoot(d.surface, 'live');
+    if (d.surface === 'tv') post('tv', { t: 'room.created', room: 'DEMO', joinUrl: 'http://10.0.0.113:3000/play?room=DEMO', qr: window.__QR__ || '' });
+    if (d.surface === 'play' && cfg.autojoin && G.players.length) {
+      post('play', { t: 'joined', playerId: G.players[0].id, room: 'DEMO', name: G.players[0].name });
+    }
+    emit();
+    return;
+  }
+
+  if (d.__bench !== 'send') return;
+  const f = d.frame;
+
+  if (f.t === 'host.start') { if (G.phase === 'lobby') { G.roundIndex = 0; startRound(); } return; }
+  if (f.t === 'host.create' || f.t === 'host.resume') { emit(); return; }
+
+  if (f.t === 'player.join' || f.t === 'player.rejoin') {
+    const me = G.players[0];
+    if (me) { if (f.name) me.name = String(f.name).slice(0, 14); post('play', { t: 'joined', playerId: me.id, room: 'DEMO', name: me.name }); }
+    emit();
+    return;
+  }
+
+  if (f.t === 'player.answer') {
+    if (G.phase !== 'question') { post('play', { t: 'error', code: 'BAD_REQUEST', message: 'The gate is shut.' }); return; }
+    const me = G.players[0];
+    const text = String(f.text || '').trim().slice(0, 80);
+    if (!text) return;
+    /* Semantic grouping here is a lookup against the question's pre-clustered
+       bank, so a typed answer has to be looked up the same way the bots' are.
+       Without this you could type "hot chocolate" against a bank that files it
+       under "cocoa" and land in a paddock of one — which reads as the grouping
+       being broken rather than as the bench standing in for the API. */
+    const bank = (G.qs[G.roundIndex] || {}).a || [];
+    const match = bank.find((x) => norm(x[0]) === norm(text));
+    G.answers.set(me.id, { playerId: me.id, name: me.name, text, key: match ? match[1] : norm(text) });
+    log('', '<b>You</b> answered &ldquo;' + text.replace(/</g, '&lt;') + '&rdquo;');
+    emit();
+  }
+});
+
+const setPressed = (onId, offId, on) => { $(onId).setAttribute('aria-pressed', String(on)); $(offId).setAttribute('aria-pressed', String(!on)); };
+
+$('c-players').addEventListener('input', (e) => { cfg.players = +e.target.value; $('v-players').textContent = cfg.players; });
+$('g-semantic').addEventListener('click', () => { cfg.grouping = 'semantic'; setPressed('g-semantic', 'g-fuzzy', true);
+  $('g-note').textContent = 'What Claude returns: meaning, not spelling.'; });
+$('g-fuzzy').addEventListener('click', () => { cfg.grouping = 'fuzzy'; setPressed('g-semantic', 'g-fuzzy', false);
+  $('g-note').textContent = 'No API key: text matching only, so synonyms split.'; });
+$('c-scenario').addEventListener('change', (e) => { cfg.scenario = e.target.value; });
+$('c-speed').addEventListener('change', (e) => { cfg.answerMs = { fast: 6000, normal: 15000, real: 45000 }[e.target.value]; });
+$('c-rounds').addEventListener('change', (e) => { cfg.rounds = +e.target.value; });
+$('c-autojoin').addEventListener('change', (e) => { cfg.autojoin = e.target.checked; });
+$('c-bots').addEventListener('change', (e) => { cfg.botsForMe = e.target.checked; });
+$('c-still').addEventListener('change', (e) => {
+  cfg.still = e.target.checked;
+  for (const id of ['f-tv', 'f-play']) {
+    const doc = $(id).contentDocument;
+    if (!doc) continue;
+    let s = doc.getElementById('__still');
+    if (cfg.still && !s) {
+      s = doc.createElement('style'); s.id = '__still';
+      s.textContent = '*,*::before,*::after{animation-duration:1ms !important;transition-duration:1ms !important}';
+      doc.head.appendChild(s);
+    } else if (!cfg.still && s) s.remove();
+  }
+});
+
+const joinMe = () => {
+  if (cfg.autojoin && G.players[0]) {
+    post('play', { t: 'joined', playerId: G.players[0].id, room: 'DEMO', name: G.players[0].name });
+  }
+};
+
+/* Straight into round one. Reaching only the lobby and leaving you to hunt for
+   the gate button on the TV made this read as a dead control. */
+$('c-start').addEventListener('click', () => {
+  reset();
+  joinMe();
+  G.roundIndex = 0;
+  startRound();
+});
+
+/* The lobby is its own screen worth looking at, so it keeps a button. */
+$('c-lobby').addEventListener('click', () => {
+  reset();
+  joinMe();
+  emit();
+  log('', 'Lobby — press <b>Open the gate</b> on the display to begin.');
+});
+
+$('c-jump').addEventListener('click', jumpToReveal);
+$('c-scores').addEventListener('click', jumpToScores);
+
+boot();
+log('head', 'Bench ready. Press Start a game.');
+log('', 'You are one of the flock: the question lands on <b>both</b> screens, you type your answer on the phone and press the lever, and the other ' + (cfg.players - 1) + ' answer around you. Everything after that runs itself.');
+log('', 'Try <b>Eight groups</b> and <b>Everyone unique</b> first — those stress the paddock map hardest.');
+</script>

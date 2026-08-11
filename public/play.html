@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover so env(safe-area-inset-*) is real on a notched phone -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- mirrors --pasture-deep in tokens.css; meta cannot take a custom property -->
+<meta name="theme-color" content="#1c4a22">
+<meta name="robots" content="noindex">
+<title>Flock Together — your phone</title>
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/play.css">
+<link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script type="module" src="/play.js"></script>
+</head>
+<body data-phase="join">
+
+<!-- Connection truth. Always painted, never silent. Height is reserved at the
+     top of .pen so appearing here never shifts the layout. -->
+<p class="wire legend" id="wire" role="status" hidden>Lost the paddock for a moment — getting you back in.</p>
+
+<div class="pen">
+
+  <header class="topbar">
+    <!-- The document's one h1. Every screen but the first is a swapped panel,
+         so a heading that lives inside a screen leaves the accessibility tree
+         the moment the phase changes; this one is always there and play.js
+         retitles it per screen. Out of flow, so the flex row never sees it. -->
+    <h1 class="visually-hidden" id="page-h">Flock Together</h1>
+
+    <p class="brand" id="brand">Flock&nbsp;Together</p>
+
+    <!-- The player's identity: an ear tag, tinted with their own raddle. -->
+    <p class="tag" id="tag" hidden>
+      <svg class="tag-svg" viewBox="0 0 104 88" aria-hidden="true"><use href="#sp-eartag"/></svg>
+      <span class="tag-name" id="tag-name"></span>
+    </p>
+
+    <p class="round legend" id="round" hidden>Round <span id="round-i">1</span>/<span id="round-n">9</span></p>
+  </header>
+
+  <main class="deck">
+
+    <!-- ─── 1. JOIN ──────────────────────────────────────────────────────── -->
+    <section class="screen screen--join" id="screen-join" tabindex="-1" aria-labelledby="join-h">
+      <div class="screen-head">
+        <p class="hero" id="join-h">Get in the paddock</p>
+      </div>
+
+      <form class="enamel-sign form" id="join-form" novalidate>
+        <p class="known-room" id="known-room" hidden>
+          <span class="legend">Paddock</span>
+          <strong class="numerals known-code" id="known-code">····</strong>
+          <button type="button" class="quiet" id="change-room">Wrong paddock?</button>
+        </p>
+
+        <p class="field" id="field-room">
+          <label class="legend" for="room">Paddock code</label>
+          <input class="slot slot--code" id="room" name="room" type="text" maxlength="4"
+                 autocomplete="off" autocapitalize="characters" autocorrect="off"
+                 spellcheck="false" inputmode="text" enterkeyhint="next"
+                 pattern="[A-Za-z0-9]{4}" aria-describedby="join-error">
+        </p>
+
+        <p class="field">
+          <label class="legend" for="name">Your name</label>
+          <input class="slot" id="name" name="name" type="text" maxlength="14"
+                 autocomplete="off" autocapitalize="words" autocorrect="off"
+                 spellcheck="false" enterkeyhint="go" aria-describedby="join-error">
+        </p>
+
+        <p class="painted-error" id="join-error" role="alert" hidden></p>
+
+        <button class="latch" type="submit" id="join-go">Throw the latch</button>
+      </form>
+
+      <p class="aside" id="join-aside">Everyone gets the same question. You score only by answering with the majority.</p>
+    </section>
+
+    <!-- ─── 2. CUSTOMISE ─────────────────────────────────────────────────
+         Between joining and the lobby. A player who has joined but has not
+         confirmed a look is here, and can come back from the lobby to change
+         it while the host has not started. The preview is the whole point:
+         they are looking at themselves, so it is the largest thing here and
+         it moves the instant a chip is tapped. -->
+    <section class="screen screen--look" id="screen-look" tabindex="-1" aria-labelledby="look-h">
+
+      <div class="look-head">
+        <h2 class="look-title" id="look-h">Make your sheep</h2>
+        <div class="look-stage">
+          <!-- Taller than the sheep's own 132x104 box: the hat box sits 30
+               units above the crown, and the root svg clips what it cannot
+               see. The sheep is placed 1:1 so the crown stays under the hat. -->
+          <svg class="look-sheep" id="look-sheep" viewBox="-4 -34 146 142" aria-hidden="true">
+            <use class="use-sheep" href="#sp-sheep" x="0" y="0" width="132" height="104"/>
+            <use class="use-hat" id="look-hat" x="78" y="-30" width="60" height="60" hidden/>
+          </svg>
+          <p class="look-name" id="look-name">&nbsp;</p>
+        </div>
+      </div>
+
+      <div class="look-scroll" id="look-scroll">
+        <section class="look-group" aria-labelledby="colour-legend">
+          <h3 class="legend look-legend" id="colour-legend">Fleece colour</h3>
+          <div class="fam-grid" id="colour-grid"></div>
+        </section>
+
+        <section class="look-group" aria-labelledby="hat-legend">
+          <h3 class="legend look-legend" id="hat-legend">Hat</h3>
+          <div class="hat-grid" id="hat-grid"></div>
+        </section>
+      </div>
+
+      <div class="look-foot">
+        <!-- One line for every word this screen says: the rule, a clash, a
+             rejection. Height is reserved, so nothing below it ever moves. -->
+        <p class="look-note" id="look-note" role="status" aria-live="polite" aria-atomic="true">
+          Two of you can share a colour, or share a hat — never both.
+        </p>
+        <button class="latch" type="button" id="look-go">That's my sheep</button>
+        <button class="quiet quiet--onfield" type="button" id="look-back" hidden>Keep the one I had</button>
+      </div>
+    </section>
+
+    <!-- ─── 3. LOBBY ─────────────────────────────────────────────────────── -->
+    <section class="screen screen--lobby" id="screen-lobby" tabindex="-1" aria-labelledby="lobby-h">
+
+      <div class="stack-mid">
+        <p class="tag tag--large" id="tag-big">
+          <svg class="tag-svg" viewBox="0 0 104 88" aria-hidden="true"><use href="#sp-eartag"/></svg>
+          <span class="tag-name" id="tag-big-name"></span>
+        </p>
+        <p class="flockline">
+          <svg class="ico ico--sheep" viewBox="-4 -34 146 142" aria-hidden="true">
+            <use class="use-sheep" href="#sp-sheep" x="0" y="0" width="132" height="104"/>
+            <use class="use-hat" id="lobby-hat" x="78" y="-30" width="60" height="60" hidden/>
+          </svg>
+          <span id="flock-count">You're first in the paddock.</span>
+        </p>
+        <p class="legend choosing" id="choosing-note">&nbsp;</p>
+      </div>
+
+      <div class="lobby-foot">
+        <p class="enamel-sign note" id="lobby-h">Watch the big screen. Your question turns up here.</p>
+        <button class="quiet quiet--onfield" type="button" id="look-reopen">Change your sheep</button>
+      </div>
+    </section>
+
+    <!-- ─── 4. QUESTION ──────────────────────────────────────────────────── -->
+    <section class="screen screen--question" id="screen-question" tabindex="-1" data-submitted="false" aria-labelledby="question">
+      <div class="screen-head">
+        <h2 class="enamel-sign question" id="question" data-len="mid">&nbsp;</h2>
+      </div>
+
+      <div class="q-mid">
+        <div class="rail" id="rail">
+          <svg class="ico ico--gate" viewBox="0 0 168 104" aria-hidden="true"><use href="#sp-gate"/></svg>
+          <span class="numerals clock" id="clock">--</span>
+          <span class="legend clock-label" id="clock-label">seconds left</span>
+        </div>
+
+        <div class="flank" id="flank">
+          <svg class="sheep" id="sheep" viewBox="-4 -34 146 142" aria-hidden="true">
+            <use class="use-sheep" href="#sp-sheep" x="0" y="0" width="132" height="104"/>
+            <use class="use-hat" id="sheep-hat" x="78" y="-30" width="60" height="60" hidden/>
+          </svg>
+        </div>
+      </div>
+
+      <form class="q-bottom" id="answer-form">
+        <label class="legend legend--onfield" for="answer" id="answer-label">Your answer</label>
+        <input class="slate" id="answer" name="answer" type="text" maxlength="80"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+               inputmode="text" enterkeyhint="send">
+        <p class="lock-note" id="lock-note" role="status" aria-live="polite">&nbsp;</p>
+
+        <div class="action">
+          <button class="latch latch--send" type="submit" id="send">Send it</button>
+          <div class="locked" id="locked" hidden>
+            <p class="locked-text" id="locked-text">Locked in — you can change it until the gate shuts.</p>
+            <button type="button" class="quiet quiet--onfield" id="change-answer">Change it</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- ─── 5. GROUPING ──────────────────────────────────────────────────── -->
+    <section class="screen screen--grouping" id="screen-grouping" tabindex="-1" aria-labelledby="grouping-h">
+
+      <div class="stack-mid">
+        <svg class="dog" viewBox="0 0 140 96" aria-hidden="true"><use href="#sp-dog"/></svg>
+        <h2 class="hero" id="grouping-h">The dog's working.</h2>
+        <p class="aside">It's sorting every answer into groups by what they mean. Takes a few seconds.</p>
+      </div>
+
+      <p class="enamel-sign said" id="said-grouping" hidden>You said <strong id="said-grouping-text"></strong></p>
+    </section>
+
+    <!-- ─── 6. REVEAL ────────────────────────────────────────────────────── -->
+    <section class="screen screen--reveal" id="screen-reveal" tabindex="-1" aria-labelledby="verdict-head">
+
+      <div class="stack-mid verdict" id="verdict" aria-live="polite">
+        <svg class="rosette" id="rosette" viewBox="0 0 104 132" aria-hidden="true" hidden><use href="#sp-rosette"/></svg>
+        <h2 class="hero" id="verdict-head">&nbsp;</h2>
+        <p class="aside" id="verdict-sub">&nbsp;</p>
+      </div>
+
+      <div class="reveal-foot">
+        <div class="enamel-sign group-card" id="group-card" hidden>
+          <span class="legend">Your group</span>
+          <span class="group-label" id="group-label"></span>
+          <span class="group-count"><b class="numerals" id="group-count">0</b><span class="legend">in it</span></span>
+        </div>
+        <p class="tally">
+          <svg class="ico ico--tally" viewBox="0 0 60 48" aria-hidden="true"><use href="#sp-tally"/></svg>
+          <span class="legend">Your tally</span>
+          <b class="numerals" id="reveal-score">0</b>
+        </p>
+      </div>
+    </section>
+
+    <!-- ─── 7. SCORES / FINAL ────────────────────────────────────────────── -->
+    <section class="screen screen--scores" id="screen-scores" tabindex="-1" data-final="false" aria-labelledby="standing">
+
+      <div class="stack-mid" aria-live="polite">
+        <svg class="rosette rosette--big" id="rosette-final" viewBox="0 0 104 132" aria-hidden="true" hidden><use href="#sp-rosette"/></svg>
+        <p class="bigscore"><b class="numerals" id="big-score">0</b><span class="legend" id="score-unit">points</span></p>
+        <h2 class="hero" id="standing">&nbsp;</h2>
+      </div>
+
+      <p class="aside" id="scores-sub">The whole board is on the big screen.</p>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-06T00:00:00.000Z",
+  "title": "Design System: Flock Together",
+  "extensions": {
+    "colorMeta": {
+      "pasture-deep": {
+        "role": "primary",
+        "displayName": "Deep Pasture",
+        "canonical": "#1c4a22",
+        "tonalRamp": ["#081a0b", "#0f2d13", "#16401c", "#1c4a22", "#2d6d35", "#4f9457", "#84bb8b", "#c3ddc7"]
+      },
+      "pasture": {
+        "role": "primary",
+        "displayName": "Pasture",
+        "canonical": "#2f6b33",
+        "tonalRamp": ["#0c1e0d", "#153318", "#1f4a22", "#2f6b33", "#3f8c44", "#63ac68", "#97cb9b", "#cde6cf"]
+      },
+      "pasture-lit": {
+        "role": "primary",
+        "displayName": "Lit Pasture",
+        "canonical": "#478b3b",
+        "tonalRamp": ["#0f2109", "#1a3a13", "#28571d", "#357428", "#478b3b", "#63a755", "#93c789", "#c9e3c3"]
+      },
+      "growth": {
+        "role": "primary",
+        "displayName": "Growth Green",
+        "canonical": "#8fbf3f",
+        "tonalRamp": ["#1e2a0b", "#334713", "#4a681c", "#628a26", "#7aa733", "#8fbf3f", "#b1d475", "#d9eab4"]
+      },
+      "growth-pale": {
+        "role": "primary",
+        "displayName": "Pale Growth",
+        "canonical": "#b7d768",
+        "tonalRamp": ["#26300f", "#3d4d18", "#556b22", "#6f8a2d", "#8ba93e", "#a3c353", "#b7d768", "#dcebb2"]
+      },
+      "stubble": {
+        "role": "secondary",
+        "displayName": "Cut Stubble",
+        "canonical": "#e0ae35",
+        "tonalRamp": ["#33260a", "#513c10", "#6f5316", "#8e6c1d", "#ae8724", "#c99a2c", "#e0ae35", "#f2d68f"]
+      },
+      "stubble-pale": {
+        "role": "secondary",
+        "displayName": "Pale Stubble",
+        "canonical": "#f0d391",
+        "tonalRamp": ["#3a2f13", "#59491f", "#79632b", "#9a7f39", "#bc9c49", "#d6b76a", "#f0d391", "#faecc9"]
+      },
+      "earth": {
+        "role": "tertiary",
+        "displayName": "Ploughed Earth",
+        "canonical": "#a8562c",
+        "tonalRamp": ["#2a1409", "#42200e", "#5c2d14", "#78401b", "#944b25", "#a8562c", "#c8804f", "#e6bda0"]
+      },
+      "earth-deep": {
+        "role": "tertiary",
+        "displayName": "Deep Earth",
+        "canonical": "#7d3d1f",
+        "tonalRamp": ["#1f0e07", "#33170b", "#4a2210", "#632e16", "#7d3d1f", "#9d5730", "#c28a63", "#e3c3ae"]
+      },
+      "hedge": {
+        "role": "neutral",
+        "displayName": "Hedgerow Ink",
+        "canonical": "#12180f",
+        "tonalRamp": ["#070a06", "#0d110b", "#12180f", "#1e2719", "#2e3b27", "#4a5a40", "#7d8d72", "#c0c9b8"]
+      },
+      "hedge-soft": {
+        "role": "neutral",
+        "displayName": "Soft Hedge",
+        "canonical": "#263021",
+        "tonalRamp": ["#0a0d08", "#131810", "#1c2419", "#263021", "#3a4833", "#556349", "#8b9a80", "#c8d1c0"]
+      },
+      "enamel": {
+        "role": "neutral",
+        "displayName": "White Enamel",
+        "canonical": "#f5efe0",
+        "tonalRamp": ["#2e2a20", "#4a4436", "#67604e", "#867e68", "#a79e86", "#c8bfa8", "#e2d9c4", "#f5efe0"]
+      },
+      "enamel-shade": {
+        "role": "neutral",
+        "displayName": "Weathered Enamel",
+        "canonical": "#e2d9c4",
+        "tonalRamp": ["#2b271c", "#454031", "#605945", "#7d745b", "#9b9174", "#bcb094", "#e2d9c4", "#f2ece0"]
+      },
+      "steel": {
+        "role": "neutral",
+        "displayName": "Galvanised Steel",
+        "canonical": "#b7bcb2",
+        "tonalRamp": ["#22251f", "#373b33", "#4e5349", "#676c61", "#82877b", "#9da297", "#b7bcb2", "#dcdfd9"]
+      },
+      "steel-dark": {
+        "role": "neutral",
+        "displayName": "Dark Steel",
+        "canonical": "#8b9188",
+        "tonalRamp": ["#1a1c19", "#2c2f2a", "#40443d", "#565b52", "#6d7369", "#8b9188", "#adb2aa", "#d5d8d2"]
+      },
+      "hazard": {
+        "role": "secondary",
+        "displayName": "Hazard Gate Paint",
+        "canonical": "#f2c400",
+        "tonalRamp": ["#382d00", "#584700", "#786100", "#9a7d00", "#bd9a00", "#dcb400", "#f2c400", "#fbe487"]
+      },
+      "tractor-red": {
+        "role": "tertiary",
+        "displayName": "Tractor Red",
+        "canonical": "#d6402a",
+        "tonalRamp": ["#330d07", "#4f150c", "#6d1f12", "#8d2a19", "#ae3521", "#d6402a", "#e57a68", "#f4c1b7"]
+      },
+      "buff": {
+        "role": "neutral",
+        "displayName": "Ledger Buff",
+        "canonical": "#e8dcc0",
+        "tonalRamp": ["#2d2718", "#484028", "#645939", "#82744b", "#a2915f", "#c3b184", "#e8dcc0", "#f5efdf"]
+      },
+      "raddle-1": { "role": "tertiary", "displayName": "Raddle Orange", "canonical": "#e8501e", "tonalRamp": ["#391004", "#571a07", "#77250b", "#993110", "#bd3e15", "#e8501e", "#f28a63", "#f9c8b3"] },
+      "raddle-2": { "role": "tertiary", "displayName": "Raddle Magenta", "canonical": "#d9257a", "tonalRamp": ["#34061c", "#51092c", "#700d3d", "#90124f", "#b31a63", "#d9257a", "#e86ba6", "#f5b8d2"] },
+      "raddle-3": { "role": "tertiary", "displayName": "Raddle Blue", "canonical": "#1e63c8", "tonalRamp": ["#04152f", "#072248", "#0b3163", "#0f417f", "#15529d", "#1e63c8", "#5f92dd", "#b3ccf1"] },
+      "raddle-4": { "role": "tertiary", "displayName": "Raddle Amber", "canonical": "#f2a100", "tonalRamp": ["#382500", "#583b00", "#785200", "#9a6a00", "#bd8300", "#dc9800", "#f2a100", "#fbd287"] },
+      "raddle-5": { "role": "tertiary", "displayName": "Raddle Violet", "canonical": "#7a2fbf", "tonalRamp": ["#1c0a2e", "#2d1049", "#3f1866", "#532084", "#682aa4", "#7a2fbf", "#a471d6", "#d4bced"] },
+      "raddle-6": { "role": "tertiary", "displayName": "Raddle Teal", "canonical": "#0e9c8a", "tonalRamp": ["#03241f", "#053b34", "#08544a", "#0a6e61", "#0c8779", "#0e9c8a", "#4dc0b2", "#a9e2da"] },
+      "raddle-7": { "role": "tertiary", "displayName": "Raddle Crimson", "canonical": "#b5123f", "tonalRamp": ["#2b040f", "#440718", "#5f0a22", "#7c0d2c", "#9a1037", "#b5123f", "#d75e7f", "#efb4c4"] },
+      "raddle-8": { "role": "tertiary", "displayName": "Raddle Periwinkle", "canonical": "#4a6fd4", "tonalRamp": ["#0d1533", "#15234f", "#1e326e", "#28428e", "#3455b0", "#4a6fd4", "#869ce4", "#c5cff4"] }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display / Wordmark",
+        "purpose": "Bricolage Grotesque at 800. The voice with an opinion: wordmark, hero, group label, button text. Never used for a number."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Scene titles on the shared display. Balanced wrapping, tight negative tracking."
+      },
+      "question": {
+        "displayName": "Question",
+        "purpose": "The one thing the whole room must read. Set on a rotated enamel sign. On the phone it is tiered by character count (short/mid/long) rather than truncated, and scrolls inside the sign if it still will not fit."
+      },
+      "numerals": {
+        "displayName": "Monumental Numerals",
+        "purpose": "Archivo pushed to 900 weight and 125% width, tabular lining figures. Countdown, headcounts, scores, room code. The one voice that must read across a room and survive being downscaled inside a video-call window."
+      },
+      "body": {
+        "displayName": "Body / Aside",
+        "purpose": "Archivo at 600. Explanatory copy on the phone controller only; the display carries almost no body text."
+      },
+      "legend": {
+        "displayName": "Painted Legend",
+        "purpose": "Archivo at 700 and 112% width, uppercase, 0.14em tracked. Silkscreened panel labels, as painted on farm signage. Floor held at 0.75rem because uppercase at this tracking stops being readable one-handed below about 12px. The display re-clamps it to clamp(0.8rem, 0.95vw, 1.45rem) because the shared cap is a phone cap."
+      }
+    },
+    "shadows": [
+      { "name": "lift-sign", "value": "0 6px 0 var(--hedge), 0 14px 28px -8px rgb(10 24 8 / 0.55)", "purpose": "Enamel sign, record sheet, phone lever. A real ink offset for the plate's own edge plus a ground-tinted cast shadow." },
+      { "name": "lift-token", "value": "0 3px 0 rgb(18 24 15 / 0.85), 0 8px 14px -6px rgb(10 24 8 / 0.5)", "purpose": "The smaller plate: ear tag, locked-in confirmation." },
+      { "name": "lift-panel", "value": "0 10px 30px -10px rgb(10 24 8 / 0.6)", "purpose": "Blur only, no offset. Dark objects sitting ON the map — countdown box, paddock plot, connection notice — which read as pressed onto the ground rather than lifted off it." },
+      { "name": "press-in", "value": "inset 0 3px 8px -2px rgb(10 24 8 / 0.45)", "purpose": "The only inset in the system. Every text input, so a slot reads as a recess cut into a sign." },
+      { "name": "focus-halo-on-enamel", "value": "0 0 0 calc(var(--line) * 3) var(--hedge)", "purpose": "Painted outside the hazard focus ring on light-ground controls. The ring's width plus its offset plus a stroke of hedge, so both edges of the ring clear 3:1 on enamel." }
+    ],
+    "motion": [
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Arrivals. The default easing for every authored moment except the rosette." },
+      { "name": "ease-gate", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Quintic deceleration for the rosette pin and the phone's press travel. Deliberately not an elastic overshoot — the weight comes from the scale and rotate in the keyframes." },
+      { "name": "t-fast", "value": "160ms", "purpose": "Press travel and hover shifts." },
+      { "name": "t-base", "value": "320ms", "purpose": "The raddle spray, screen arrival, the gate's per-tick interpolation, the countdown's colour change." },
+      { "name": "t-slow", "value": "620ms", "purpose": "Paddocks settling, the rosette pinning, the phone's dye splat." },
+      { "name": "t-run", "value": "900ms", "purpose": "Defined in tokens.css but not referenced by either surface as built." }
+    ],
+    "breakpoints": [
+      { "name": "display-narrow", "value": "900px (or orientation: portrait) — the display stacks its lobby and question rows rather than shrinking type" },
+      { "name": "phone-short", "value": "620px viewport height — the flock sprite and countdown shrink" },
+      { "name": "pen-780", "value": "container pen (max-height: 780px) — the question gives up height so the countdown keeps its room" },
+      { "name": "pen-620", "value": "container pen (max-height: 620px) — the flock is dropped entirely, the rail collapses to one row, the clock label goes to screen readers only" },
+      { "name": "paddock-150", "value": "container (max-height: 150px) — the paddock cell sheds its sheep sprites" },
+      { "name": "paddock-110", "value": "container (max-height: 110px) — the cell sheds player names and steps every size down" },
+      { "name": "paddock-74", "value": "container (max-height: 74px) — the cell sheds its headcount; the field's own area already states it" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Enamel Sign",
+      "kind": "card",
+      "refersTo": "enamel-sign",
+      "description": "The only content well in the system. There are no cards — if content needs a light ground, it is a sign.",
+      "html": "<div class=\"ds-enamel-sign\"><p class=\"ds-legend\">Scan to join the flock</p><p class=\"ds-sign-body\">Everyone gets the same question. You score only by answering with the majority.</p></div>",
+      "css": ".ds-enamel-sign { background: var(--enamel, #f5efe0); color: var(--hedge, #12180f); border: var(--line-bold, 5px) solid var(--hedge, #12180f); border-radius: var(--radius-sign, 4px); box-shadow: var(--lift-sign, 0 6px 0 #12180f, 0 14px 28px -8px rgb(10 24 8 / 0.55)); padding: 1.5rem; font-family: var(--face-ui, Archivo, system-ui, sans-serif); max-width: 22rem; } .ds-legend { font-weight: 700; font-stretch: 112%; font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--earth-deep, #7d3d1f); margin: 0 0 1rem; } .ds-sign-body { margin: 0; font-size: 0.95rem; font-weight: 600; line-height: 1.35; }"
+    },
+    {
+      "name": "Latch (display)",
+      "kind": "button",
+      "refersTo": "latch",
+      "description": "The host's primary action. Hazard-painted farm hardware with a literal steel throw-bolt that slides on hover and 7px of real press travel.",
+      "html": "<button class=\"ds-latch\" type=\"button\"><span class=\"ds-latch-bar\"></span><span>Open the gate</span></button>",
+      "css": ".ds-latch { display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.5rem; background: var(--hazard, #f2c400); color: var(--hedge, #12180f); border: var(--line-bold, 5px) solid var(--hedge, #12180f); border-radius: var(--radius-sign, 4px); font-family: var(--face-display, 'Bricolage Grotesque', system-ui, sans-serif); font-weight: 800; font-size: 1.25rem; letter-spacing: -0.02em; cursor: pointer; box-shadow: 0 7px 0 var(--hedge, #12180f), 0 10px 30px -10px rgb(10 24 8 / 0.6); transition: translate 160ms cubic-bezier(0.16,1,0.3,1), box-shadow 160ms cubic-bezier(0.16,1,0.3,1), background-color 160ms cubic-bezier(0.16,1,0.3,1); } .ds-latch-bar { inline-size: 30px; block-size: 11px; background: var(--steel, #b7bcb2); border: var(--line-hair, 2px) solid var(--hedge, #12180f); border-radius: 2px; transition: translate 160ms cubic-bezier(0.16,1,0.3,1); } .ds-latch:hover { background: color-mix(in oklab, #f2c400 84%, #f5efe0); } .ds-latch:hover .ds-latch-bar { translate: 5px 0; } .ds-latch:active { translate: 0 6px; box-shadow: 0 1px 0 var(--hedge, #12180f); } .ds-latch:focus-visible { outline: 3px solid var(--hazard, #f2c400); outline-offset: 2px; }"
+    },
+    {
+      "name": "Latch — disabled",
+      "kind": "button",
+      "refersTo": "latch-disabled",
+      "description": "Drawn already pressed in steel, so it reads as mechanically stuck rather than greyed out.",
+      "html": "<button class=\"ds-latch-off\" type=\"button\" disabled>Open the gate</button>",
+      "css": ".ds-latch-off { display: inline-flex; align-items: center; padding: 0.75rem 1.5rem; background: var(--steel-dark, #8b9188); color: color-mix(in oklab, #12180f 70%, #b7bcb2); border: var(--line-bold, 5px) solid var(--hedge, #12180f); border-radius: var(--radius-sign, 4px); font-family: var(--face-display, 'Bricolage Grotesque', system-ui, sans-serif); font-weight: 800; font-size: 1.25rem; letter-spacing: -0.02em; box-shadow: 0 7px 0 var(--hedge-soft, #263021); cursor: not-allowed; }"
+    },
+    {
+      "name": "Lever (phone)",
+      "kind": "button",
+      "refersTo": "latch-phone",
+      "description": "The phone's full-width primary action. Same hazard hardware, no hover state, 60px minimum target, 6px of press travel.",
+      "html": "<button class=\"ds-lever\" type=\"button\">Send it</button>",
+      "css": ".ds-lever { display: block; width: 100%; min-height: 60px; padding: 0.75rem 1rem; font-family: var(--face-display, 'Bricolage Grotesque', system-ui, sans-serif); font-weight: 800; font-size: 1.3rem; letter-spacing: -0.01em; background: var(--hazard, #f2c400); color: var(--hedge, #12180f); border: var(--line-bold, 5px) solid var(--hedge, #12180f); border-radius: var(--radius-sign, 4px); box-shadow: var(--lift-sign, 0 6px 0 #12180f, 0 14px 28px -8px rgb(10 24 8 / 0.55)); cursor: pointer; touch-action: manipulation; transition: transform 160ms cubic-bezier(0.22,1,0.36,1), box-shadow 160ms cubic-bezier(0.22,1,0.36,1); } .ds-lever:active { transform: translateY(6px); box-shadow: 0 0 0 var(--hedge, #12180f), 0 2px 8px -6px var(--hedge, #12180f); } .ds-lever:focus-visible { outline: 3px solid var(--hedge, #12180f); outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Action",
+      "kind": "button",
+      "refersTo": "quiet",
+      "description": "Secondary action with no hardware at all: a chalk underline in deep earth. Flips to pale stubble on dark ground.",
+      "html": "<button class=\"ds-quiet\" type=\"button\">Change it</button>",
+      "css": ".ds-quiet { padding: 0.25rem 0; min-height: 2.75rem; background: none; border: 0; font-family: var(--face-ui, Archivo, system-ui, sans-serif); font-weight: 700; font-size: 0.95rem; color: var(--earth-deep, #7d3d1f); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; cursor: pointer; } .ds-quiet:focus-visible { background: var(--enamel, #f5efe0); outline: none; box-shadow: 0 0 0 9px var(--hedge, #12180f); }"
+    },
+    {
+      "name": "Slate (answer input)",
+      "kind": "input",
+      "refersTo": "slate",
+      "description": "A recess cut into an enamel sign. Set at 1.35rem so iOS never zooms on focus; the placeholder carries live state text, so its contrast is held at 4.5:1.",
+      "html": "<input class=\"ds-slate\" type=\"text\" placeholder=\"Type your answer\" maxlength=\"80\">",
+      "css": ".ds-slate { width: 100%; min-height: 3.5rem; padding: 0.75rem 1rem; font-family: var(--face-ui, Archivo, system-ui, sans-serif); font-weight: 700; font-size: 1.35rem; background: var(--enamel, #f5efe0); color: var(--hedge, #12180f); border: var(--line-bold, 5px) solid var(--hedge, #12180f); border-radius: var(--radius-sign, 4px); box-shadow: var(--press-in, inset 0 3px 8px -2px rgb(10 24 8 / 0.45)); } .ds-slate::placeholder { font-weight: 500; color: color-mix(in srgb, #12180f 68%, #f5efe0); } .ds-slate:read-only { background: var(--enamel-shade, #e2d9c4); } .ds-slate:focus-visible { outline: none; box-shadow: var(--press-in, inset 0 3px 8px -2px rgb(10 24 8 / 0.45)), 0 0 0 9px var(--hedge, #12180f); }"
+    },
+    {
+      "name": "Code Slot",
+      "kind": "input",
+      "refersTo": "slot",
+      "description": "The room-code field. Weathered enamel ground, monumental numerals widened to 125% with 0.22em tracking, centred and uppercased.",
+      "html": "<input class=\"ds-slot-code\" type=\"text\" maxlength=\"4\" value=\"K3PT\">",
+      "css": ".ds-slot-code { width: 100%; min-height: 3.25rem; padding: 0.5rem 0.75rem; font-family: var(--face-ui, Archivo, system-ui, sans-serif); font-weight: 900; font-stretch: 125%; font-variant-numeric: tabular-nums lining-nums; font-size: 1.9rem; letter-spacing: 0.22em; text-transform: uppercase; text-align: center; background: var(--enamel-shade, #e2d9c4); color: var(--hedge, #12180f); border: var(--line-bold, 5px) solid var(--hedge, #12180f); border-radius: var(--radius-sign, 4px); box-shadow: var(--press-in, inset 0 3px 8px -2px rgb(10 24 8 / 0.45)); } .ds-slot-code:focus-visible { outline: none; box-shadow: var(--press-in, inset 0 3px 8px -2px rgb(10 24 8 / 0.45)), 0 0 0 9px var(--hedge, #12180f); }"
+    },
+    {
+      "name": "Painted Error",
+      "kind": "custom",
+      "refersTo": "painted-error",
+      "description": "Names the problem and the way out. Earth on pale-stubble-tinted enamel with a hazard hair border — deliberately not red, because red belongs to winning.",
+      "html": "<p class=\"ds-error\" role=\"alert\">The paddock code is four characters — they are on the big screen.</p>",
+      "css": ".ds-error { margin: 0; padding: 0.5rem 0.75rem; border: var(--line-hair, 2px) solid var(--hazard, #f2c400); background: color-mix(in srgb, #f0d391 55%, #f5efe0); color: var(--earth-deep, #7d3d1f); font-family: var(--face-ui, Archivo, system-ui, sans-serif); font-weight: 600; font-size: 0.95rem; line-height: 1.35; }"
+    },
+    {
+      "name": "Painted Legend Plate",
+      "kind": "chip",
+      "refersTo": "legend-plate",
+      "description": "Small text never sits directly on grass. Any legend carrying real content is painted on a 62% ink plate first, because pale growth on pasture computes 2.46:1.",
+      "html": "<p class=\"ds-legend-plate\">7 of 9 marked</p>",
+      "css": ".ds-legend-plate { display: inline-block; margin: 0; padding: 3px 0.75rem; border-radius: 2px; background: rgb(18 24 15 / 0.62); color: var(--enamel, #f5efe0); font-family: var(--face-ui, Archivo, system-ui, sans-serif); font-weight: 700; font-stretch: 112%; font-size: 0.9rem; letter-spacing: 0.14em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Ear Tag",
+      "kind": "chip",
+      "refersTo": "ear-tag",
+      "description": "The player's identity on the phone: an enamel tag whose body takes their own raddle dye via currentColor.",
+      "html": "<p class=\"ds-tag\"><svg class=\"ds-tag-svg\" viewBox=\"0 0 104 88\" aria-hidden=\"true\"><g stroke=\"#12180f\" stroke-width=\"5\" stroke-linejoin=\"round\" stroke-linecap=\"round\"><path fill=\"currentColor\" d=\"M14 14h76a8 8 0 0 1 8 8v44a8 8 0 0 1-8 8H14a8 8 0 0 1-8-8V22a8 8 0 0 1 8-8Z\"/><circle cx=\"24\" cy=\"44\" r=\"6\" fill=\"#f5efe0\"/></g></svg><span class=\"ds-tag-name\">Nell</span></p>",
+      "css": ".ds-tag { display: inline-flex; align-items: center; gap: 0.5rem; margin: 0; min-width: 0; padding: 0.25rem 0.75rem 0.25rem 0.25rem; background: var(--enamel, #f5efe0); border: var(--line-bold, 5px) solid var(--hedge, #12180f); border-radius: var(--radius-sign, 4px); box-shadow: var(--lift-token, 0 3px 0 rgb(18 24 15 / 0.85), 0 8px 14px -6px rgb(10 24 8 / 0.5)); } .ds-tag-svg { flex: none; display: block; width: 2.1rem; height: auto; color: var(--raddle-3, #1e63c8); } .ds-tag-name { font-family: var(--face-display, 'Bricolage Grotesque', system-ui, sans-serif); font-weight: 800; font-size: 1.05rem; line-height: 1.1; color: var(--hedge, #12180f); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }"
+    },
+    {
+      "name": "Paddock Cell",
+      "kind": "custom",
+      "refersTo": "paddock",
+      "description": "One cell of the squarified treemap. Its AREA is the group's headcount. Carries half a hedgerow on every side so shared edges read as one 8px hedge, and sheds content through container-query tiers at 150px, 110px and 74px of height.",
+      "html": "<div class=\"ds-paddock\"><span class=\"ds-paddock-stake\"><span class=\"ds-paddock-label\">Beans on toast</span><strong class=\"ds-paddock-count\">7</strong></span><ul class=\"ds-paddock-flock\"><li class=\"ds-pad-sheep\"><span>beans on toast</span><span class=\"ds-pad-who\">Nell</span></li><li class=\"ds-pad-sheep\"><span>Beans!</span><span class=\"ds-pad-who\">Owen</span></li></ul></div>",
+      "css": ".ds-paddock { --tint: var(--raddle-6, #0e9c8a); container-type: size; box-sizing: border-box; width: 320px; height: 200px; border: 4px solid var(--hedge, #12180f); padding: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; overflow: hidden; color: var(--enamel, #f5efe0); font-family: var(--face-ui, Archivo, system-ui, sans-serif); background: repeating-linear-gradient(20deg, rgb(255 255 255 / 0.055) 0 7px, transparent 7px 17px), color-mix(in oklab, var(--tint) 32%, #2f6b33); } .ds-paddock-stake { display: flex; align-items: center; gap: 0.5rem; align-self: flex-start; max-inline-size: 100%; padding: 3px 0.5rem; background: var(--enamel, #f5efe0); color: var(--hedge, #12180f); border: 2px solid var(--hedge, #12180f); border-radius: 3px; box-shadow: 0 3px 0 var(--hedge, #12180f); } .ds-paddock-label { font-family: var(--face-display, 'Bricolage Grotesque', system-ui, sans-serif); font-weight: 800; font-size: 1.1rem; line-height: 1.05; letter-spacing: -0.02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-paddock-count { font-weight: 900; font-stretch: 125%; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.03em; line-height: 0.86; font-size: 1.4rem; color: var(--earth-deep, #7d3d1f); } .ds-paddock-flock { flex: 1 1 auto; min-block-size: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 0.25rem 0.5rem; overflow: hidden; } .ds-pad-sheep { display: inline-flex; align-items: center; gap: 5px; max-inline-size: 100%; padding: 2px 7px; border-radius: 2px; background: rgb(18 24 15 / 0.42); font-weight: 600; font-size: 0.9rem; } .ds-pad-who { font-weight: 400; font-size: 0.82em; color: var(--stubble-pale, #f0d391); } @container (max-height: 110px) { .ds-pad-who { display: none; } } @container (max-height: 74px) { .ds-paddock-count { display: none; } }"
+    },
+    {
+      "name": "Paddock Cell — scored",
+      "kind": "custom",
+      "refersTo": "paddock-scored",
+      "description": "The winning cell, marked five ways at once: rosette, gold stubble ground, tractor-red frame with an inset hedge stroke, the largest area, and the headcount.",
+      "html": "<div class=\"ds-paddock-won\"><span class=\"ds-won-stake\"><svg class=\"ds-rosette\" viewBox=\"0 0 104 132\" aria-hidden=\"true\"><g stroke=\"#12180f\" stroke-width=\"5\" stroke-linejoin=\"round\" stroke-linecap=\"round\"><path fill=\"currentColor\" d=\"M36 84 26 128l16-10 12 12 4-46Z\"/><path fill=\"currentColor\" d=\"M68 84 82 126l-16-8-12 12-4-46Z\"/><path fill=\"currentColor\" d=\"M52 8A11 11 0 0 1 65 12A11 11 0 0 1 78 20A11 11 0 0 1 88 32A11 11 0 0 1 90 46A11 11 0 0 1 84 59A11 11 0 0 1 72 68A11 11 0 0 1 52 72A11 11 0 0 1 32 68A11 11 0 0 1 20 59A11 11 0 0 1 14 46A11 11 0 0 1 16 32A11 11 0 0 1 26 20A11 11 0 0 1 39 12A11 11 0 0 1 52 8 Z\"/><circle cx=\"52\" cy=\"40\" r=\"17\" fill=\"#f5efe0\"/></g></svg><span class=\"ds-won-label\">Beans on toast</span><strong class=\"ds-won-count\">7</strong></span></div>",
+      "css": ".ds-paddock-won { --tint: var(--raddle-6, #0e9c8a); box-sizing: border-box; width: 320px; height: 160px; border: 4px solid var(--tractor-red, #d6402a); padding: 0.5rem; display: flex; flex-direction: column; overflow: hidden; color: var(--hedge, #12180f); font-family: var(--face-ui, Archivo, system-ui, sans-serif); background: repeating-linear-gradient(20deg, rgb(18 24 15 / 0.06) 0 7px, transparent 7px 17px), color-mix(in oklab, #e0ae35 78%, var(--tint)); box-shadow: inset 0 0 0 2px var(--hedge, #12180f); } .ds-won-stake { display: flex; align-items: center; gap: 0.5rem; align-self: flex-start; padding: 3px 0.5rem; background: var(--enamel, #f5efe0); border: 2px solid var(--hedge, #12180f); border-radius: 3px; box-shadow: 0 3px 0 var(--hedge, #12180f); } .ds-rosette { display: block; width: 34px; height: auto; flex: 0 0 auto; color: var(--tractor-red, #d6402a); rotate: -7deg; animation: ds-pin 620ms cubic-bezier(0.22,1,0.36,1) both; } @keyframes ds-pin { from { opacity: 0; scale: 0.2; rotate: -22deg; } to { opacity: 1; scale: 1; rotate: -7deg; } } .ds-won-label { font-family: var(--face-display, 'Bricolage Grotesque', system-ui, sans-serif); font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; } .ds-won-count { font-weight: 900; font-stretch: 125%; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; font-size: 1.4rem; color: var(--earth-deep, #7d3d1f); }"
+    },
+    {
+      "name": "Record Sheet Row",
+      "kind": "custom",
+      "refersTo": "record-sheet",
+      "description": "The grazing record: buff ledger paper ruled in earth at 18% on a 2.1em rhythm, rotated -0.4deg. Scores are kept as five-bar tally sprites, with the part-tally at 42% opacity.",
+      "html": "<div class=\"ds-record\"><div class=\"ds-record-row\" data-lead=\"true\"><span class=\"ds-rank\">1</span><span class=\"ds-who\">Nell</span><span class=\"ds-tally\"><svg viewBox=\"0 0 60 48\"><g fill=\"none\" stroke=\"currentColor\" stroke-width=\"5\" stroke-linecap=\"round\"><path d=\"M10 8v32M22 8v32M34 8v32M46 8v32M6 40 50 8\"/></g></svg></span><span class=\"ds-score\">5</span></div><div class=\"ds-record-row\"><span class=\"ds-rank\">2</span><span class=\"ds-who\">Owen</span><span class=\"ds-tally\"></span><span class=\"ds-score\">3</span></div></div>",
+      "css": ".ds-record { width: 420px; padding: 1.25rem; font-family: var(--face-ui, Archivo, system-ui, sans-serif); color: var(--hedge, #12180f); background: repeating-linear-gradient(to bottom, transparent 0 calc(2.1em - 1px), rgb(168 86 44 / 0.18) calc(2.1em - 1px) 2.1em), var(--buff, #e8dcc0); border: var(--line-bold, 5px) solid var(--hedge, #12180f); border-radius: 3px; box-shadow: var(--lift-sign, 0 6px 0 #12180f, 0 14px 28px -8px rgb(10 24 8 / 0.55)); rotate: -0.4deg; } .ds-record-row { display: grid; grid-template-columns: 2.6ch 1fr auto auto; align-items: center; gap: 0.75rem; min-block-size: 2.1em; font-weight: 600; } .ds-record-row[data-lead='true'] { background: color-mix(in oklab, #e0ae35 46%, #e8dcc0); box-shadow: inset 0 0 0 2px var(--tractor-red, #d6402a); border-radius: 2px; } .ds-rank { font-weight: 900; font-stretch: 118%; color: var(--earth-deep, #7d3d1f); text-align: right; } .ds-who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; } .ds-tally { display: flex; gap: 3px; color: var(--earth-deep, #7d3d1f); } .ds-tally svg { display: block; inline-size: 26px; block-size: auto; } .ds-score { font-weight: 900; font-stretch: 118%; font-variant-numeric: tabular-nums; font-size: 1.3rem; min-inline-size: 2.4ch; text-align: right; }"
+    },
+    {
+      "name": "Countdown Box",
+      "kind": "custom",
+      "refersTo": "clock-tv",
+      "description": "Monumental figures on a hedge-dark box pressed onto the map. One authored urgency change at the 10-second threshold, not an effect on every tick.",
+      "html": "<div class=\"ds-clock\"><span class=\"ds-clock-label\">Gate shuts in</span><strong class=\"ds-clock-figures\">08</strong><span class=\"ds-clock-label\">seconds</span></div>",
+      "css": ".ds-clock { display: inline-grid; justify-items: center; gap: 2px; padding: 0.75rem 1rem; background: var(--hedge, #12180f); border: var(--line-bold, 5px) solid var(--hedge, #12180f); border-radius: var(--radius-sign, 4px); color: var(--growth-pale, #b7d768); font-family: var(--face-ui, Archivo, system-ui, sans-serif); box-shadow: var(--lift-panel, 0 10px 30px -10px rgb(10 24 8 / 0.6)); animation: ds-alarm 900ms cubic-bezier(0.16,1,0.3,1) infinite; } .ds-clock-label { font-weight: 700; font-stretch: 112%; font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; } .ds-clock-figures { font-weight: 900; font-stretch: 125%; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.03em; line-height: 0.86; font-size: 4rem; color: var(--hazard, #f2c400); } @keyframes ds-alarm { 0%, 100% { box-shadow: 0 10px 30px -10px rgb(10 24 8 / 0.6), 0 0 0 0 rgb(242 196 0 / 0.5); } 55% { box-shadow: 0 10px 30px -10px rgb(10 24 8 / 0.6), 0 0 0 12px rgb(242 196 0 / 0); } } @media (prefers-reduced-motion: reduce) { .ds-clock { animation: none; box-shadow: 0 10px 30px -10px rgb(10 24 8 / 0.6), 0 0 0 5px var(--hazard, #f2c400); } }"
+    },
+    {
+      "name": "Sheep Token",
+      "kind": "chip",
+      "refersTo": "sheep",
+      "description": "A player on the map: enamel fleece, a name plate on its own ink ground, and a raddle blotch that is invisible until their answer lands. The spray is the one authored moment of the question phase.",
+      "html": "<div class=\"ds-sheep\" data-marked=\"true\"><svg class=\"ds-sheep-svg\" viewBox=\"0 0 132 104\" aria-hidden=\"true\"><g stroke=\"#12180f\" stroke-width=\"5\" stroke-linejoin=\"round\" stroke-linecap=\"round\"><path d=\"M38 70v22M52 70v22M84 70v20M96 70v20\" fill=\"none\" stroke-width=\"9\"/><path class=\"ds-fleece\" d=\"M18 52A12 12 0 0 1 23.6 39A12 12 0 0 1 39 29.5A12 12 0 0 1 60 26A12 12 0 0 1 81 29.5A12 12 0 0 1 96.4 39A12 12 0 0 1 102 52A12 12 0 0 1 96.4 65A12 12 0 0 1 81 74.5A12 12 0 0 1 60 78A12 12 0 0 1 39 74.5A12 12 0 0 1 23.6 65A12 12 0 0 1 18 52 Z\"/><path class=\"ds-raddle\" fill=\"currentColor\" stroke=\"none\" d=\"M44 42c7-5 16-4 20 2s2 14-5 16-16 0-18-6 0-9 3-12Z\"/><path d=\"M100 46c8-6 20-4 24 4s-2 18-11 19-16-4-17-11 0-9 4-12Z\"/><path d=\"M104 42c-4-6-1-12 5-12s8 6 5 11\" fill=\"none\"/></g></svg><span class=\"ds-sheep-name\">Nell</span></div>",
+      "css": ".ds-sheep { inline-size: 92px; display: grid; justify-items: center; gap: 3px; color: var(--raddle-1, #e8501e); font-family: var(--face-ui, Archivo, system-ui, sans-serif); } .ds-sheep-svg { inline-size: 100%; display: block; filter: drop-shadow(0 4px 5px rgb(10 24 8 / 0.42)); } .ds-fleece { fill: var(--enamel, #f5efe0); } .ds-raddle { opacity: 0; transform-box: fill-box; transform-origin: center; scale: 0.4; } .ds-sheep[data-marked='true'] .ds-raddle { animation: ds-spray 320ms cubic-bezier(0.16,1,0.3,1) forwards; } @keyframes ds-spray { from { opacity: 0; scale: 0.4; } 60% { opacity: 1; scale: 1.18; } to { opacity: 1; scale: 1; } } .ds-sheep-name { font-weight: 700; font-stretch: 92%; font-size: 0.9rem; line-height: 1.1; text-align: center; color: var(--enamel, #f5efe0); max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 5px; background: rgb(18 24 15 / 0.55); border-radius: 2px; } @media (prefers-reduced-motion: reduce) { .ds-sheep[data-marked='true'] .ds-raddle { animation: none; opacity: 1; scale: 1; } }"
+    },
+    {
+      "name": "Rotation Pips",
+      "kind": "nav",
+      "refersTo": "rotation",
+      "description": "Round progress in the hazard header. The current round is marked by an enamel fill plus a ring — deliberately not tractor red, which belongs to the rosette.",
+      "html": "<nav class=\"ds-rotation\" aria-label=\"Round 4 of 9\"><span class=\"ds-rot-label\">Rotation</span><ol class=\"ds-pips\"><li data-state=\"done\"></li><li data-state=\"done\"></li><li data-state=\"done\"></li><li data-state=\"now\"></li><li></li><li></li><li></li><li></li><li></li></ol></nav>",
+      "css": ".ds-rotation { display: inline-flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: var(--hazard, #f2c400); color: var(--hedge, #12180f); font-family: var(--face-ui, Archivo, system-ui, sans-serif); } .ds-rot-label { font-weight: 700; font-stretch: 112%; font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.72; } .ds-pips { display: flex; gap: 5px; margin: 0; padding: 0; list-style: none; } .ds-pips li { inline-size: 15px; block-size: 15px; border: var(--line-hair, 2px) solid var(--hedge, #12180f); border-radius: 2px; background: transparent; } .ds-pips li[data-state='done'] { background: var(--hedge, #12180f); } .ds-pips li[data-state='now'] { background: var(--enamel, #f5efe0); box-shadow: 0 0 0 3px rgb(18 24 15 / 0.28); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Paddock Rotation",
+    "overview": "The world is a working farm map seen from directly above. Not a party-game card grid on a purple gradient, not a dashboard: the ground of every screen is a saturated pasture, and the things on it are the things you would actually find in a field — hedgerows, gates, enamel signs, galvanised steel, hazard paint, raddle dye, a rosette. The system was built at full farm colour on purpose. Nothing here is pastel, nothing is tinted-neutral, and nothing sits on a white page.\n\nThe organising conviction is that structure is drawn, not implied. Division between one region and the next is carried by heavy hedgerow ink at one of four stroke weights, never by a 1px grey rule, never by a card shadow, and never by a gap in a neutral surface. That single decision is what makes the aerial-map reading hold: a screen looks like surveyed land because it is genuinely divided into bounded regions rather than assembled out of floating panels.\n\nColour does three jobs and they never trade places. Field colour owns whole regions of ground. Farm hardware — enamel, steel, hazard, tractor red, buff — is the only vocabulary controls and content wells are allowed to speak. Raddle dye carries identity, and only identity. The palette is large but it is not loose: each family has a job, and the discipline is in never borrowing across them.",
+    "keyCharacteristics": [
+      "Saturated field colour as ground, at full strength, never as an accent",
+      "All structure in hedgerow ink at four weights (2px / 3px / 5px / 8px)",
+      "No cards; the white enamel sign is the only content well",
+      "Two self-hosted variable faces — Bricolage Grotesque speaks, Archivo labels",
+      "Monumental wide figures for every number that matters",
+      "Identity by raddle dye, always redundantly coded",
+      "One authored motion moment per phase, and nothing travels under reduced motion"
+    ],
+    "rules": [
+      { "name": "The Reserved Rosette Rule", "body": "Tractor red belongs to winning and to nothing else. It is the rosette sprite's fill, the winning paddock's frame, and the leading record row's inset stroke. It is deliberately not used for the current-round pip (which is marked by an enamel fill plus a ring), and not used for form errors (which are painted in earth on pale stubble). If a new element wants red, the answer is earth or hazard.", "section": "colors" },
+      { "name": "The Three Palettes Rule", "body": "Field colour paints regions, hardware paints controls and wells, raddle paints identity. A control never takes a field colour; a field never takes hazard; raddle never appears on anything that is not an identity mark.", "section": "colors" },
+      { "name": "The Never-Hue-Alone Rule", "body": "Group and player identity never rests on colour. A group carries its dye and its position on the map, and its label on a stake, and its headcount, and — for the winner — a rosette, gold stubble ground, a red frame, the largest area, and a visually-hidden 'Scored a point' sentence. A player carries their dye and their name plate. Colour is always the fourth or fifth carrier, never the first.", "section": "colors" },
+      { "name": "The Plated Legend Rule", "body": "Small text never sits directly on grass. Pale growth on pasture computes 2.46:1 at the lit end of the ground gradient, so every legend that carries real content (tallies, provenance, counts, notes) is painted on an ink plate at rgb(18 24 15 / 0.62) first.", "section": "colors" },
+      { "name": "The Downscaled-Display Rule", "body": "Every display-side size is anchored to a vw middle term rather than a fixed rem, because the shared screen is routinely a browser window inside a video call, not a full-bleed television. When the window shrinks, the type shrinks with it and the composition survives; a fixed ramp would either blow out on a 4K panel or overflow in a shared tile. The one place this is overridden explicitly is .legend, whose shared clamp caps at 0.95rem — right for a phone, far too small on a television — so tv.css re-clamps it to clamp(0.8rem, 0.95vw, 1.45rem).", "section": "typography" },
+      { "name": "The Two Voices Rule", "body": "Bricolage says things. Archivo labels and counts. A number never gets the display face; a question never gets the UI face.", "section": "typography" },
+      { "name": "The Length-Tiered Question Rule", "body": "The phone never truncates a question. It tiers the size by character count instead — short (<=34 chars), mid (<=72), long — and if it still will not fit, the sign scrolls internally rather than cutting the text.", "section": "typography" },
+      { "name": "The Reserved Strip Rule", "body": "Anything that can appear must already have its space. The phone reserves --strip (1.5rem) at the top of the pen for the connection notice, reserves 1.15rem for the lock-note line, and gives the send lever and the locked-in confirmation one shared 60px cell — so a socket drop, a status message, or a submitted answer never shifts the layout under a thumb.", "section": "layout" },
+      { "name": "The Ground-Tinted Shadow Rule", "body": "Shadows are rgb(10 24 8 / …) — a dark green — never neutral black or grey. On saturated pasture a grey shadow reads as a smudge.", "section": "elevation" },
+      { "name": "The Hedgerow Rule", "body": "All division is ink. There is no 1px grey rule, no border-color: rgba(…) hairline, and no reliance on a background-colour step to separate two regions. If two things must be distinguished, a hedge goes between them at one of the four weights.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do put every new value in public/shared/tokens.css first, and derive anything not defined there with color-mix() or calc() from something that is. Both surfaces already hold this line.",
+      "Do draw division with hedgerow ink at one of the four weights (2/3/5/8px).",
+      "Do use .enamel-sign when content needs a light ground. It is the only well.",
+      "Do carry identity redundantly — position, label, headcount, and shape before colour. Assume the viewer cannot distinguish two dyes.",
+      "Do plate small text on rgb(18 24 15 / 0.62) before putting it on grass.",
+      "Do anchor display-side type to a vw middle term; the shared screen is often a downscaled tile inside a video call.",
+      "Do honour reduced motion in JS as well as CSS. tv.js gates the --gate-open write on matchMedia('(prefers-reduced-motion: reduce)') and draws the gate shut, because killing only the CSS transition would leave the gate stepping ~76deg/N across the screen once a second — that is still motion, just uninterpolated.",
+      "Do give each phase exactly one authored moment: the raddle sprays, the gate swings, the dog casts, the paddocks settle, the rosette pins. Easing is --ease-out-expo cubic-bezier(0.16, 1, 0.3, 1) for arrivals and --ease-gate cubic-bezier(0.22, 1, 0.36, 1) for the rosette's quintic deceleration; durations are --t-fast 160ms, --t-base 320ms, --t-slow 620ms.",
+      "Do reserve space for anything that can appear, so nothing shifts when it does."
+    ],
+    "donts": [
+      "Don't add a card. No rounded tinted panel with a soft shadow. If it holds content on a light ground it is an enamel sign, or it does not exist.",
+      "Don't use tractor red for anything but winning. Errors take earth on pale stubble; warnings take hazard; the current round takes an enamel fill and a ring.",
+      "Don't cross the three palettes. A control never takes a field colour, a field never takes hazard, and raddle dye never appears on anything that is not an identity mark.",
+      "Don't distinguish anything by hue alone, and don't convey a state with opacity alone (the disconnected sheep strikes through its name as well).",
+      "Don't give a paddock cell the full --line-hedge border. Each cell carries half; shared edges would double.",
+      "Don't put a grey or black shadow on the map. Shadows are ground-tinted green.",
+      "Don't use a max-height media query for anything the phone's keyboard affects. The layout viewport does not resize; query the pen size container.",
+      "Don't truncate a question. Tier its size, and let the sign scroll.",
+      "Don't let the .legend size fall below 0.75rem. Uppercase at 0.14em tracking stops being readable one-handed below about 12px.",
+      "Don't \"improve\" the raddle hash in shared/raddle.js. The display and the phone must agree byte for byte; any change there is a change to both surfaces at once."
+    ]
+  }
+}

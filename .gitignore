@@ -1,0 +1,75 @@
+# ── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.npm/
+.pnpm-store/
+package-lock.json.orig
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# ANTHROPIC_API_KEY lives here. Never commit it. `.env.example` IS tracked.
+.env
+.env.*
+!.env.example
+
+# ── Logs and crash reports ───────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+report.*.json
+
+# ── Local decision-page state (impeccable) ───────────────────────────────────
+# Per-session question/answer logs and state — machine-local, not shared.
+.impeccable/questions/
+.impeccable/hook.cache.json
+# The direction payloads ARE tracked — they are the record of the locked visual
+# world and must travel with the repo:
+!.impeccable/direction-payload.json
+!.impeccable/direction-payload*.json
+
+# ── Build output ─────────────────────────────────────────────────────────────
+# The published test bench is generated wholesale by `npm run bench` from the
+# real public/ sources. It is ~1MB of mostly base64 and would rewrite entirely
+# on every build, so it is rebuilt, not tracked. tools/ IS the source.
+flock-together-bench.html
+.tmp-bench/
+dist/
+*.tsbuildinfo
+
+# ── Cloudflare ───────────────────────────────────────────────────────────────
+.wrangler/
+# Local Worker secrets, the wrangler equivalent of .env. Never commit.
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# ── OS cruft ─────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+__MACOSX/
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ── Editor / tooling scratch ─────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.cache/
+tmp/
+.tmp/
+
+# ── Deliberately NOT ignored ─────────────────────────────────────────────────
+# public/fonts/*.woff2 are checked in on purpose: the game must run with no
+# network at a party, and self-hosted Bricolage Grotesque + Archivo are what
+# carry the display voice. Do not add public/fonts here.

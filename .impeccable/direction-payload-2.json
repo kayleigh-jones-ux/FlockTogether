@@ -1,0 +1,63 @@
+{
+  "title": "Choose the visual world for Flock Together",
+  "question": "Re-rolled against your steer: playful, colorful, sheep and pasture. The roll assigned Paddock Rotation. Keep it, take an alternate, or re-roll again.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Paddock Rotation",
+      "kicker": "THE ROLL",
+      "lineage": "Aerial farmland mosaics, grazing-rotation plans, five-bar gates, raddle marking dye",
+      "thesis": "The screen is a working paddock map seen from above, so a majority is not a bar chart but the paddock the flock actually crowded into.",
+      "palette": ["#2E6B2F", "#8FBF3F", "#E3B23C", "#D64525", "#F2E9D8", "#1A1F14"],
+      "materials": ["flat aerial field colour", "thick hedgerow lines", "galvanised gate steel", "hazard-yellow paint", "raddle spray dye", "buff ledger paper"],
+      "viewport": "A full-bleed aerial mosaic of paddocks in saturated grass green, chartreuse and gold stubble, carved up by thick near-black hedgerows. A hazard-yellow gate-sign bar across the top carries the name, the room code as a lot number and a 9-paddock rotation strip. The question stands mid-field on a white enamel sign, and a five-bar galvanised gate swings shut across the paddock mouth as monumental countdown numerals run down. Your flock waits at the gate as one sheep token per player: plain white fleece until you answer, then sprayed with a bright raddle mark.",
+      "risk": "An aerial map can read as an infographic rather than a game if the field colours are timid or the sheep tokens get small, and cute-farm slides into children's-app the moment the type stops being bold and grown-up.",
+      "case": "Every single game state already has a real artifact in this world: paddocks sized by headcount for groups, a gate closing for the timer, a sheepdog outrun covering the clustering wait, a rosette pinned on the winner, and a grazing record sheet for the scoreboard. Nothing has to be invented as chrome."
+    },
+    {
+      "id": "challenger-minihompy",
+      "label": "Miniature Pasture Room",
+      "lineage": "Cyworld minihompy: furnishable isometric miniature space, acorn economy, visitor ledger",
+      "thesis": "The pasture is a tiny isometric room you decorate, and the flock is a set of sticker sheep you watch huddle together.",
+      "palette": ["#BFE3C6", "#F6D9E0", "#FFF3C4", "#8ED0E8", "#5B4A3F"],
+      "materials": ["pastel wallpaper and floor tiles", "sticker furnishings with soft outlines", "isometric frame", "small honest chrome counters"],
+      "viewport": "A pastel isometric pasture held whole in frame, sticker sheep placed on it, with compact rounded label panels and a visitor-ledger column beside it.",
+      "case": "Wins the playful-and-colourful axis outright — this is its home turf, and sticker sheep huddling in an isometric field is a direct render of the mechanic. But its grammar is pastel with soft outlines and small honest chrome, which is the weakest possible contrast for a display downscaled inside a Zoom window, and it has no native language at all for a countdown or a ranked tally.",
+      "risk": "Lowest contrast of the three at screenshare scale, and cute enough to read as a children's app to a room of adults.",
+      "hero": "https://impeccable.style/worlds/cards/cyworld-minihompy-room-hero.webp"
+    },
+    {
+      "id": "challenger-commandwall",
+      "label": "Crisis Wall",
+      "lineage": "Nineties mecha-anime command centre: phosphor orange on absolute black, hazard chevrons, seven-segment countdowns",
+      "thesis": "The round is a countdown emergency, with the room's answers filling condition bars toward a limit.",
+      "palette": ["#0A0A0A", "#FF7A1A", "#9BE800", "#E01B1B", "#F5D400"],
+      "materials": ["absolute black ground", "phosphor glow", "hazard chevron bands", "seven-segment digits", "ruled label frames"],
+      "viewport": "A black wall flooded orange: seven-segment digits taller than a person counting down, hazard chevrons crawling the border, framed label blocks fed by leader lines from a central schematic.",
+      "case": "The best mechanics on the table by a clear margin — monumental seven-segment countdowns and severity-filled condition bars are exactly the timer and tally this game needs, and I have deliberately borrowed the monumental-numeral idea into the assigned direction rather than lose it. But phosphor-on-absolute-black in an alarm register contradicts both halves of your steer, and your pin binds me.",
+      "risk": "Wrong world and wrong emotional register: an alarm wall is the opposite of a farm, and darkest of all options on a shared screen.",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-anime-command-center-hero.webp"
+    },
+    {
+      "id": "challenger-alphabetstorm",
+      "label": "Alphabet Storm",
+      "lineage": "Letters as weather: type condensing into words, breaking into storm, reshaping the ground",
+      "thesis": "Typed answers behave as matter, condensing into a single mass where the room agrees and scattering as spent rain where it does not.",
+      "palette": ["#FAF8F3", "#111111", "#C9CDD2", "#9AA3AB"],
+      "materials": ["paper-white ground", "monumental grotesk as physical mass", "silver flash mid-transformation", "rain-grey spent type"],
+      "viewport": "A wide white field where the round's answers gather as black letterforms, kerning loosening into wind before they condense into groups.",
+      "case": "Real creative merit and the one direction where the answers themselves are the visual material rather than tokens standing in for them. But its palette grammar is paper-white and storm-black by definition, which fights colourful, there is no pasture anywhere in it, and like the room it has no countdown or tally of its own.",
+      "risk": "Monochrome by construction, so satisfying your colour steer means breaking the world's own rules.",
+      "hero": "https://impeccable.style/worlds/cards/dream-surreal-impossible-worlds-alphabet-storm.webp"
+    }
+  ],
+  "reroll": true,
+  "canon": true,
+  "canonCard": {
+    "label": "The category standard",
+    "thesis": "What a party game screen ships: rounded geometric sans, saturated purple-to-magenta gradient, bouncy card flips, confetti on the winner — with a cartoon sheep mascot bolted on.",
+    "viewport": "Centred question card on a gradient field, answer tiles in a responsive grid, a circular countdown ring, confetti burst at reveal.",
+    "risk": "Indistinguishable from every other phone-joins-the-TV game, but instantly legible to anyone who has played one."
+  },
+  "steer": true
+}

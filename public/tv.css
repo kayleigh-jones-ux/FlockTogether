@@ -1,0 +1,968 @@
+/* ==========================================================================
+   FLOCK TOGETHER — the shared display.
+   Aerial paddock map. Mode: Experience. The artifact leads; chrome recedes.
+
+   Sized for a laptop or TV that is often being screenshared, so nothing
+   depends on 8-foot viewing distance and nothing depends on hue alone.
+   ========================================================================== */
+
+.tv {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  /* The ground is the field itself: a saturated pasture, not a neutral page.
+     Two overlaid gradients read as mown stripes and the lie of the land. */
+  background:
+    repeating-linear-gradient(
+      104deg,
+      rgb(255 255 255 / 0.028) 0 42px,
+      transparent 42px 96px
+    ),
+    radial-gradient(120% 90% at 18% 8%, var(--pasture-lit) 0%, transparent 62%),
+    var(--pasture);
+  overflow: hidden;
+}
+
+/* Legends on the display scale with it; the shared token caps at 0.95rem,
+   which is right for a phone and far too small on a television. */
+.tv .legend {
+  font-size: clamp(0.8rem, 0.95vw, 1.45rem);
+}
+
+/* --- Gate sign header -------------------------------------------------- */
+
+.gatesign {
+  display: flex;
+  align-items: center;
+  gap: var(--s-6);
+  padding: var(--s-3) clamp(var(--s-4), 2vw, var(--s-6));
+  background: var(--hazard);
+  color: var(--hedge);
+  border-bottom: var(--line-hedge) solid var(--hedge);
+  /* A soft inset shadow along the bottom edge, weighting the bar to the map. */
+  box-shadow: inset 0 -14px 0 -10px rgb(18 24 15 / 0.22);
+}
+
+.wordmark {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: clamp(1.4rem, 2.5vw, 2.5rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.lot,
+.rotation {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex: 0 0 auto;
+}
+
+.lot__label,
+.rotation__label {
+  opacity: 0.72;
+}
+
+.lot__code {
+  font-size: clamp(1.6rem, 3vw, 2.9rem);
+  /* A stencilled lot number, boxed as on a bale. */
+  padding: 0.1em 0.34em;
+  background: var(--hedge);
+  color: var(--hazard);
+  border-radius: 3px;
+}
+
+.rotation__pips {
+  display: flex;
+  gap: 5px;
+}
+
+.rotation__pips li {
+  inline-size: clamp(11px, 1.1vw, 17px);
+  block-size: clamp(11px, 1.1vw, 17px);
+  border: var(--line-hair) solid var(--hedge);
+  border-radius: 2px;
+  background: transparent;
+}
+
+.rotation__pips li[data-state='done'] {
+  background: var(--hedge);
+}
+
+/* Reserved-colour discipline: tractor red belongs to the rosette. The
+   current round is marked by fill plus a ring, not by the prize colour. */
+.rotation__pips li[data-state='now'] {
+  background: var(--enamel);
+  box-shadow: 0 0 0 3px rgb(18 24 15 / 0.28);
+}
+
+/* --- Field / scenes ---------------------------------------------------- */
+
+.field {
+  position: relative;
+  display: grid;
+  min-height: 0;
+}
+
+.scene {
+  grid-area: 1 / 1;
+  min-height: 0;
+  padding: clamp(var(--s-4), 2.4vw, var(--s-7));
+  display: flex;
+  flex-direction: column;
+}
+
+.scene[hidden] {
+  display: none;
+}
+
+.headline {
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: clamp(1.6rem, 3.4vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+/* --- LOBBY ------------------------------------------------------------- */
+
+.scene--lobby {
+  flex-direction: row;
+  align-items: center;
+  gap: clamp(var(--s-5), 4vw, var(--s-9));
+}
+
+.joinsign {
+  flex: 0 0 auto;
+  inline-size: clamp(260px, 27vw, 400px);
+  padding: var(--s-5);
+  text-align: center;
+  /* Staked into the ground, so it leans a touch. */
+  rotate: -1.1deg;
+}
+
+.joinsign__eyebrow {
+  color: var(--earth-deep);
+  margin-bottom: var(--s-4);
+}
+
+.joinsign__qr {
+  aspect-ratio: 1;
+  padding: var(--s-3);
+  background: var(--enamel);
+  border: var(--line) solid var(--hedge);
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+}
+
+.joinsign__qr svg,
+.joinsign__qr img {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.joinsign__url {
+  margin-top: var(--s-3);
+  font-weight: 600;
+  font-size: clamp(0.85rem, 1.15vw, 1.5rem);
+  color: var(--hedge);
+  overflow-wrap: anywhere;
+}
+
+.joinsign__code {
+  margin-top: var(--s-4);
+  padding-top: var(--s-3);
+  border-top: var(--line-hair) dashed var(--hedge-soft);
+  display: grid;
+  gap: var(--s-1);
+  color: var(--earth-deep);
+}
+
+.joinsign__code strong {
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  color: var(--hedge);
+  letter-spacing: 0.04em;
+}
+
+.lobbyflock {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+/* Field legends are painted on an ink plate rather than straight onto grass:
+   --growth-pale on pasture computes 2.46:1 at the lit end of the ground
+   gradient, and these carry real content (provenance, tallies, counts). */
+.lobbyflock__note,
+.tally,
+.working__note,
+.reveal__eyebrow,
+.sourcenote {
+  align-self: flex-start;
+  max-inline-size: max-content;
+  padding: 3px var(--s-3);
+  border-radius: 2px;
+  background: rgb(18 24 15 / 0.62);
+  color: var(--enamel);
+}
+
+/* Still at the gate, still picking a fleece. It sits on an ink plate for the
+   same reason the note above it does — enamel drops to 3.6:1 at the lit end
+   of the ground gradient — but on a thinner one, in sentence case, unstencilled
+   and dyed back towards the ground. Same size step as the note; everything
+   that makes a legend shout is what is taken away, so it reads as a footnote
+   to the headcount rather than a second announcement. */
+.lobbyflock__choosing {
+  align-self: flex-start;
+  max-inline-size: max-content;
+  /* Pulled up against the note: this is a rider on that line, not a new one. */
+  margin-block-start: calc(var(--s-4) * -0.55);
+  padding: 2px var(--s-3);
+  border-radius: 2px;
+  background: rgb(18 24 15 / 0.45);
+  color: var(--stubble-pale);
+  font-weight: 500;
+  font-stretch: 100%;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.lobbyflock__choosing[hidden] {
+  display: none;
+}
+
+/* --- Flock ------------------------------------------------------------- */
+
+.flock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-4) var(--s-3);
+  align-content: flex-start;
+}
+
+.flock--lobby {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.flock--waiting {
+  flex: 1 1 auto;
+  justify-content: center;
+  align-content: center;
+  gap: var(--s-5) var(--s-4);
+  padding-block: var(--s-4);
+  min-block-size: 0;
+}
+
+.sheep {
+  --sheep-w: clamp(58px, 5.4vw, 92px);
+  inline-size: var(--sheep-w);
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+/* A sprite dropped in with <use> lives in a shadow tree, which no selector
+   here can reach, so the sheep is painted entirely through properties that
+   INHERIT into it: `fill` carries the fleece and `color` carries the raddle
+   dye. --fleece is set per sheep by tv.js from the colour that player chose;
+   anyone who never chose falls back to enamel, which is the fleece this
+   display has always drawn. */
+.sheep__svg {
+  inline-size: 100%;
+  fill: var(--fleece, var(--enamel));
+  color: transparent;
+  filter: drop-shadow(0 4px 5px rgb(10 24 8 / 0.42));
+}
+
+/* The raddle blotch is invisible until marked. Marking is the one authored
+   moment of the question phase. */
+.sheep[data-marked='true'] .sheep__svg {
+  animation: spray var(--t-base) var(--ease-out-expo) both;
+}
+
+@keyframes spray {
+  0%   { color: transparent; scale: 1; }
+  60%  { color: var(--raddle); scale: 1.06; }
+  100% { color: var(--raddle); scale: 1; }
+}
+
+/* The hat is a second symbol placed in the sheep's own coordinate space, so
+   without this it would inherit the fleece fill and the dye colour and
+   disappear into the animal. It carries its own paint; straw stands in for
+   any part of a hat that asks for the inherited one. */
+.sheep__hat {
+  fill: var(--stubble);
+  color: var(--stubble);
+}
+
+/* The ink outline is the only thing holding a fleece apart from the field
+   behind it, and it stops doing that when the fleece is nearly as dark as the
+   ink itself — the deep band of the palette measures around 2:1 against
+   hedgerow ink, on grounds that are dark too. tv.js measures every chosen
+   colour against the ink token and flags the ones that fail; they get a pale
+   rim outside the ink, so the silhouette is carried by a light line no
+   pasture or paddock tint can match. Nothing else is touched, and the tint
+   itself is untouched everywhere. */
+.sheep[data-deep='true'] .sheep__svg {
+  filter:
+    drop-shadow(0 0 1.5px var(--enamel))
+    drop-shadow(0 0 1.5px var(--enamel))
+    drop-shadow(0 4px 5px rgb(10 24 8 / 0.42));
+}
+
+.sheep__name {
+  font-weight: 700;
+  font-stretch: 92%;
+  /* Player names carry hue-independent identity, so they scale with the
+     display instead of capping at 13.6px on a 4K panel. */
+  font-size: clamp(0.72rem, 1.05vw, 1.5rem);
+  line-height: 1.1;
+  text-align: center;
+  color: var(--enamel);
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 5px;
+  background: rgb(18 24 15 / 0.55);
+  border-radius: 2px;
+}
+
+.sheep[data-connected='false'] {
+  opacity: 0.4;
+}
+
+.sheep[data-connected='false'] .sheep__name {
+  text-decoration: line-through;
+}
+
+/* --- QUESTION ---------------------------------------------------------- */
+
+.askrow {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(var(--s-4), 3vw, var(--s-7));
+}
+
+.stake {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.question {
+  padding: clamp(var(--s-3), 1.6vw, var(--s-5)) clamp(var(--s-4), 2vw, var(--s-6));
+  font-family: var(--face-display);
+  font-weight: 800;
+  /* The one thing the whole room must read. Capped so it never exceeds the
+     display ceiling, and balanced so it never orphans a word. */
+  font-size: clamp(1.7rem, 3.9vw, 4.4rem);
+  line-height: 1.03;
+  letter-spacing: -0.032em;
+  text-wrap: balance;
+  rotate: -0.5deg;
+}
+
+.clock {
+  flex: 0 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: var(--s-3) var(--s-4);
+  background: var(--hedge);
+  border: var(--line-bold) solid var(--hedge);
+  border-radius: var(--radius-sign);
+  color: var(--growth-pale);
+  box-shadow: var(--lift-panel);
+}
+
+.clock__figures {
+  font-size: clamp(3rem, 7.5vw, 8rem);
+  color: var(--enamel);
+  transition: color var(--t-base) var(--ease-out-expo);
+}
+
+/* One authored urgency change at the threshold, not an effect on every tick. */
+.clock[data-state='urgent'] {
+  animation: clock-alarm 900ms var(--ease-out-expo) infinite;
+}
+
+.clock[data-state='urgent'] .clock__figures {
+  color: var(--hazard);
+}
+
+@keyframes clock-alarm {
+  0%, 100% { box-shadow: var(--lift-panel), 0 0 0 0 rgb(242 196 0 / 0.5); }
+  55%      { box-shadow: var(--lift-panel), 0 0 0 12px rgb(242 196 0 / 0); }
+}
+
+.tally {
+  margin-top: var(--s-4);
+}
+
+/* The gate: an aerial view, so it swings in the plane of the screen on its
+   hinge post. Angle is driven from the clock by tv.js. */
+.gate {
+  position: absolute;
+  inset-inline: clamp(var(--s-4), 4vw, var(--s-8));
+  inset-block-end: 0;
+  block-size: clamp(46px, 7vh, 82px);
+  pointer-events: none;
+}
+
+.gate__post {
+  position: absolute;
+  inset-block: -6px auto;
+  inset-inline-start: -7px;
+  inline-size: 14px;
+  block-size: calc(100% + 12px);
+  background: var(--steel-dark);
+  border: var(--line-hair) solid var(--hedge);
+  border-radius: 3px;
+}
+
+.gate__leaf {
+  inline-size: 100%;
+  block-size: 100%;
+  transform-origin: 0% 50%;
+  rotate: calc(var(--gate-open, 1) * -76deg);
+  transition: rotate var(--t-base) linear;
+  filter: drop-shadow(0 6px 8px rgb(10 24 8 / 0.5));
+}
+
+/* --- GROUPING ---------------------------------------------------------- */
+
+.scene--grouping {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.working {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-3);
+}
+
+.working__dog {
+  inline-size: clamp(120px, 15vw, 240px);
+  /* The outrun: the dog casts wide around the flock. */
+  animation: outrun 2.6s var(--ease-out-expo) infinite;
+}
+
+@keyframes outrun {
+  0%   { translate: -34% 0; scale: 1 1; }
+  50%  { translate: 34% -12%; scale: -1 1; }
+  100% { translate: -34% 0; scale: 1 1; }
+}
+
+
+
+/* --- REVEAL ------------------------------------------------------------ */
+
+.scene--reveal {
+  gap: var(--s-3);
+}
+
+.reveal__eyebrow {
+  flex: 0 0 auto;
+}
+
+/* The reveal: a real subdivision of land.
+   Area is headcount, so hedgerows turn corners and the winning group is the
+   biggest piece of ground rather than the longest bar. Cells tile exactly and
+   each carries half a hedgerow, so shared edges read as one continuous hedge. */
+.paddocks {
+  position: relative;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  border: var(--line-hedge) solid var(--hedge);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: var(--lift-panel);
+  /* A surveyed plot, not a full-bleed field: the map has an edge. */
+  background: var(--pasture-deep);
+}
+
+.paddock {
+  --tint: var(--pasture-lit);
+  container-type: size;
+  position: absolute;
+  inset-block-start: calc(var(--y) * 1%);
+  inset-inline-start: calc(var(--x) * 1%);
+  inline-size: calc(var(--w) * 1%);
+  block-size: calc(var(--h) * 1%);
+  box-sizing: border-box;
+  border: calc(var(--line-hedge) / 2) solid var(--hedge);
+  padding: var(--s-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  overflow: hidden;
+  color: var(--enamel);
+  /* Crop rows drilled at this field's own angle. */
+  background:
+    repeating-linear-gradient(
+      var(--rows, 20deg),
+      rgb(255 255 255 / 0.055) 0 7px,
+      transparent 7px 17px
+    ),
+    color-mix(in oklab, var(--tint) 32%, var(--pasture));
+  animation: settle var(--t-slow) var(--ease-out-expo) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes settle {
+  from { opacity: 0; scale: 0.9; }
+  to   { opacity: 1; scale: 1; }
+}
+
+/* The winner is never distinguished by hue alone: rosette, gold stubble
+   ground, a tractor-red frame, the biggest area, and the headcount. */
+.paddock[data-scored='true'] {
+  background:
+    repeating-linear-gradient(
+      var(--rows, 20deg),
+      rgb(18 24 15 / 0.06) 0 7px,
+      transparent 7px 17px
+    ),
+    color-mix(in oklab, var(--stubble) 78%, var(--tint));
+  color: var(--hedge);
+  border-color: var(--tractor-red);
+  box-shadow: inset 0 0 0 2px var(--hedge);
+}
+
+.paddock__stake {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  align-self: flex-start;
+  max-inline-size: 100%;
+  padding: 3px var(--s-2);
+  background: var(--enamel);
+  color: var(--hedge);
+  border: var(--line-hair) solid var(--hedge);
+  border-radius: 3px;
+  box-shadow: 0 3px 0 var(--hedge);
+}
+
+.paddock__label {
+  font-family: var(--face-display);
+  font-weight: 800;
+  /* Scales with the display: this is the answer the room shouts about. */
+  font-size: clamp(0.95rem, 1.45vw, 2.1rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paddock__count {
+  font-size: clamp(1.1rem, 1.9vw, 2.8rem);
+  color: var(--earth-deep);
+}
+
+.paddock__rosette {
+  inline-size: clamp(24px, 2.4vw, 46px);
+  flex: 0 0 auto;
+  color: var(--tractor-red);
+  animation: pin var(--t-slow) var(--ease-gate) both;
+  animation-delay: calc(var(--delay, 0ms) + var(--t-base));
+}
+
+@keyframes pin {
+  from { opacity: 0; scale: 0.2; rotate: -22deg; }
+  to   { opacity: 1; scale: 1; rotate: -7deg; }
+}
+
+/* The flock crowded into this field. */
+.paddock__flock {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: var(--s-1) var(--s-2);
+  overflow: hidden;
+}
+
+.pad-sheep {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-inline-size: 100%;
+  padding: 2px 7px;
+  border-radius: 2px;
+  background: rgb(18 24 15 / 0.42);
+  color: var(--enamel);
+  font-weight: 600;
+  font-size: clamp(0.8rem, 1.25vw, 1.75rem);
+}
+
+.paddock[data-scored='true'] .pad-sheep {
+  background: rgb(18 24 15 / 0.1);
+  color: var(--hedge);
+}
+
+/* Same two inherited properties as the flock: fleece from the player, dye
+   from the field they ended up in. Here the dye is always shown — being in a
+   paddock at all is what it records. */
+.pad-sheep__svg {
+  inline-size: clamp(18px, 1.7vw, 34px);
+  flex: 0 0 auto;
+  fill: var(--fleece, var(--enamel));
+  color: var(--tint);
+}
+
+/* A deep fleece on a deep tint, at the size a paddock sheep actually renders,
+   is where the ink outline gives out soonest. Same pale rim, tighter. */
+.pad-sheep[data-deep='true'] .pad-sheep__svg {
+  filter:
+    drop-shadow(0 0 1px var(--enamel))
+    drop-shadow(0 0 1px var(--enamel));
+}
+
+/* An answer that will not fit is truncated WITH an affordance and keeps its
+   full text available — losing answer text silently is content loss on the
+   one surface whose whole job is showing every answer. */
+.pad-sheep__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-inline-size: min(100%, 26ch);
+}
+
+/* The player's name is tinted from the ground rather than dropped in opacity,
+   which is what pushed it under 4.5:1 on the bands most likely to carry it. */
+.pad-sheep__who {
+  flex: 0 0 auto;
+  font-weight: 400;
+  font-size: 0.82em;
+  color: var(--stubble-pale);
+}
+
+.paddock[data-scored='true'] .pad-sheep__who {
+  color: var(--hedge);
+}
+
+/* Shed by expendability as the field gets smaller. The group's label and its
+   answers are the content; the sprite, the player's name and the headcount are
+   the trimmings. Measured on the rendered cell, not guessed from its area. */
+.paddock__stake {
+  min-inline-size: 0;
+}
+
+/* The hat is drawn inside the sheep's own svg, so when a field gets too tight
+   to carry sprite detail the hat goes with the sheep rather than surviving as
+   a floating detail on a field that has already given up on detail. */
+@container (max-height: 150px) {
+  .pad-sheep__svg { display: none; }
+  .paddock__flock { justify-content: flex-start; align-content: flex-start; }
+}
+
+@container (max-height: 110px) {
+  .pad-sheep__who { display: none; }
+  .paddock__label { font-size: clamp(0.8rem, 1.1vw, 1.15rem); }
+  .paddock__count { font-size: clamp(0.9rem, 1.3vw, 1.3rem); }
+  .paddock__stake { padding: 1px var(--s-1); box-shadow: 0 2px 0 var(--hedge); }
+  .pad-sheep { font-size: clamp(0.72rem, 0.95vw, 1rem); padding: 0 4px; }
+}
+
+/* At this size the stake and the answers cannot both fit, so the headcount
+   goes: the field's own area already states it. */
+@container (max-height: 74px) {
+  .paddock__count { display: none; }
+  .paddock { padding: 3px; gap: 0; }
+}
+
+/* Missed the gate: a holding pen outside the field. */
+.missed {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  background: var(--earth-deep);
+  border: var(--line) dashed var(--stubble-pale);
+  border-radius: 3px;
+}
+
+.missed__label {
+  color: var(--stubble-pale);
+  flex: 0 0 auto;
+}
+
+.missed__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  font-weight: 600;
+  font-size: clamp(0.82rem, 1.15vw, 1.55rem);
+}
+
+.sourcenote {
+  flex: 0 0 auto;
+}
+
+/* --- RECORD SHEET (scores / final) ------------------------------------- */
+
+.scene--record {
+  align-items: center;
+  justify-content: center;
+}
+
+.record {
+  inline-size: min(100%, 900px);
+  max-block-size: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(var(--s-4), 2vw, var(--s-6));
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 calc(2.1em - 1px),
+      rgb(168 86 44 / 0.18) calc(2.1em - 1px) 2.1em
+    ),
+    var(--buff);
+  color: var(--hedge);
+  border: var(--line-bold) solid var(--hedge);
+  border-radius: 3px;
+  box-shadow: var(--lift-sign);
+  rotate: -0.4deg;
+}
+
+.record__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  padding-bottom: var(--s-3);
+  border-bottom: var(--line) solid var(--hedge);
+  margin-bottom: var(--s-3);
+}
+
+.record__title {
+  color: var(--hedge);
+}
+
+.record__why {
+  color: var(--earth-deep);
+}
+
+.record__rows {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: hidden auto;
+  display: grid;
+  align-content: start;
+}
+
+.record__row {
+  display: grid;
+  grid-template-columns: 2.6ch 1fr auto auto;
+  align-items: center;
+  gap: var(--s-3);
+  min-block-size: 2.1em;
+  font-weight: 600;
+}
+
+.record__rank {
+  font-weight: 900;
+  font-stretch: 118%;
+  color: var(--earth-deep);
+  text-align: right;
+}
+
+.record__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(0.9rem, 1.5vw, 1.35rem);
+}
+
+.record__tally {
+  display: flex;
+  gap: 3px;
+  color: var(--earth-deep);
+}
+
+.record__tally svg {
+  inline-size: clamp(20px, 1.8vw, 30px);
+  block-size: auto;
+}
+
+.record__tally .part {
+  opacity: 0.42;
+}
+
+.record__score {
+  font-family: var(--face-ui);
+  font-weight: 900;
+  font-stretch: 118%;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.1rem, 2vw, 1.8rem);
+  min-inline-size: 2.4ch;
+  text-align: right;
+}
+
+.record__row[data-lead='true'] {
+  background: color-mix(in oklab, var(--stubble) 46%, var(--buff));
+  box-shadow: inset 0 0 0 var(--line-hair) var(--tractor-red);
+  border-radius: 2px;
+}
+
+.record__row[data-lead='true'] .record__rosette {
+  inline-size: clamp(22px, 2vw, 34px);
+  color: var(--tractor-red);
+}
+
+/* --- Host control: a gate latch ---------------------------------------- */
+
+.latch {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  background: var(--hazard);
+  color: var(--hedge);
+  border: var(--line-bold) solid var(--hedge);
+  border-radius: var(--radius-sign);
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: clamp(1rem, 1.5vw, 1.45rem);
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  box-shadow: 0 7px 0 var(--hedge), var(--lift-panel);
+  transition:
+    translate var(--t-fast) var(--ease-out-expo),
+    box-shadow var(--t-fast) var(--ease-out-expo),
+    background-color var(--t-fast) var(--ease-out-expo);
+}
+
+.latch:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--hazard) 84%, var(--enamel));
+}
+
+.latch:active:not(:disabled) {
+  translate: 0 6px;
+  box-shadow: 0 1px 0 var(--hedge);
+}
+
+.latch:disabled {
+  background: var(--steel-dark);
+  color: color-mix(in oklab, var(--hedge) 70%, var(--steel));
+  box-shadow: 0 7px 0 var(--hedge-soft);
+  cursor: not-allowed;
+}
+
+/* The latch bar itself: a steel throw-bolt that slides on press. */
+.latch__bar {
+  inline-size: 30px;
+  block-size: 11px;
+  background: var(--steel);
+  border: var(--line-hair) solid var(--hedge);
+  border-radius: 2px;
+  transition: translate var(--t-fast) var(--ease-out-expo);
+}
+
+.latch:hover:not(:disabled) .latch__bar {
+  translate: 5px 0;
+}
+
+/* --- Connection notice ------------------------------------------------- */
+
+.link {
+  position: fixed;
+  inset-block-end: var(--s-4);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  padding: var(--s-2) var(--s-4);
+  background: var(--earth-deep);
+  color: var(--stubble-pale);
+  border: var(--line) solid var(--hedge);
+  border-radius: 3px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: var(--legend-tracking);
+  text-transform: uppercase;
+  box-shadow: var(--lift-panel);
+  z-index: 20;
+}
+
+.link[hidden] {
+  display: none;
+}
+
+/* --- Narrow / portrait display ----------------------------------------
+   A host may open this on a tablet or a portrait monitor. The composition
+   stacks rather than shrinking the question below readability.           */
+
+@media (max-width: 900px), (orientation: portrait) {
+  .scene--lobby {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  .joinsign {
+    inline-size: min(100%, 340px);
+    align-self: center;
+  }
+
+  .askrow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clock {
+    flex-direction: row;
+    justify-items: stretch;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--s-3);
+  }
+
+}
+
+/* Reduced motion: nothing travels. The gate is drawn already shut, the
+   paddocks are drawn already settled, the dog holds still. */
+@media (prefers-reduced-motion: reduce) {
+  .gate__leaf {
+    transition: none;
+  }
+
+  .working__dog {
+    animation: none;
+  }
+
+  .paddock,
+  .paddock__rosette,
+  .sheep[data-marked='true'] .sheep__svg .raddle {
+    animation: none;
+  }
+
+  .sheep[data-marked='true'] .sheep__svg .raddle {
+    opacity: 1;
+    scale: 1;
+  }
+
+  .clock[data-state='urgent'] {
+    animation: none;
+    box-shadow: var(--lift-panel), 0 0 0 var(--line-bold) var(--hazard);
+  }
+}

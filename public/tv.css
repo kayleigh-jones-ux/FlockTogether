@@ -951,13 +951,15 @@
   }
 
   .paddock,
-  .paddock__rosette,
-  .sheep[data-marked='true'] .sheep__svg .raddle {
+  .paddock__rosette {
     animation: none;
   }
 
-  .sheep[data-marked='true'] .sheep__svg .raddle {
-    opacity: 1;
+  /* Already sprayed, already settled: the dye is drawn on rather than
+     travelling onto the fleece. */
+  .sheep[data-marked='true'] .sheep__svg {
+    animation: none;
+    color: var(--raddle);
     scale: 1;
   }
 

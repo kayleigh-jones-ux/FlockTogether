@@ -19,6 +19,12 @@
  *   --seed N           fixed RNG seed, so a suspicious round can be replayed
  *   --quiet            drop the per-answer lines, keep phases and reveals
  *
+ * Each phone joins, then picks a fleece colour and a hat, and only then plays:
+ * the server does not count a player as part of the flock until a look is
+ * accepted, and drops anyone still choosing when the game starts. The pair is
+ * derived from the player's index, so a seeded run dresses the same sheep the
+ * same way every time — see slotForIndex.
+ *
  * This is a developer tool. It has no design system involvement: plain text,
  * plain ANSI, no icons. The log is the product — it is how a developer decides
  * whether the semantic grouping is any good.
@@ -27,8 +33,13 @@
  */
 
 // ---------------------------------------------------------------------------
-// 0. Dependency
+// 0. Dependencies
 // ---------------------------------------------------------------------------
+
+/* The colours, the hats and the wire format of a look key all live in one
+ * module that the server imports too. Importing it here rather than restating
+ * any of it is what stops this tool asking for a sheep the server will reject. */
+import { FLEECE_COLOURS, HATS, LOOK_COMBINATIONS, lookKey } from '../public/shared/look.js';
 
 let WebSocket;
 try {
@@ -191,7 +202,13 @@ function socketUrl(origin) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Names — plausible, distinct, no duplicates (the server rejects NAME_TAKEN)
+// 3. Names and looks
+//
+// Names: plausible, distinct, no duplicates (the server rejects NAME_TAKEN).
+// Looks: a colour+hat pair per phone, derived from the phone's index so a run
+// with the same --players is dressed identically every time. Uniqueness is on
+// the PAIR and the server is the authority on it, so the assignment below is a
+// starting point that Sim.claimSlot and the LOOK_TAKEN retry walk forward from.
 // ---------------------------------------------------------------------------
 
 const NAMES = [
@@ -208,6 +225,34 @@ function nameFor(index, chosen) {
   if (pool.length > 0) return pick(pool);
   return `Player${index + 1}`;
 }
+
+/**
+ * Slot -> the pair it stands for. Walking the colours one at a time while the
+ * hat also advances means the first twenty slots — a full room — differ in BOTH
+ * halves, so a bug that swaps two players' colours or two players' hats is
+ * visible on the TV rather than hidden behind a shared hat.
+ *
+ * The arithmetic only spreads the pairs out; it is Sim.claimSlot that
+ * guarantees no two simulated phones ever hold the same one.
+ */
+function lookForSlot(slot) {
+  const n = ((slot % LOOK_COMBINATIONS) + LOOK_COMBINATIONS) % LOOK_COMBINATIONS;
+  const colour = FLEECE_COLOURS[n % FLEECE_COLOURS.length];
+  const hat = HATS[(n + Math.floor(n / FLEECE_COLOURS.length)) % HATS.length];
+  return { colorId: colour.id, hatId: hat.id };
+}
+
+/** Where a phone starts looking: its index, which is what makes a run repeat. */
+const slotForIndex = (index) => ((index % LOOK_COMBINATIONS) + LOOK_COMBINATIONS) % LOOK_COMBINATIONS;
+
+/** `colorId/hatId` — the same string the server puts in look.taken. */
+const lookLabel = (look) => lookKey(look) || 'unchosen';
+
+/** Widest label the ids can produce, so the answer column never ragged-edges. */
+const LOOK_WIDTH =
+  Math.max(...FLEECE_COLOURS.map((c) => c.id.length)) +
+  1 +
+  Math.max(...HATS.map((h) => h.id.length));
 
 // ---------------------------------------------------------------------------
 // 4. Answers
@@ -995,6 +1040,10 @@ function truncate(text, max) {
 
 const MAX_RECONNECTS = 3;
 
+/* 600 pairs against a 20-player cap: a phone that clashes this often is not
+ * unlucky, it is arguing with a server that disagrees about who holds what. */
+const MAX_LOOK_ATTEMPTS = 8;
+
 class SimPlayer {
   constructor(sim, index, name) {
     this.sim = sim;
@@ -1008,6 +1057,12 @@ class SimPlayer {
     this.answerTimer = null;
     this.reconnects = 0;
     this.warnedError = false;
+    // Joining reserves a name; only an accepted look puts this phone in the
+    // flock, and an unlocked phone is dropped when the host starts the game.
+    this.look = null;
+    this.locked = false;
+    this.lookSlot = null;
+    this.lookAttempt = 0;
   }
 
   connect() {
@@ -1062,6 +1117,20 @@ class SimPlayer {
       this.playerId = frame.playerId ?? this.playerId;
       this.joined = true;
       if (isFirst) this.sim.onPlayerJoined(this);
+      // A rejoin carries the sheep back, so a phone that already locked in goes
+      // straight to the lobby instead of walking into its own pair as a clash.
+      if (frame.locked === true && frame.look) this.adoptLook(frame.look, 'restored');
+      if (!this.locked) this.pickLook();
+      return;
+    }
+
+    if (frame.t === 'look.ok') {
+      this.adoptLook(frame.look, 'chose');
+      return;
+    }
+
+    if (frame.t === 'look.taken') {
+      this.sim.onLookTaken(frame.taken);
       return;
     }
 
@@ -1075,8 +1144,74 @@ class SimPlayer {
     if (isStateFrame(frame)) this.sim.onState(frame);
   }
 
+  /**
+   * Ask for a pair. First call takes the slot this phone's index owns; every
+   * later call walks forward, which is how a clash with a real phone already in
+   * the room resolves itself instead of taking the simulator down.
+   */
+  pickLook() {
+    if (this.sim.stopping || this.dead) return;
+    const from = this.lookSlot === null ? slotForIndex(this.index) : this.lookSlot + 1;
+    const slot = this.sim.claimSlot(from);
+    if (slot === null) {
+      warnLine(`${this.name}: every colour+hat pair is spoken for — cannot join the flock`);
+      return;
+    }
+    this.lookSlot = slot;
+    const look = lookForSlot(slot);
+    // The pair travels inline on the frame, exactly as the picker sends it.
+    if (!this.send({ t: 'player.look', colorId: look.colorId, hatId: look.hatId })) {
+      warnLine(`${this.name} could not send a look (socket not open)`);
+    }
+  }
+
+  /** Record the pair the server confirmed, and keep it out of everyone's scan. */
+  adoptLook(look, reason) {
+    if (!look || !look.colorId || !look.hatId) return;
+    const wasLocked = this.locked;
+    this.look = { colorId: look.colorId, hatId: look.hatId };
+    this.locked = true;
+    this.sim.claimKey(lookKey(this.look));
+    if (!wasLocked) this.sim.onPlayerLocked(this, reason);
+  }
+
   onError(frame) {
     const code = frame.code ?? 'BAD_REQUEST';
+    if (code === 'LOOK_TAKEN') {
+      // Expected, not exceptional: look.taken is advisory and two phones can
+      // reach for one pair in the same tick. Take the next free one.
+      this.lookAttempt += 1;
+      if (this.lookAttempt > MAX_LOOK_ATTEMPTS) {
+        warnLine(`${this.name}: gave up choosing after ${MAX_LOOK_ATTEMPTS} clashes — will be dropped at the gate`);
+        return;
+      }
+      // Said out loud: without it, a phone wearing something other than the pair
+      // its index owns looks like the assignment is broken.
+      const clashed = this.lookSlot === null ? null : lookForSlot(this.lookSlot);
+      line(
+        dim(
+          `${pad(this.name, this.sim.nameWidth)}  clash   ${lookLabel(clashed)} is worn already — taking the next pair`
+        )
+      );
+      this.pickLook();
+      return;
+    }
+    if (code === 'BAD_LOOK') {
+      // Both sides import public/shared/look.js. The only way a colour or hat
+      // this tool read from it can be unknown is two copies of that file.
+      this.dead = true;
+      this.sim.fatal(
+        `${this.name}: BAD_LOOK — ${frame.message ?? ''}\n` +
+          '  This tool and the server disagree about public/shared/look.js.'
+      );
+      return;
+    }
+    if (code === 'NOT_LOCKED') {
+      this.dead = true;
+      warnLine(`${this.name} was dropped at the gate — still choosing when the game started`);
+      this.close();
+      return;
+    }
     if (code === 'NAME_TAKEN' && this.nameAttempt < 3) {
       this.nameAttempt += 1;
       this.name = `${this.name}${randInt(2, 99)}`;
@@ -1158,7 +1293,14 @@ class Sim {
     this.lastPhaseKey = null;
     this.round = null; // current round plan
     this.nameWidth = 4;
-    this.lobbyReported = 0;
+    this.lobbyReported = '';
+    // Slots and pairs this run has spoken for. Claimed at request time, not on
+    // the reply, so two phones picking in the same tick cannot both take one.
+    this.claimedSlots = new Set();
+    this.claimedKeys = new Set();
+    // Everything the server says is worn, including looks belonging to real
+    // phones in the room that this process knows nothing else about.
+    this.serverTaken = new Set();
   }
 
   /**
@@ -1281,6 +1423,41 @@ class Sim {
     }
   }
 
+  // ---- looks --------------------------------------------------------------
+
+  /**
+   * The first slot at or after `from` that this run has not claimed and the
+   * server has not reported worn. Returns null only if all 600 pairs are gone.
+   */
+  claimSlot(from) {
+    for (let step = 0; step < LOOK_COMBINATIONS; step += 1) {
+      const slot = (from + step) % LOOK_COMBINATIONS;
+      if (this.claimedSlots.has(slot)) continue;
+      const key = lookKey(lookForSlot(slot));
+      if (this.claimedKeys.has(key) || this.serverTaken.has(key)) continue;
+      this.claimedSlots.add(slot);
+      this.claimedKeys.add(key);
+      return slot;
+    }
+    return null;
+  }
+
+  claimKey(key) {
+    if (key) this.claimedKeys.add(key);
+  }
+
+  /**
+   * Advisory only, exactly as the picker treats it: the server still rejects a
+   * race with LOOK_TAKEN. Tracking it just keeps this tool from reaching for a
+   * pair somebody already wears.
+   */
+  onLookTaken(taken) {
+    if (!Array.isArray(taken)) return;
+    this.serverTaken = new Set(taken.filter((key) => typeof key === 'string' && key));
+  }
+
+  // ---- arrivals -----------------------------------------------------------
+
   onPlayerJoined(player) {
     this.byId.set(player.playerId, player);
     const joined = this.players.filter((p) => p.joined).length;
@@ -1290,30 +1467,52 @@ class Sim {
       this.armStateWatchdog(15_000, `${joined} phone(s) joined room ${this.room} and heard nothing back`);
       return;
     }
-    if (this.started) return;
+    // Armed on the first JOIN, not the first look: a room where nothing is ever
+    // accepted must still reach host.start and say why it cannot start.
+    this.armStartFallback();
+  }
 
-    if (joined >= this.opts.players) {
-      if (this.startTimer) clearTimeout(this.startTimer);
-      this.startTimer = setTimeout(() => this.startGame(), 400);
-    } else if (!this.startTimer) {
-      // Fallback: never hang forever waiting for a phone that failed to join.
-      this.startTimer = setTimeout(() => {
-        const n = this.players.filter((p) => p.joined).length;
-        warnLine(`only ${n}/${this.opts.players} phones joined — starting anyway`);
-        this.startGame();
-      }, 20_000);
-    }
+  /**
+   * A confirmed look is what makes a player real, so the game waits on locked
+   * phones rather than joined ones — the server would drop the difference.
+   */
+  onPlayerLocked(player, reason) {
+    const locked = this.players.filter((p) => p.locked).length;
+    line(
+      `${pad(player.name, this.nameWidth)}  ${dim(pad(reason, 8))}` +
+        `${cyan(pad(lookLabel(player.look), LOOK_WIDTH))}  ` +
+        `${dim(`(${locked}/${this.opts.players} in the flock)`)}`
+    );
+
+    if (!this.opts.autoCreate || this.started) return;
+    if (locked < this.opts.players) return;
+    // The whole flock is dressed: no reason to wait out the fallback.
+    if (this.startTimer) clearTimeout(this.startTimer);
+    this.startTimer = setTimeout(() => this.startGame(), 400);
+  }
+
+  /** Never hang on a phone that failed to join or never got a look accepted. */
+  armStartFallback() {
+    if (this.startTimer || this.started) return;
+    this.startTimer = setTimeout(() => {
+      const locked = this.players.filter((p) => p.locked).length;
+      warnLine(
+        `only ${locked}/${this.opts.players} phones picked a look — starting anyway; ` +
+          'anyone still choosing is dropped at the gate'
+      );
+      this.startGame();
+    }, 20_000);
   }
 
   startGame() {
     if (this.started || this.stopping) return;
-    const joined = this.players.filter((p) => p.joined).length;
-    if (joined < 2) {
-      this.fatal(`only ${joined} player(s) joined; the server needs at least 2 to start.`);
+    const locked = this.players.filter((p) => p.locked).length;
+    if (locked < 2) {
+      this.fatal(`only ${locked} player(s) confirmed a look; the server needs at least 2 in the flock to start.`);
       return;
     }
     this.started = true;
-    line(`${magenta('host.start')} with ${joined} players`);
+    line(`${magenta('host.start')} with ${locked} in the flock`);
     try {
       this.host.send(JSON.stringify({ t: 'host.start', room: this.room }));
     } catch (err) {
@@ -1358,13 +1557,18 @@ class Sim {
     this.lastPhaseKey = key;
 
     if (phase === 'lobby') {
-      const n = Array.isArray(frame.players) ? frame.players.length : 0;
-      if (n !== this.lobbyReported) {
-        this.lobbyReported = n;
-        if (!this.opts.autoCreate && n >= this.opts.players) {
-          line(dim(`lobby has ${n} players — waiting for the display to start the game`));
-        }
-      }
+      // players[] is the flock — locked phones only. `choosing` is everyone
+      // still in the picker, and it is the pair of numbers that explains a
+      // lobby the display refuses to start.
+      const flock = Array.isArray(frame.players) ? frame.players.length : 0;
+      const choosing = Number(frame.choosing) || 0;
+      const key = `${flock}/${choosing}`;
+      if (key === this.lobbyReported) return;
+      this.lobbyReported = key;
+      const joined = this.players.filter((p) => p.joined).length;
+      if (this.opts.autoCreate || joined < this.opts.players) return;
+      if (choosing > 0) line(dim(`lobby: flock of ${flock}, ${choosing} still choosing`));
+      else line(dim(`lobby: flock of ${flock} — waiting for the display to start the game`));
       return;
     }
 
@@ -1405,7 +1609,9 @@ class Sim {
     rule(`round ${roundNo}/${total}`);
     line(`${bold(frame.question ?? '(no question)')}  ${dim(`${Math.round(msLeft / 1000)}s`)}`);
 
-    const live = this.players.filter((p) => p.joined && !p.dead);
+    // Locked, not merely joined: the server dropped anyone still choosing when
+    // the game started, so an unlocked phone has no player record to answer for.
+    const live = this.players.filter((p) => p.locked && !p.dead);
     const { clusters: pool, keyed } = clustersFor(frame.question);
 
     // Roles for this round.
@@ -1452,7 +1658,11 @@ class Sim {
       )
     );
 
-    if (missers.length > 0) line(dim(`${tag('sit out')}${missers.map((p) => p.name).join(', ')}`));
+    // Sitters produce no answer line, so their sheep is named here instead —
+    // every phone in the round is accounted for with the look it is wearing.
+    if (missers.length > 0) {
+      line(dim(`${tag('sit out')}${missers.map((p) => `${p.name} (${lookLabel(p.look)})`).join(', ')}`));
+    }
 
     this.round = {
       roundNo,
@@ -1484,8 +1694,11 @@ class Sim {
     this.round.submitted.set(player.playerId, text);
     if (this.opts.quiet) return;
     const left = Math.max(0, this.round.endsAt - Date.now());
+    // The look rides along on every answer: names identify a phone, but only the
+    // colour+hat pair identifies the sheep a developer is watching on the TV.
     line(
       `${pad(player.name, this.nameWidth)}  ${dim('->')} ${pad(`"${text}"`, 26)} ` +
+        `${dim(pad(lookLabel(player.look), LOOK_WIDTH))}  ` +
         `${dim(`${(left / 1000).toFixed(1)}s left`)}${slow ? ` ${yellow('late')}` : ''}`
     );
   }

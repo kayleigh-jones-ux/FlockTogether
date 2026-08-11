@@ -10,6 +10,16 @@
 
 import { connect, loadSprites, countdown } from '/shared/net.js';
 import { raddleFor } from '/shared/raddle.js';
+import {
+  FLEECE_COLOURS,
+  HATS,
+  HAT_BOX,
+  colourById,
+  hatById,
+  colourToken,
+  lookKey,
+  validateLook,
+} from '/shared/look.js';
 
 /* ------------------------------------------------------------------ scaffolding */
 
@@ -21,6 +31,7 @@ const el = {
   body: document.body,
   wire: $('wire'),
   brand: $('brand'),
+  pageH: $('page-h'),
   tag: $('tag'),
   tagName: $('tag-name'),
   tagBigName: $('tag-big-name'),
@@ -38,9 +49,22 @@ const el = {
   joinError: $('join-error'),
   joinGo: $('join-go'),
 
+  lookSheep: $('look-sheep'),
+  lookHat: $('look-hat'),
+  lookName: $('look-name'),
+  colourGrid: $('colour-grid'),
+  hatGrid: $('hat-grid'),
+  lookNote: $('look-note'),
+  lookGo: $('look-go'),
+  lookBack: $('look-back'),
+  lookReopen: $('look-reopen'),
+
   flockCount: $('flock-count'),
+  choosingNote: $('choosing-note'),
+  lobbyHat: $('lobby-hat'),
 
   question: $('question'),
+  sheepHat: $('sheep-hat'),
   clock: $('clock'),
   clockLabel: $('clock-label'),
   flank: $('flank'),
@@ -72,6 +96,7 @@ const el = {
 
 const screens = {
   join: $('screen-join'),
+  look: $('screen-look'),
   lobby: $('screen-lobby'),
   question: $('screen-question'),
   grouping: $('screen-grouping'),
@@ -103,12 +128,33 @@ const store = {
 
 /* ------------------------------------------------------------------ local state */
 
-const me = { playerId: null, room: '', name: '' };
+const me = { playerId: null, room: '', name: '', look: null };
+
+/* Which paddock the live socket is actually attached to, and the join waiting
+   to go down the next one. Distinct from me.room: me.room is the room we intend
+   to be in, socketRoom is the one the transport has already committed to, and
+   the gap between them is precisely when a reconnect is required. */
+let socketRoom = '';
+let pendingJoin = null;
 
 let net = null;
 let joinState = 'idle';       // idle | rejoining | joining | in
 let state = null;             // the last 'state' frame
 let handshakeTimer = null;
+let currentScreen = null;     // the screen setScreen() last switched to
+
+/* --- the look ---
+   `me.look` is what the SERVER holds for us; `draft` is what the picker is
+   showing. They are the same until a chip is touched, and the server's answer
+   always replaces ours. */
+let draft = null;             // { colorId, hatId } on screen right now
+let draftDirty = false;       // they have touched the picker since it opened
+let taken = new Set();        // 'colorId/hatId' keys, from look.taken
+let pickerOpen = false;       // reopened from the lobby by a locked player
+let lookPending = false;      // a player.look is in flight
+let lockedLocal = false;      // look.ok seen; the next state frame overrules it
+let lookAckTimer = null;
+let scrollToPick = false;     // bring their current chip into view once
 
 let roundKey = null;          // roundIndex the question screen is set up for
 let lastPhase = null;         // the phase the last render drew
@@ -141,6 +187,35 @@ const JOIN_ERRORS = {
   NAME_TAKEN: 'Someone in there already answers to that. Add an initial and throw the latch again.',
   GAME_STARTED: 'That game is already running. You can join the next one — the big screen will say when.',
   BAD_REQUEST: 'That did not scan. Check the code and your name, then throw the latch again.',
+};
+
+/* The picker's own rejections. The server's own wording wins where it sends
+   one (validateLook's message is written for the player); this is the floor,
+   and LOOK_FIX is the part that says what to do about it. */
+const LOOK_ERRORS = {
+  LOOK_TAKEN: 'Someone in the paddock is already that sheep.',
+  BAD_LOOK: 'That colour or hat is not one of ours.',
+  GAME_STARTED: 'The game has already started.',
+};
+
+const LOOK_FIX = {
+  LOOK_TAKEN: ' Change the colour or the hat.',
+  BAD_LOOK: ' Pick another and try again.',
+  GAME_STARTED: ' That is the sheep you are playing with.',
+};
+
+const LOOK_RULE = 'Two of you can share a colour, or share a hat — never both.';
+
+/* One h1 lives in the header for the whole session, because every screen but
+   the first is swapped out from under it. */
+const SCREEN_TITLES = {
+  join: 'Get in the paddock',
+  look: 'Make your sheep',
+  lobby: 'Waiting in the paddock',
+  question: 'The question',
+  grouping: 'Sorting the answers',
+  reveal: 'How the round went',
+  scores: 'Where you stand',
 };
 
 function ordinal(n) {
@@ -176,13 +251,30 @@ window.addEventListener('orientationchange', () => setTimeout(measureViewport, 1
 /* ------------------------------------------------------------------ screens */
 
 function setScreen(name) {
-  for (const [key, node] of Object.entries(screens)) {
-    const on = key === name;
-    node.classList.toggle('is-on', on);
-    if (on) node.removeAttribute('inert');
-    else node.setAttribute('inert', '');
+  const incoming = screens[name];
+  if (!incoming || currentScreen === name) return;
+
+  const outgoing = currentScreen ? screens[currentScreen] : null;
+  /* A phase can flip while they are still typing. Marking the outgoing screen
+     inert with focus inside it drops that focus to <body>, which strands a
+     screen-reader user at the top of the document at the exact moment the
+     screen changed under them. Carry the focus across first, to the incoming
+     screen, so their reading position lands on what they are now looking at. */
+  const carriesFocus = !!outgoing && outgoing.contains(document.activeElement);
+
+  incoming.classList.add('is-on');
+  incoming.removeAttribute('inert');
+  if (carriesFocus) incoming.focus({ preventScroll: true });
+
+  for (const node of Object.values(screens)) {
+    if (node === incoming) continue;
+    node.classList.remove('is-on');
+    node.setAttribute('inert', '');
   }
+
+  currentScreen = name;
   el.body.dataset.phase = name;
+  setText(el.pageH, SCREEN_TITLES[name] || 'Flock Together');
 }
 
 /* ------------------------------------------------------------------ identity */
@@ -198,16 +290,30 @@ function applyIdentity() {
 }
 
 /* Persist just enough to rejoin our own flock after a lock screen or a
-   refresh: the id and the room. Written once, not on every frame. */
-function rememberIdentity() {
-  if (remembered || !me.playerId || !me.room) return;
+   refresh: the id, the room, and the sheep they made. The look rides in the
+   same record because it is the same fact — who this phone is in this room. */
+function writeIdentity() {
+  if (!me.playerId || !me.room) return;
   remembered = true;
-  store.write(KEY_ID, { playerId: me.playerId, room: me.room, name: me.name });
+  store.write(KEY_ID, { playerId: me.playerId, room: me.room, name: me.name, look: me.look });
+}
+
+/* Written once on the way in, not on every frame. */
+function rememberIdentity() {
+  if (remembered) return;
+  writeIdentity();
 }
 
 function forgetIdentity() {
   remembered = false;
   me.playerId = null;
+  me.look = null;
+  draft = null;
+  draftDirty = false;
+  lockedLocal = false;
+  pickerOpen = false;
+  taken.clear();
+  applyLook(null);
   store.drop(KEY_ID);
   store.drop(KEY_ANSWER);
   show(el.tag, false);
@@ -279,6 +385,18 @@ el.joinForm.addEventListener('submit', (event) => {
   joinState = 'joining';
   setJoinBusy(true);
 
+  /* A typed code names a paddock the socket is not attached to — it may not be
+     attached to anything at all, since a phone that arrived without ?room= has
+     nothing to connect to until this moment. Re-open against the right room and
+     let identify() carry the join down the new socket; sending it down the old
+     one would deliver it to whichever paddock that socket happened to be on. */
+  if (room !== socketRoom) {
+    me.room = room;
+    pendingJoin = { room, name };
+    net.reconnect();
+    return;
+  }
+
   if (!net || !net.send({ t: 'player.join', room, name })) {
     joinState = 'idle';
     setJoinBusy(false);
@@ -295,6 +413,329 @@ el.joinForm.addEventListener('submit', (event) => {
     setJoinBusy(false);
     setJoinError('No answer from the paddock. Check your signal, then throw the latch again.');
   }, HANDSHAKE_MS);
+});
+
+/* ------------------------------------------------------------------ the look
+   A fleece colour and a hat, chosen before they are part of the flock. The
+   pair is what has to be unique, so nothing here greys out a whole colour
+   because one pair using it has gone: a colour is only spent once every hat
+   against it is taken, and a hat once every colour is. */
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+const colourChips = new Map();
+const hatChips = new Map();
+
+/* Our own confirmed look is never a clash with itself — the server excludes
+   it when we re-send — so the picker must not strike out the sheep we are
+   already wearing. */
+function isTaken(colorId, hatId) {
+  const key = `${colorId}/${hatId}`;
+  if (me.look && lookKey(me.look) === key) return false;
+  return taken.has(key);
+}
+
+const colourSpent = (colorId) => HATS.every((hat) => isTaken(colorId, hat.id));
+const hatSpent = (hatId) => FLEECE_COLOURS.every((colour) => isTaken(colour.id, hatId));
+
+/* look.js owns where a hat sits on a sheep. Reading HAT_BOX here rather than
+   writing 78/-30/60 into the markup keeps that one place true. */
+function placeHats() {
+  for (const use of document.querySelectorAll('.use-hat')) {
+    use.setAttribute('x', String(HAT_BOX.x));
+    use.setAttribute('y', String(HAT_BOX.y));
+    use.setAttribute('width', String(HAT_BOX.size));
+    use.setAttribute('height', String(HAT_BOX.size));
+  }
+}
+
+function setHat(use, hatId) {
+  if (!use) return;
+  if (!hatId) {
+    use.setAttribute('hidden', '');
+    return;
+  }
+  use.setAttribute('href', `#sp-hat-${hatId}`);
+  use.removeAttribute('hidden');
+}
+
+/* tokens.css owns every colour value; look.js's own hex rides along only as
+   the fallback, so a picker painted before that sheet lands is still a picker
+   and not thirty blank squares. */
+function fleeceValue(colour) {
+  return `var(${colourToken(colour.id)}, ${colour.hex})`;
+}
+
+/* The look as the rest of this surface wears it: the fleece everywhere a
+   sheep is drawn, and the hat on top of it. */
+function applyLook(look) {
+  const colour = look ? colourById(look.colorId) : null;
+  const hat = look ? hatById(look.hatId) : null;
+  if (colour) el.body.style.setProperty('--fleece', fleeceValue(colour));
+  else el.body.style.removeProperty('--fleece');
+  setHat(el.lobbyHat, hat ? hat.id : '');
+  setHat(el.sheepHat, hat ? hat.id : '');
+}
+
+/* Sticky messages are the ones a repaint must not talk over: a rejection or a
+   send that did not go stays up until the player does something about it,
+   rather than being wiped by the next unrelated frame from the room. */
+let stickyNote = false;
+
+function lookNote(message, warn, sticky) {
+  setText(el.lookNote, message);
+  el.lookNote.classList.toggle('is-warn', !!warn);
+  stickyNote = !!sticky;
+}
+
+/* A held look and a locked player are the same fact — locked is set the moment
+   a look is accepted — so either one is proof, and a frame that carries only
+   the look never strands them in the picker re-confirming a sheep they have. */
+function isLocked() {
+  if (lockedLocal) return true;
+  const you = state && state.you;
+  return !!(you && (you.locked || you.look));
+}
+
+/* --- building the chips, once ------------------------------------------- */
+
+function colourChip(colour) {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'chip chip--colour';
+
+  const swatch = document.createElement('span');
+  swatch.className = 'chip-swatch';
+  swatch.style.background = fleeceValue(colour);
+
+  const name = document.createElement('span');
+  name.className = 'chip-name';
+  name.textContent = colour.name;
+
+  chip.append(swatch, name);
+  chip.addEventListener('click', () => {
+    if (colourSpent(colour.id)) {
+      lookNote(`Every hat is taken with ${colour.name}. Pick another colour.`, true, true);
+      return;
+    }
+    pick({ colorId: colour.id });
+  });
+
+  colourChips.set(colour.id, chip);
+  return chip;
+}
+
+function hatChip(hat) {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'chip chip--hat';
+
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'chip-hat');
+  svg.setAttribute('viewBox', `0 0 ${HAT_BOX.size} ${HAT_BOX.size}`);
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS(SVG_NS, 'use');
+  use.setAttribute('href', `#sp-hat-${hat.id}`);
+  svg.append(use);
+
+  const name = document.createElement('span');
+  name.className = 'chip-name';
+  name.textContent = hat.name;
+
+  chip.append(svg, name);
+  chip.addEventListener('click', () => {
+    if (hatSpent(hat.id)) {
+      lookNote(`Every colour is taken with the ${hat.name}. Pick another hat.`, true, true);
+      return;
+    }
+    pick({ hatId: hat.id });
+  });
+
+  hatChips.set(hat.id, chip);
+  return chip;
+}
+
+function buildPicker() {
+  const families = [];
+  for (const colour of FLEECE_COLOURS) {
+    let family = families.find((f) => f.id === colour.family);
+    if (!family) {
+      family = { id: colour.family, colours: [] };
+      families.push(family);
+    }
+    family.colours.push(colour);
+  }
+
+  for (const family of families) {
+    const strip = document.createElement('div');
+    strip.className = 'fam';
+
+    const name = document.createElement('p');
+    name.className = 'legend fam-name';
+    // The family id IS the hue word in look.js; this only capitalises it.
+    name.textContent = family.id.charAt(0).toUpperCase() + family.id.slice(1);
+
+    const shades = document.createElement('div');
+    shades.className = 'fam-shades';
+    for (const colour of family.colours) shades.append(colourChip(colour));
+
+    strip.append(name, shades);
+    el.colourGrid.append(strip);
+  }
+
+  for (const hat of HATS) el.hatGrid.append(hatChip(hat));
+}
+
+/* --- painting the state onto them --------------------------------------- */
+
+function dressChip(chip, name, chosen, spent, clash, why) {
+  if (!chip) return;
+  chip.setAttribute('aria-pressed', chosen ? 'true' : 'false');
+  chip.dataset.state = spent ? 'spent' : clash ? 'clash' : 'free';
+  /* aria-disabled, not disabled: a control nobody can reach is a control that
+     cannot tell anybody why it is unavailable. The click handler refuses it
+     and says the same thing out loud. */
+  chip.setAttribute('aria-disabled', spent ? 'true' : 'false');
+  if (spent || clash) chip.setAttribute('aria-label', `${name} — ${why}`);
+  else chip.removeAttribute('aria-label');
+}
+
+function paintLook() {
+  const colour = draft ? colourById(draft.colorId) : null;
+  const hat = draft ? hatById(draft.hatId) : null;
+  if (!colour || !hat) return;
+
+  el.lookSheep.style.setProperty('--fleece', fleeceValue(colour));
+  setHat(el.lookHat, hat.id);
+  setText(el.lookName, `${colour.name} · ${hat.name}`);
+
+  for (const c of FLEECE_COLOURS) {
+    const spent = colourSpent(c.id);
+    const clash = !spent && isTaken(c.id, hat.id);
+    dressChip(
+      colourChips.get(c.id), c.name, c.id === colour.id, spent, clash,
+      spent ? 'taken with every hat' : `taken with the ${hat.name}`
+    );
+  }
+
+  for (const h of HATS) {
+    const spent = hatSpent(h.id);
+    const clash = !spent && isTaken(colour.id, h.id);
+    dressChip(
+      hatChips.get(h.id), h.name, h.id === hat.id, spent, clash,
+      spent ? 'taken with every colour' : `taken with ${colour.name}`
+    );
+  }
+
+  // Never talk over a rejection that is still standing.
+  if (lookPending || stickyNote) return;
+  if (isTaken(colour.id, hat.id)) {
+    lookNote(
+      `Someone is already ${colour.name} wearing the ${hat.name}. Change the colour or the hat.`,
+      true
+    );
+  } else {
+    lookNote(LOOK_RULE, false);
+  }
+}
+
+function pick(part) {
+  if (!draft) return;
+  draft = {
+    colorId: part.colorId || draft.colorId,
+    hatId: part.hatId || draft.hatId,
+  };
+  draftDirty = true;
+  stickyNote = false; // they have answered the last thing we told them
+  paintLook();
+}
+
+/* The opening suggestion, and only that. raddle.js still hashes the playerId
+   to one of eight dyes; it is no longer what they wear, but it is what stops
+   the picker opening on the same sheep for all twenty of them. */
+function suggestLook() {
+  const seed = me.playerId ? raddleFor(me.playerId).index : 1;
+  const colour = FLEECE_COLOURS[((seed - 1) * 3 + 1) % FLEECE_COLOURS.length];
+  const hat = HATS[(seed - 1) % HATS.length];
+  return firstFree(colour.id, hat.id);
+}
+
+/* Move the hat before the colour: a suggestion that clashes should keep the
+   fleece it opened on. 600 pairs against a 20-player cap means the last
+   fallback is unreachable, but it still has to return a look. */
+function firstFree(colorId, hatId) {
+  if (!isTaken(colorId, hatId)) return { colorId, hatId };
+
+  const fromHat = Math.max(0, HATS.findIndex((h) => h.id === hatId));
+  for (let i = 1; i < HATS.length; i += 1) {
+    const hat = HATS[(fromHat + i) % HATS.length];
+    if (!isTaken(colorId, hat.id)) return { colorId, hatId: hat.id };
+  }
+
+  const fromColour = Math.max(0, FLEECE_COLOURS.findIndex((c) => c.id === colorId));
+  for (let i = 1; i <= FLEECE_COLOURS.length; i += 1) {
+    const colour = FLEECE_COLOURS[(fromColour + i) % FLEECE_COLOURS.length];
+    for (const hat of HATS) {
+      if (!isTaken(colour.id, hat.id)) return { colorId: colour.id, hatId: hat.id };
+    }
+  }
+
+  return { colorId, hatId };
+}
+
+/* --- confirming --------------------------------------------------------- */
+
+function restoreConfirm() {
+  el.lookGo.disabled = false;
+  setText(el.lookGo, isLocked() ? 'Change my sheep' : "That's my sheep");
+}
+
+function confirmLook() {
+  if (lookPending || !draft) return;
+
+  const checked = validateLook(draft);
+  if (checked.error) {
+    lookNote(checked.message, true, true);
+    return;
+  }
+
+  if (!net || !net.send({ t: 'player.look', colorId: checked.look.colorId, hatId: checked.look.hatId })) {
+    lookNote('That did not send — you dropped off for a moment. Try again.', true, true);
+    return;
+  }
+
+  lookPending = true;
+  el.lookGo.disabled = true;
+  setText(el.lookGo, 'Marking you up…');
+  lookNote('Taking that to the paddock…', false);
+  // Bound the wait: an ack that cannot arrive must not leave the lever dead.
+  clearTimeout(lookAckTimer);
+  lookAckTimer = setTimeout(() => {
+    if (!lookPending) return;
+    lookPending = false;
+    restoreConfirm();
+    lookNote('No word back from the paddock. Try that again.', true, true);
+  }, HANDSHAKE_MS);
+}
+
+el.lookGo.addEventListener('click', confirmLook);
+
+/* Reopening from the lobby. Legal only while the host has not started, which
+   is exactly when the lobby is on screen. */
+el.lookReopen.addEventListener('click', () => {
+  if (!state || state.phase !== 'lobby') return;
+  pickerOpen = true;
+  draftDirty = false;
+  stickyNote = false; // whatever went wrong last time is last time's business
+  if (me.look) draft = { ...me.look };
+  render();
+});
+
+el.lookBack.addEventListener('click', () => {
+  pickerOpen = false;
+  draftDirty = false;
+  if (me.look) draft = { ...me.look };
+  render();
 });
 
 /* ------------------------------------------------------------------ answering */
@@ -504,6 +945,8 @@ function render() {
   }
 
   if (state.phase !== 'question') stopClockNow();
+  // The picker is a lobby thing. Once the game is running it cannot reopen.
+  if (state.phase !== 'lobby') pickerOpen = false;
 
   switch (state.phase) {
     case 'question': renderQuestion(you); setScreen('question'); break;
@@ -511,10 +954,33 @@ function render() {
     case 'reveal': renderReveal(you); setScreen('reveal'); break;
     case 'scores':
     case 'final': renderScores(you); setScreen('scores'); break;
-    default: renderLobby(); setScreen('lobby'); break;
+    default:
+      // Joined but not locked is not yet in the flock: they are choosing.
+      if (!isLocked() || pickerOpen) {
+        if (currentScreen !== 'look') scrollToPick = true;
+        renderLook();
+        setScreen('look');
+      } else {
+        renderLobby();
+        setScreen('lobby');
+      }
+      break;
   }
 
   lastPhase = state.phase;
+}
+
+function renderLook() {
+  if (!draft) draft = me.look ? { ...me.look } : suggestLook();
+  show(el.lookBack, isLocked());
+  if (!lookPending) restoreConfirm();
+  paintLook();
+
+  if (!scrollToPick) return;
+  scrollToPick = false;
+  // Open on the sheep they are wearing, not at the top of thirty colours.
+  const chip = colourChips.get(draft.colorId);
+  if (chip) chip.scrollIntoView({ block: 'center' });
 }
 
 function renderLobby() {
@@ -524,6 +990,14 @@ function renderLobby() {
     others === 0
       ? "You're first in the paddock."
       : `You and ${others} ${plural(others, 'other', 'others')} in the paddock.`
+  );
+
+  // The headcount above counts locked players only, so say where the rest
+  // are rather than letting the number look wrong.
+  const choosing = Math.max(0, Number(state.choosing) || 0);
+  setText(
+    el.choosingNote,
+    choosing > 0 ? `${choosing} more still choosing` : ' '
   );
 }
 
@@ -654,8 +1128,44 @@ function onFrame(frame) {
     applyIdentity();
     setJoinBusy(false);
     setJoinError('');
-    // Lobby is the calm default until the first state frame lands (same tick).
-    if (!state) setScreen('lobby');
+    // Until the first state frame lands (same tick), go where a joined player
+    // goes: the picker if they have no sheep yet, the lobby if they have.
+    if (!state) {
+      if (me.look) {
+        setScreen('lobby');
+      } else {
+        scrollToPick = true;
+        renderLook();
+        setScreen('look');
+      }
+    }
+    return;
+  }
+
+  /* Advisory only — the server is the authority and rejects a race anyway —
+     so this never touches what they have chosen, only what is struck out. */
+  if (frame.t === 'look.taken') {
+    taken = new Set((Array.isArray(frame.taken) ? frame.taken : []).map(String));
+    paintLook();
+    return;
+  }
+
+  if (frame.t === 'look.ok') {
+    clearTimeout(lookAckTimer);
+    lookPending = false;
+    const checked = validateLook(frame.look);
+    me.look = checked.error ? (draft ? { ...draft } : null) : checked.look;
+    if (me.look) {
+      draft = { ...me.look };
+      draftDirty = false;
+    }
+    lockedLocal = true;
+    pickerOpen = false;
+    writeIdentity();
+    applyLook(me.look);
+    restoreConfirm();
+    lookNote('That is your sheep. The big screen has it too.', false);
+    if (state) render();
     return;
   }
 
@@ -673,6 +1183,19 @@ function onFrame(frame) {
       if (frame.room) me.room = frame.room;
       if (frame.you.name) me.name = frame.you.name;
       rememberIdentity();
+
+      /* The server record is the authority on the look. Anything this device
+         restored from storage is optimistic, and stands only until here. */
+      lockedLocal = false;
+      const held = lookKey(me.look);
+      const checked = frame.you.look ? validateLook(frame.you.look) : null;
+      me.look = checked && !checked.error ? checked.look : null;
+      if (me.look && !draftDirty) draft = { ...me.look };
+      // Only when it actually moved: this runs on every frame in the room.
+      if (lookKey(me.look) !== held) {
+        writeIdentity();
+        applyLook(me.look);
+      }
     }
     state = frame;
     // you.answered is derived from the server's answers map, which stays true
@@ -690,6 +1213,38 @@ function onFrame(frame) {
 function onError(frame) {
   const code = frame.code || 'BAD_REQUEST';
   const message = JOIN_ERRORS[code] || JOIN_ERRORS.BAD_REQUEST;
+
+  /* A refused look. What they made stays exactly as it is on screen — they
+     are told which half of the pair to move, not sent back to the start. */
+  if (lookPending && LOOK_ERRORS[code]) {
+    clearTimeout(lookAckTimer);
+    lookPending = false;
+    restoreConfirm();
+    if (code === 'LOOK_TAKEN' && draft) {
+      // Our advisory list was behind the room. Catch it up so the chip they
+      // need to move is struck out before they look for it.
+      taken.add(lookKey(draft));
+    }
+    // Said before the repaint, so the repaint leaves the server's own words up.
+    lookNote(`${frame.message || LOOK_ERRORS[code]}${LOOK_FIX[code] || ''}`, true, true);
+    paintLook();
+    return;
+  }
+
+  /* The host started while they were still choosing, so the server has let
+     them out of the room. Factual, not a telling-off. */
+  if (code === 'NOT_LOCKED') {
+    clearTimeout(handshakeTimer);
+    forgetIdentity();
+    joinState = 'idle';
+    state = null;
+    setJoinBusy(false);
+    setJoinError(
+      `${frame.message || 'The gate shut while you were still choosing.'} There will be another game — the big screen will say when.`
+    );
+    setScreen('join');
+    return;
+  }
 
   if (joinState === 'rejoining') {
     // The game moved on without us. Say so plainly and ask for a name again.
@@ -793,13 +1348,26 @@ function onStatus(status) {
 }
 
 function identify() {
-  if (!me.playerId || !me.room) return null;
-  return { t: 'player.rejoin', room: me.room, playerId: me.playerId };
+  if (me.playerId && me.room) return { t: 'player.rejoin', room: me.room, playerId: me.playerId };
+  /* A join deferred by the reconnect above: the socket is now on the right
+     paddock, so this is the first thing it should say. */
+  if (pendingJoin) {
+    const frame = { t: 'player.join', room: pendingJoin.room, name: pendingJoin.name };
+    pendingJoin = null;
+    return frame;
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------------ boot */
 
 function boot() {
+  // Built once, before anything can ask for it: sixty controls whose state is
+  // repainted in place, so a look.taken frame never rebuilds what is under a
+  // player's thumb.
+  placeHats();
+  buildPicker();
+
   setScreen('join');
 
   /* #lock-note carries every status message the answer form has — the commit,
@@ -833,6 +1401,17 @@ function boot() {
     me.name = saved.name || '';
     remembered = true;
     applyIdentity();
+
+    /* Draw them back as the sheep they were straight away, rather than as a
+       blank one for the length of a handshake. It is optimism only: the first
+       state frame carrying our record replaces it, whatever it says. */
+    const savedLook = saved.look ? validateLook(saved.look) : null;
+    if (savedLook && !savedLook.error) {
+      me.look = savedLook.look;
+      draft = { ...me.look };
+      applyLook(me.look);
+    }
+
     el.name.value = me.name;
     joinState = 'rejoining';
     setJoinBusy(true, 'Getting you back in…');
@@ -843,7 +1422,19 @@ function boot() {
     if (queryRoom.length === ROOM_LEN) el.name.focus({ preventScroll: true });
   }
 
-  net = connect({ onFrame, onStatus, identify });
+  /* Null means "do not open yet". A phone with no room — arrived without a
+     ?room= link and has not typed a code — has no paddock to attach to, and
+     opening against none would put it in a room of its own making. */
+  net = connect({
+    onFrame,
+    onStatus,
+    identify,
+    query: () => {
+      const room = me.room || (pendingJoin && pendingJoin.room) || '';
+      socketRoom = room;
+      return room ? { room, role: 'player' } : null;
+    },
+  });
 }
 
 await loadSprites(); // symbols must exist before the first <use> is painted

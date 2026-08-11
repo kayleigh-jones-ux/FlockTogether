@@ -73,3 +73,9 @@ tmp/
 # public/fonts/*.woff2 are checked in on purpose: the game must run with no
 # network at a party, and self-hosted Bricolage Grotesque + Archivo are what
 # carry the display voice. Do not add public/fonts here.
+
+# Generated art. The script and its prompts are tracked; the PNGs it produced are
+# not — they are reproducible from tools/make-assets.mjs and total ~25MB. The raw
+# pre-cutout images and the run state are pure scratch.
+assets/generated/raw/
+assets/generated/.state.json

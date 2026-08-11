@@ -285,8 +285,8 @@ iframe { width: 100%; height: 100%; border: 0; display: block; background: var(-
 
     <div class="group">
       <span class="legend">Flock size</span>
-      <input type="range" id="c-players" min="2" max="20" value="12">
-      <span class="rail__sub"><span class="val" id="v-players">12</span> players &mdash; you are one of them</span>
+      <input type="range" id="c-players" min="2" max="20" value="12" aria-label="Flock size">
+      <span class="rail__sub"><span class="val" id="v-players">12</span> sheep &mdash; you are one of them, once you have chosen one</span>
     </div>
 
     <div class="group">
@@ -334,6 +334,17 @@ iframe { width: 100%; height: 100%; border: 0; display: block; background: var(-
         <button class="btn" id="c-jump">Reveal</button>
         <button class="btn" id="c-scores">Scores</button>
       </div>
+    </div>
+
+    <div class="group">
+      <span class="legend">The sheep you make</span>
+      <div class="row">
+        <button class="btn" id="c-customise">Open the picker</button>
+        <button class="btn" id="c-clash" aria-pressed="false">Force a clash</button>
+      </div>
+      <span class="rail__sub" id="clash-note">A clash is the one look state nobody can reach on purpose: arm it and someone takes your pair a breath before you confirm it.</span>
+      <input type="range" id="c-choosing" min="0" max="4" value="1" aria-label="Joined but still at the picker">
+      <span class="rail__sub"><span class="val" id="v-choosing">1</span> joined but still at the picker &mdash; not in the flock</span>
     </div>
 
     <div class="group">
@@ -392,6 +403,15 @@ iframe { width: 100%; height: 100%; border: 0; display: block; background: var(-
 
 const $ = (id) => document.getElementById(id);
 
+/* Player names arrive from the phone and land in innerHTML in the ticker. */
+const escText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+/* shared/look.js, injected by the build with only its export keywords removed.
+   FLEECE_COLOURS, HATS, lookKey and validateLook below are therefore the very
+   ones the server validates against: the bench is not entitled to a second
+   opinion about which sheep exist. */
+/*__LOOK__*/
+
 const NAMES = ['Ama','Bex','Caleb','Dilan','Esme','Freya','Grace','Hugo','Ines','Jonah',
                'Kirra','Lena','Mateo','Nadia','Otis','Priya','Quinn','Rafa','Sunmi','Theo'];
 
@@ -432,14 +452,122 @@ const BANK = [
    With it on, a bot fills your seat a second after the question lands and the
    one interactive thing in the bench plays itself. */
 const cfg = { players: 12, grouping: 'semantic', scenario: 'normal', answerMs: 15000, rounds: 6,
-              autojoin: true, botsForMe: false, still: false };
+              autojoin: true, botsForMe: false, still: false, choosing: 1 };
 
-const G = { phase: 'idle', players: [], roundIndex: 0, totalRounds: 0, question: null,
+/* meId, not players[0]: the gate drops anyone still choosing when it opens, so
+   the seat this phone is holding is not reliably the first one in the list. */
+const G = { phase: 'idle', players: [], meId: 'p_0', roundIndex: 0, totalRounds: 0, question: null,
             endsAt: null, groups: [], noAnswer: [], scoreboardReason: null, groupingSource: null,
             answers: new Map(), qs: [], scoreRounds: new Set(), timers: [], token: 0 };
 
 const clearTimers = () => { G.timers.forEach(clearTimeout); G.timers = []; };
 const after = (ms, fn) => { const t = G.token; G.timers.push(setTimeout(() => { if (t === G.token) fn(); }, ms)); };
+
+/* --- the look ------------------------------------------------------------
+   A port of setLook and its taken set from src/game.js, kept as small as the
+   rest of this engine so a discrepancy with the server is easy to spot:
+     - joining reserves a name; confirming a look is what joins the FLOCK
+     - uniqueness is on the PAIR, and never against your own current pair
+     - players[] carries only locked players; `choosing` counts the rest
+     - the minimum to open the gate counts locked players only
+     - the gate drops anyone still choosing; it never picks for them
+   Both counts come from src/config.js, whose defaults these are. */
+
+const LOBBY_MIN_PLAYERS = 2;
+const MAX_PLAYERS = 20;
+
+const meOf = () => G.players.find((p) => p.id === G.meId) || null;
+
+/** The flock: everyone who has confirmed a look. */
+const lockedPlayers = () => G.players.filter((p) => p.locked);
+
+/** Joined, named, still in the picker. */
+const choosingCount = () => G.players.reduce((n, p) => n + (p.locked ? 0 : 1), 0);
+
+/* Derived on demand, never cached: a look can change, and a player can be
+   dropped when the gate opens, so a stale set would hold a free sheep hostage
+   for the rest of the party. */
+function takenLooks(exceptPlayerId) {
+  const keys = new Set();
+  for (const p of G.players) {
+    if (!p.locked || p.id === exceptPlayerId) continue;
+    const key = lookKey(p.look);
+    if (key) keys.add(key);
+  }
+  return keys;
+}
+
+const lookTaken = () => [...takenLooks(null)];
+
+/* Advisory only — it lets the picker strike out what has gone — so the phone
+   getting it late or not at all still cannot confirm a taken pair: setLook
+   below is the authority, exactly as on the server. */
+const broadcastLookTaken = () => post('play', { t: 'look.taken', taken: lookTaken() });
+
+function setLook(playerId, rawLook) {
+  const p = G.players.find((x) => x.id === playerId);
+  if (!p) return { error: 'BAD_REQUEST', message: 'Unknown player.' };
+  // Lobby only: the flock a question was asked of must not change shape.
+  if (G.phase !== 'lobby') {
+    return { error: 'GAME_STARTED', message: 'That game has already started.' };
+  }
+  // look.js owns which ids exist and the wording when they do not.
+  const checked = validateLook(rawLook);
+  if (checked.error) return checked;
+  if (takenLooks(p.id).has(lookKey(checked.look))) {
+    return { error: 'LOOK_TAKEN', message: 'Someone in the paddock is already that sheep.' };
+  }
+  p.look = checked.look;
+  p.locked = true;   // a locked player may change their look, never un-lock
+  return { ok: true, look: { ...p.look } };
+}
+
+/* A free pair for a simulated player. Twelve identical sheep told us nothing
+   about how the flock reads, so consecutive seeds get a different fleece AND a
+   different hat: the strides 7 of 30 and 3 of 20 are each coprime with their
+   list, so twenty bots repeat neither half. The search then walks colours, and
+   the hat only on each wrap, which covers all 600 pairs — needed because a
+   clash forced from the rail moves a pair out from under this. */
+function freeLook(seed) {
+  const nColours = FLEECE_COLOURS.length;
+  const nHats = HATS.length;
+  const held = takenLooks(null);
+  for (let n = 0; n < nColours * nHats; n++) {
+    const look = {
+      colorId: FLEECE_COLOURS[(seed * 7 + n) % nColours].id,
+      hatId: HATS[(seed * 3 + Math.floor(n / nColours)) % nHats].id,
+    };
+    if (!held.has(lookKey(look))) return look;
+  }
+  return null;   // unreachable at a 20-player cap; a look is still owed.
+}
+
+/* Your sheep is the phone's to make, so this is only for the rail buttons that
+   skip the lobby outright. Every other path leaves you at the real picker. */
+function lockMe() {
+  const me = meOf();
+  if (!me || me.locked) return;
+  const result = setLook(me.id, freeLook(0));
+  if (result.ok) log('', 'Picked a sheep for you so this could skip the lobby — press <b>Open the picker</b> to make your own.');
+}
+
+/* The gate shuts on whoever is still choosing. A default look would put a
+   sheep on the display that its owner never chose and cannot recognise, so
+   they leave the room instead and are told why. */
+function dropUnlocked() {
+  const out = G.players.filter((p) => !p.locked);
+  if (!out.length) return;
+  const droppedMe = out.some((p) => p.id === G.meId);
+  G.players = G.players.filter((p) => p.locked);
+  out.forEach((p) => G.answers.delete(p.id));
+  log('', 'The gate shut on ' + out.length + ' still choosing: ' +
+      out.map((p) => escText(p.name)).join(', '));
+  if (droppedMe) {
+    post('play', { t: 'error', code: 'NOT_LOCKED',
+                   message: 'The gate shut while you were still choosing.' });
+  }
+  broadcastLookTaken();
+}
 
 /* --- grouping ------------------------------------------------------------ */
 
@@ -491,8 +619,13 @@ function displayState() {
     t: 'state', room: 'DEMO', phase: G.phase, roundIndex: G.roundIndex, totalRounds: G.totalRounds,
     question: G.phase === 'question' ? G.question : (revealed || G.phase === 'grouping' ? G.question : null),
     endsAt: G.phase === 'question' ? G.endsAt : null,
-    players: G.players.map((p) => ({ id: p.id, name: p.name, score: p.score,
-                                     answered: G.answers.has(p.id), connected: true })),
+    /* Only the locked players. Someone still in the picker has no sheep to
+       draw, so they must not appear in the flock, on the scoreboard, or in a
+       paddock — they are countable instead, as `choosing` below. */
+    players: lockedPlayers().map((p) => ({ id: p.id, name: p.name, score: p.score,
+                                     answered: G.answers.has(p.id), connected: true,
+                                     look: p.look ? { ...p.look } : null })),
+    choosing: choosingCount(),
     groups: revealed ? G.groups.map((g, i) => ({ id: 'g' + (i + 1), label: g.label, scored: !!g.scored,
               answers: g.answers.map((a) => ({ playerId: a.playerId, name: a.name, text: a.text })) })) : [],
     noAnswer: revealed ? G.noAnswer.map((p) => ({ playerId: p.id, name: p.name })) : [],
@@ -502,13 +635,19 @@ function displayState() {
 
 function playerState() {
   const s = displayState();
-  const me = G.players[0];
+  const me = meOf();
+  /* No `you` is how the phone learns it is not in this room — which is the
+     truth after the gate drops it for still choosing. */
   if (!me) return s;
   const revealed = ['reveal', 'scores', 'final'].includes(G.phase);
   const mine = revealed ? G.groups.find((g) => g.answers.some((a) => a.playerId === me.id)) : null;
   return { ...s, you: { id: me.id, name: me.name, score: me.score, answered: G.answers.has(me.id),
                         myGroupId: mine ? 'g' + (G.groups.indexOf(mine) + 1) : null,
-                        scoredThisRound: !!(mine && mine.scored) } };
+                        scoredThisRound: !!(mine && mine.scored),
+                        /* Carried on every frame: it is what decides between
+                           the picker and the lobby, including after a reload. */
+                        look: me.look ? { ...me.look } : null,
+                        locked: me.locked } };
 }
 
 const post = (which, frame) => {
@@ -523,20 +662,38 @@ const emit = () => { post('tv', displayState()); post('play', playerState()); se
 function reset() {
   G.token++;
   clearTimers();
-  G.players = Array.from({ length: cfg.players }, (_, i) => ({
+  /* The flock slider is the number of SHEEP, and the still-choosing ones are
+     on top of it — that is the split the contract draws, and the cap counts
+     both halves, so a full room shows it by losing flock rather than by
+     quietly exceeding twenty. */
+  const roomSize = Math.min(cfg.players + cfg.choosing, MAX_PLAYERS);
+  const flockSize = Math.max(1, roomSize - cfg.choosing);
+  G.players = Array.from({ length: roomSize }, (_, i) => ({
     id: 'p_' + i, name: i === 0 ? 'You' : NAMES[(i * 7) % NAMES.length] + (i > 19 ? i : ''), score: 0,
+    /* Nobody starts in the flock. A joined player has a name and nothing else
+       until a look is accepted for them. */
+    look: null, locked: false,
   }));
+  G.meId = 'p_0';
   /* Names must be unique or two sheep read as one player. */
   const seen = new Set();
   G.players.forEach((p, i) => { let n = p.name; let k = 2; while (seen.has(n)) n = p.name + ' ' + k++; seen.add(n); p.name = n; });
-  G.phase = 'lobby'; G.roundIndex = 0; G.totalRounds = cfg.rounds; G.question = null;
+  /* Every simulated player is marked up through the same setLook the phone
+     goes through, so the flock on the display is as varied as a real party's
+     and no two of them can end up the same sheep. Your seat is skipped: the
+     picker is the phone's, and the tail is left at it on purpose. */
+  G.phase = 'lobby';
+  G.players.forEach((p, i) => { if (i > 0 && i < flockSize) setLook(p.id, freeLook(i)); });
+  G.roundIndex = 0; G.totalRounds = cfg.rounds; G.question = null;
   G.groups = []; G.noAnswer = []; G.answers.clear(); G.scoreboardReason = null; G.groupingSource = null;
   G.qs = [...BANK].sort(() => Math.random() - 0.5).slice(0, cfg.rounds);
 
   /* Exactly three moments: a third in, before the last, and the end. */
   G.scoreRounds = new Set([Math.ceil(cfg.rounds / 3) - 1, cfg.rounds - 2, cfg.rounds - 1]
     .filter((i) => i >= 0 && i < cfg.rounds));
-  log('head', 'New game — ' + cfg.players + ' players, ' + cfg.rounds + ' rounds');
+  log('head', 'New game — ' + (flockSize - 1) + ' sheep in the paddock, ' + cfg.rounds + ' rounds' +
+      (choosingCount() > 1 ? ', ' + (choosingCount() - 1) + ' still choosing' : ''));
+  broadcastLookTaken();
   emit();
 }
 
@@ -552,7 +709,7 @@ function startRound() {
   const picks = choosePicks(bank, G.players.length);
 
   G.players.forEach((p, i) => {
-    if (i === 0 && !cfg.botsForMe) return;           // leave the human seat empty
+    if (p.id === G.meId && !cfg.botsForMe) return;    // leave the human seat empty
     const pick = picks[i];
     if (!pick) return;                                // this player sits the round out
     const delay = 900 + Math.random() * Math.max(1200, cfg.answerMs - 2200);
@@ -690,6 +847,10 @@ function setPhaseLabel() {
 
 function jumpToReveal() {
   if (G.phase === 'idle') reset();
+  /* A jump lands mid-game, so it has to shut the gate the way the gate shuts:
+     everyone in a paddock is a locked player. Without this an unchosen sheep
+     appears in a group and in nobody's flock, which reads as a render fault. */
+  lockMe(); dropUnlocked();
   G.token++; clearTimers();
   G.question = (G.qs[G.roundIndex] || BANK[0]).q;
   const bank = (G.qs[G.roundIndex] || BANK[0]).a;
@@ -702,6 +863,7 @@ function jumpToReveal() {
 
 function jumpToScores() {
   if (G.phase === 'idle') reset();
+  lockMe(); dropUnlocked();
   G.token++; clearTimers();
   G.players.forEach((p, i) => { if (p.score === 0) p.score = Math.max(0, Math.round((G.players.length - i) / 2)); });
   G.scoreboardReason = 'penultimate';
@@ -789,9 +951,7 @@ window.addEventListener('message', (ev) => {
   if (d.__bench === 'ready') {
     setBoot(d.surface, 'live');
     if (d.surface === 'tv') post('tv', { t: 'room.created', room: 'DEMO', joinUrl: 'http://10.0.0.113:3000/play?room=DEMO', qr: window.__QR__ || '' });
-    if (d.surface === 'play' && cfg.autojoin && G.players.length) {
-      post('play', { t: 'joined', playerId: G.players[0].id, room: 'DEMO', name: G.players[0].name });
-    }
+    if (d.surface === 'play') joinMe();
     emit();
     return;
   }
@@ -799,21 +959,68 @@ window.addEventListener('message', (ev) => {
   if (d.__bench !== 'send') return;
   const f = d.frame;
 
-  if (f.t === 'host.start') { if (G.phase === 'lobby') { G.roundIndex = 0; startRound(); } return; }
+  if (f.t === 'host.start') {
+    if (G.phase !== 'lobby') return;
+    /* The minimum counts the flock, not the room: five phones where three are
+       still picking is a room of two, and opening the gate would prove it. */
+    if (lockedPlayers().length < LOBBY_MIN_PLAYERS) {
+      log('', 'The gate needs ' + LOBBY_MIN_PLAYERS + ' sheep in the paddock. Choosing does not count.');
+      return;
+    }
+    dropUnlocked();
+    G.roundIndex = 0;
+    startRound();
+    return;
+  }
   if (f.t === 'host.create' || f.t === 'host.resume') { emit(); return; }
 
   if (f.t === 'player.join' || f.t === 'player.rejoin') {
-    const me = G.players[0];
-    if (me) { if (f.name) me.name = String(f.name).slice(0, 14); post('play', { t: 'joined', playerId: me.id, room: 'DEMO', name: me.name }); }
+    const me = meOf();
+    if (me) {
+      if (f.name) me.name = String(f.name).slice(0, 14);
+      /* A rejoin carries the sheep back, so a reloaded phone returns to the
+         lobby instead of being sent through a picker it already finished. */
+      post('play', { t: 'joined', playerId: me.id, room: 'DEMO', name: me.name,
+                     look: me.look ? { ...me.look } : null, locked: me.locked });
+      // This phone has never seen the list and is about to open a picker on it.
+      broadcastLookTaken();
+    }
     emit();
+    return;
+  }
+
+  if (f.t === 'player.look') {
+    const me = meOf();
+    if (!me) { post('play', { t: 'error', code: 'BAD_REQUEST', message: 'Join the room first.' }); return; }
+    // The pair travels inline; a nested look object is accepted too.
+    const wanted = f.look && typeof f.look === 'object' ? f.look : f;
+    if (clashArmed) stealLook(wanted);
+    const result = setLook(me.id, wanted);
+    if (result.error) {
+      post('play', { t: 'error', code: result.error, message: result.message });
+      log('', '<b>' + escText(me.name) + '</b> was refused that sheep — ' + result.error);
+      /* The room really did move under them when a clash was forced, so the
+         advisory list is pushed again even though nothing was accepted. */
+      broadcastLookTaken();
+      emit();
+      return;
+    }
+    post('play', { t: 'look.ok', look: result.look });
+    // One pair just left the pool: every other picker needs it struck out.
+    broadcastLookTaken();
+    emit();
+    const colour = colourById(result.look.colorId);
+    const hat = hatById(result.look.hatId);
+    log('', '<b>' + escText(me.name) + '</b> is a ' + colour.name.toLowerCase() +
+        ' sheep in a ' + hat.name.toLowerCase() + '.');
     return;
   }
 
   if (f.t === 'player.answer') {
     if (G.phase !== 'question') { post('play', { t: 'error', code: 'BAD_REQUEST', message: 'The gate is shut.' }); return; }
-    const me = G.players[0];
+    const me = meOf();
     const text = String(f.text || '').trim().slice(0, 80);
-    if (!text) return;
+    if (!me || !text) return;
     /* Semantic grouping here is a lookup against the question's pre-clustered
        bank, so a typed answer has to be looked up the same way the bots' are.
        Without this you could type "hot chocolate" against a bank that files it
@@ -822,7 +1029,7 @@ window.addEventListener('message', (ev) => {
     const bank = (G.qs[G.roundIndex] || {}).a || [];
     const match = bank.find((x) => norm(x[0]) === norm(text));
     G.answers.set(me.id, { playerId: me.id, name: me.name, text, key: match ? match[1] : norm(text) });
-    log('', '<b>You</b> answered &ldquo;' + text.replace(/</g, '&lt;') + '&rdquo;');
+    log('', '<b>You</b> answered &ldquo;' + escText(text) + '&rdquo;');
     emit();
   }
 });
@@ -834,6 +1041,7 @@ $('g-semantic').addEventListener('click', () => { cfg.grouping = 'semantic'; set
   $('g-note').textContent = 'What Claude returns: meaning, not spelling.'; });
 $('g-fuzzy').addEventListener('click', () => { cfg.grouping = 'fuzzy'; setPressed('g-semantic', 'g-fuzzy', false);
   $('g-note').textContent = 'No API key: text matching only, so synonyms split.'; });
+$('c-choosing').addEventListener('input', (e) => { cfg.choosing = +e.target.value; $('v-choosing').textContent = cfg.choosing; });
 $('c-scenario').addEventListener('change', (e) => { cfg.scenario = e.target.value; });
 $('c-speed').addEventListener('change', (e) => { cfg.answerMs = { fast: 6000, normal: 15000, real: 45000 }[e.target.value]; });
 $('c-rounds').addEventListener('change', (e) => { cfg.rounds = +e.target.value; });
@@ -854,16 +1062,51 @@ $('c-still').addEventListener('change', (e) => {
 });
 
 const joinMe = () => {
-  if (cfg.autojoin && G.players[0]) {
-    post('play', { t: 'joined', playerId: G.players[0].id, room: 'DEMO', name: G.players[0].name });
-  }
+  const me = meOf();
+  if (!cfg.autojoin || !me) return;
+  post('play', { t: 'joined', playerId: me.id, room: 'DEMO', name: me.name,
+                 look: me.look ? { ...me.look } : null, locked: me.locked });
+  broadcastLookTaken();
 };
+
+/* --- the clash -----------------------------------------------------------
+   Every other look state can be reached by using the picker. A collision
+   cannot: 600 pairs against twenty players means you would have to be told
+   which sheep to reach for. Arming this hands your next pair to a simulated
+   player a moment before you confirm it, so the rejection comes out of the
+   real taken set — the bench is not faking an error frame. */
+
+let clashArmed = false;
+
+function setClash(on) {
+  clashArmed = on;
+  $('c-clash').setAttribute('aria-pressed', String(on));
+  $('clash-note').textContent = on
+    ? 'Armed. The next sheep you confirm gets taken out from under you — once.'
+    : 'A clash is the one look state nobody can reach on purpose: arm it and someone takes your pair a breath before you confirm it.';
+}
+
+function stealLook(wanted) {
+  const checked = validateLook(wanted);
+  if (checked.error) return;                 // BAD_LOOK is its own error to see
+  const thief = lockedPlayers().find((p) => p.id !== G.meId);
+  if (!thief) { log('', 'Nobody else is in the paddock yet, so there is nothing to clash with.'); return; }
+  thief.look = checked.look;                 // their old pair goes back in the pool
+  setClash(false);
+  log('', '<b>' + escText(thief.name) + '</b> reached that exact sheep first.');
+}
+
+$('c-clash').addEventListener('click', () => setClash(!clashArmed));
 
 /* Straight into round one. Reaching only the lobby and leaving you to hunt for
    the gate button on the TV made this read as a dead control. */
 $('c-start').addEventListener('click', () => {
   reset();
+  /* Skipping the lobby means skipping the picker, so this one seat is marked
+     up for you. Every other run button leaves that decision on the phone. */
+  lockMe();
   joinMe();
+  dropUnlocked();
   G.roundIndex = 0;
   startRound();
 });
@@ -871,16 +1114,27 @@ $('c-start').addEventListener('click', () => {
 /* The lobby is its own screen worth looking at, so it keeps a button. */
 $('c-lobby').addEventListener('click', () => {
   reset();
+  lockMe();
   joinMe();
   emit();
-  log('', 'Lobby — press <b>Open the gate</b> on the display to begin.');
+  log('', 'Lobby — reopen the picker on the phone to change your sheep, or press <b>Open the gate</b> on the display to begin.');
+});
+
+/* The customise step is the point of the thing, so it gets its own way in: no
+   sheep on you, which is precisely what sends the phone to the picker. */
+$('c-customise').addEventListener('click', () => {
+  reset();
+  joinMe();
+  emit();
+  log('', 'Make your sheep on the phone. You are in the room but not in the flock — the display counts you under <b>still choosing</b> until you confirm.');
 });
 
 $('c-jump').addEventListener('click', jumpToReveal);
 $('c-scores').addEventListener('click', jumpToScores);
 
 boot();
-log('head', 'Bench ready. Press Start a game.');
+log('head', 'Bench ready. Press Open the picker to make a sheep, or Start a game to skip to a round.');
 log('', 'You are one of the flock: the question lands on <b>both</b> screens, you type your answer on the phone and press the lever, and the other ' + (cfg.players - 1) + ' answer around you. Everything after that runs itself.');
+log('', '<b>Open the picker</b> puts you where a real player starts — joined, named, and not yet a sheep. Confirm a fleece and a hat on the phone and watch yourself appear in the paddock on the display.');
 log('', 'Try <b>Eight groups</b> and <b>Everyone unique</b> first — those stress the paddock map hardest.');
 </script>

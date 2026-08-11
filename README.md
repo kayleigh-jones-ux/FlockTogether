@@ -33,8 +33,11 @@ On startup the server prints the two URLs you need:
 - **Display** — `http://localhost:3000/` → open on the TV or laptop
 - **Player join URL** — printed alongside it, and encoded in the on-screen QR code
 
-Players scan the QR (or type the join URL) and are in the game. Nobody installs
-anything.
+Players scan the QR (or type the join URL), type a name, then **make their sheep**
+— a fleece colour and a hat — and confirm it. Confirming is what puts them in the
+flock; the display counts how many are still choosing, and anyone still choosing
+when the host starts is dropped from the room. A look can be changed from the
+lobby until the game starts. Nobody installs anything.
 
 ## Screenshare / remote play: set `PUBLIC_URL`
 
@@ -113,6 +116,7 @@ src/grouping.js       semantic grouping via the Claude API, with a fallback
 public/tv.*           the shared display
 public/play.*         the phone view
 public/shared/        design tokens, sprite sheet, transport, raddle colours
+public/shared/look.js the 30 fleece colours and 20 hats — imported by both sides
 public/fonts/         self-hosted variable fonts, so the game works offline
 tools/preflight.js    pre-party diagnostic
 tools/simulate.js     headless player simulator
@@ -157,6 +161,13 @@ DEFAULT_ROUNDS=3 ANSWER_SECONDS=5 npm start
 - Rooms use 4-character codes from an alphabet with no `O`, `0`, `I`, `1`, or
   `L`, so nobody mistypes a code read off a screen.
 - Answer text is never sent to any client while the answer timer is running.
+- `public/shared/look.js` is the single source of truth for fleece colours and
+  hats. The server imports it off disk to validate what a phone sends; both
+  surfaces load the same file over HTTP at `/shared/look.js`. Colours, hats, ids
+  and validation are defined there and nowhere else — if the two sides disagree
+  about what is selectable, a player gets told their own choice does not exist.
+  `tokens.css` and `sprites.svg` carry copies of the values (a `--fleece-<id>`
+  per colour, a `sp-hat-<id>` per hat) that must not drift from it.
 - Rounds auto-advance after the reveal. There is no host "next" button.
 - Nothing persists across a server restart; an in-progress game does not
   survive `npm run dev` reloading.

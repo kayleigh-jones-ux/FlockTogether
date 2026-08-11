@@ -2,8 +2,21 @@
    Reconnects with backoff, keeps a heartbeat, and replays an identity frame
    so a phone that locks its screen mid-round rejoins its own flock. */
 
-export function connect({ onFrame, onStatus, identify } = {}) {
-  const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/socket`;
+/* `query` supplies the socket's URL parameters and is re-evaluated on every
+   open, including reconnects.
+ *
+ * It exists because of where the two runtimes decide which room you are in. The
+ * Node server took one socket for the whole process and routed each frame by
+ * the room named inside it. A Durable Object is chosen from the URL BEFORE the
+ * first frame arrives, so by the time `player.join` is sent it is far too late
+ * to say which paddock it meant — the socket is already attached to one.
+ *
+ * Returning null from `query` means "there is nothing to connect to yet": the
+ * socket stays shut rather than opening against the wrong room, and `reconnect`
+ * opens it once the room is known. A phone that typed its code by hand has no
+ * room at load and gets one at submit, which is exactly that case. */
+export function connect({ onFrame, onStatus, identify, query } = {}) {
+  const base = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/socket`;
 
   let socket = null;
   let heartbeat = null;
@@ -12,8 +25,25 @@ export function connect({ onFrame, onStatus, identify } = {}) {
 
   const status = (s) => onStatus && onStatus(s);
 
+  function socketUrl() {
+    if (!query) return base;
+    const params = query();
+    if (!params) return null;
+    const search = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== null && v !== undefined && v !== '') search.set(k, String(v));
+    }
+    const qs = search.toString();
+    return qs ? `${base}?${qs}` : base;
+  }
+
   function open() {
     if (closed) return;
+    const url = socketUrl();
+    if (!url) {
+      status('idle');
+      return;
+    }
     status('connecting');
     socket = new WebSocket(url);
 
@@ -56,7 +86,26 @@ export function connect({ onFrame, onStatus, identify } = {}) {
   }
 
   open();
-  return { send, close: () => { closed = true; clearInterval(heartbeat); socket && socket.close(); } };
+  return {
+    send,
+    /* Re-evaluate `query` and attach to whatever room it now names. Closing the
+       old socket first matters: the room it was attached to is a different
+       object entirely, and leaving it open would keep a phantom player in a
+       paddock nobody is looking at. */
+    reconnect() {
+      if (closed) return;
+      retryAt = 400;
+      if (socket) {
+        const stale = socket;
+        socket = null;
+        clearInterval(heartbeat);
+        stale.onclose = null;
+        stale.close();
+      }
+      open();
+    },
+    close: () => { closed = true; clearInterval(heartbeat); socket && socket.close(); },
+  };
 }
 
 /* Load the authored sprite sheet once so <use href="#sp-…"> resolves. */

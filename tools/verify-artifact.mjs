@@ -1,6 +1,10 @@
 /* Static checks on the assembled bench. There is no browser here, so these
    verify structure and self-containment — not appearance. */
 import { readFileSync } from 'node:fs';
+/* The look lists come from the module the whole system imports, never from a
+   copy typed in here: a check with its own idea of which hats exist would pass
+   a bench that is missing the one hat nobody remembered to draw. */
+import { FLEECE_COLOURS, HATS } from '../public/shared/look.js';
 
 const h = readFileSync(new URL('../flock-together-bench.html', import.meta.url), 'utf8');
 let bad = 0;
@@ -36,6 +40,32 @@ chk('engine element is not truncated early', engine.includes("log('head', 'Bench
   engine.length + ' chars');
 chk('engine wiring survived the parse',
   engine.includes("addEventListener('message'") && engine.includes("$('c-start')") && /\bboot\(\);/.test(engine));
+
+/* The look protocol is ported into the engine, not stubbed: the bench is the
+   only place the customise step can be looked at, so a bench that accepts
+   every pair would show a screen the server would have refused. */
+chk('engine ports setLook and its taken set',
+  /function setLook\(/.test(engine) && /function takenLooks\(/.test(engine) &&
+  engine.includes("t: 'look.taken'") && engine.includes("t: 'look.ok'"));
+chk('engine gates on locked players, not on the room',
+  engine.includes('lockedPlayers()') && engine.includes('LOBBY_MIN_PLAYERS') &&
+  engine.includes('choosingCount()'));
+chk('engine drops the still-choosing at the gate',
+  /function dropUnlocked\(/.test(engine) && engine.includes("code: 'NOT_LOCKED'"));
+/* BAD_LOOK is look.js's own wording, so its presence also proves the injected
+   module reached the engine's validation rather than being paraphrased. */
+chk('engine speaks every look error code',
+  ['LOOK_TAKEN', 'BAD_LOOK', 'GAME_STARTED'].every((code) => engine.includes(code)) &&
+  engine.includes('validateLook('));
+/* Injected from look.js rather than restated. A retyped list is the one thing
+   look.js exists to prevent, so prove the real module's own text is in here. */
+chk('engine carries look.js itself, not a retyped copy',
+  engine.includes("id: 'blossom'") && engine.includes(FLEECE_COLOURS[0].hex) &&
+  engine.includes("id: 'antlers'") && !engine.includes('/*__LOOK__*/'));
+chk('the rail can force a look collision',
+  h.includes('id="c-clash"') && /function stealLook\(/.test(engine));
+chk('the rail can send you through the picker',
+  h.includes('id="c-customise"') && h.includes('id="c-choosing"'));
 try { new Function(engine); chk('engine parses as JavaScript', true); }
 catch (e) { chk('engine parses as JavaScript', false, e.message); }
 
@@ -75,6 +105,59 @@ for (const [n, d] of [['display', tv], ['phone', pl]]) {
   chk(n + ': storage guard present', d.includes('sessionStorage'));
   chk(n + ': both fonts inlined in this frame', d.split('data:font/woff2;base64,').length - 1 === 2);
 
+  /* A hat is referenced by id alone (`#sp-hat-<id>`), so a missing symbol is
+     not an error anywhere — it is a sheep that renders bare-headed and a
+     player told they are wearing something they cannot see. All twenty or the
+     picker is lying. */
+  const missingHats = HATS.filter((hat) => !d.includes('id="sp-hat-' + hat.id + '"'));
+  chk(n + ': all ' + HATS.length + ' hat symbols inlined', missingHats.length === 0,
+    missingHats.map((hat) => hat.id).join(', '));
+  chk(n + ': hats are authored to the one 60x60 box',
+    (d.match(/viewBox="0 0 60 60"/g) || []).length >= HATS.length);
+
+  /* The fleece is driven by a custom property, and the token it reads is
+     derived from the colour id — so a colour whose token never made it into
+     the sheet falls back to enamel and the player gets somebody else's sheep,
+     silently. Every one of the thirty, with its hex. */
+  const missingTokens = FLEECE_COLOURS.filter(
+    (c) => !new RegExp('--fleece-' + c.id + ':\\s*' + c.hex, 'i').test(d),
+  );
+  chk(n + ': all ' + FLEECE_COLOURS.length + ' fleece tokens inlined, with look.js\'s hexes',
+    missingTokens.length === 0, missingTokens.map((c) => c.id).join(', '));
+
+  /* Everything below is asserted against the sheep symbol itself, not the whole
+     document: the stylesheets mention --fleece too, and a check that any copy
+     of the string survived would pass a sheep whose fleece went back to a
+     hardcoded fill. */
+  const sheep = /<symbol id="sp-sheep"[\s\S]*?<\/symbol>/.exec(d);
+  chk(n + ': the sheep symbol survived', !!sheep);
+  const sheepSvg = sheep ? sheep[0] : '';
+  chk(n + ': the sheep reads its fleece from the property',
+    /fill="var\(--fleece,[^"]*\)"/.test(sheepSvg));
+
+  /* The face: two eyes and a nose. Counted by distinct eye positions rather
+     than by element, so how an eye is built stays the author's business while
+     a sheep that lost one still fails. */
+  const eyes = new Set([...sheepSvg.matchAll(/<circle[^>]*cx="([\d.]+)"/g)].map((m) => m[1]));
+  chk(n + ': the sheep has two eyes', eyes.size >= 2, [...eyes].join('/'));
+  chk(n + ': and a nose', /<(ellipse|path)[^>]*fill="var\(--hedge\)"/.test(sheepSvg));
+  /* A gradient or a filter would be the first in the whole sprite sheet. */
+  chk(n + ': the face brought no gradients or filters with it',
+    !/gradient|filter=/i.test(sheepSvg));
+
+  /* The surfaces destructure the look module off the transport shim, so a name
+     they import that the shim never set arrives as undefined and dies deep
+     inside a render instead of here. */
+  const shimmed = [...d.matchAll(/const \{([^}]*)\} = window\.__bench;/g)]
+    .flatMap((m) => m[1].split(',').map((s) => s.trim()).filter(Boolean));
+  const exposed = /window\.__bench = \{([\s\S]*?)\n  \};/.exec(d);
+  chk(n + ': the shim object was found', !!exposed);
+  const unshimmed = shimmed.filter(
+    (name) => !exposed || !new RegExp('(^|[\\s,{])' + name + '\\s*[,:(}]').test(exposed[1]),
+  );
+  chk(n + ': every imported binding is on the shim', unshimmed.length === 0, unshimmed.join(', '));
+  chk(n + ': the look module is inlined beside the shim',
+    d.includes("id: 'blossom'") && d.includes("id: 'antlers'") && d.includes('function validateLook'));
 }
 
 /* A frame that dies during boot must be able to say so. Without these the

@@ -40,6 +40,16 @@ const COLOUR_PUSH =
   'Rich, strongly saturated, vivid poster colour — bold and unmistakable, definitely not pale, ' +
   'not washed out, not muted, not beige, not desaturated.';
 
+/* COLOUR_PUSH cannot be used on a black object, because it argues with itself:
+ * "vivid saturated poster colour" is a description black fails, so asking for a
+ * black bowler and then demanding vividness pushed both the bowler and the top
+ * hat out to light grey. Black needs the opposite instruction — pinned to the ink
+ * rather than pushed away from beige — which is the same fix the grey border
+ * collie needed, for the same reason. */
+const BLACK_PUSH =
+  'The black is DEEP SOLID BLACK, the same near-black as the ink outline — properly black, ' +
+  'definitely NOT grey, not silver, not charcoal, not washed out, not pale.';
+
 /* How hard the style reference pulls, per group.
  *
  * The sheep sits at full strength because it IS the reference subject and shares
@@ -54,6 +64,7 @@ const STRENGTH = {
   ribbons: 0.32,
   extras: 0.36,
   'hats-new': 0.34,
+  'hats-silly': 0.32,
 };
 
 /** The goofiness dial, applied to anything with a face. */
@@ -80,33 +91,81 @@ const SHEEP_BODY = [
  * hats do NOT come out on a shared anchor — each is trimmed to its own bounding
  * box — so they are concept art for redrawing, not drop-in replacements.
  */
+/* Naming a material is what summons a texture.
+ *
+ * The first hat run asked for "tweed herringbone", "woven straw", "brown
+ * checked" and "oilskin" and got back exactly that: a rendered herringbone weave
+ * on the flat cap and a checkerboard on the deerstalker, both breaking the flat
+ * ink style every other sprite holds. Compounding it, hats run at style strength
+ * 0.34 so the reference's own flat-ink pull is weakest exactly here. So a
+ * material may only be named where it reads as a colour, and this clause states
+ * the ban outright. A printed motif — the headscarf's flowers — is still fine,
+ * because that is drawn ON the fabric rather than being the weave of it. */
+const NO_TEXTURE =
+  'Drawn as flat solid blocks of colour on a plain smooth surface: no fabric texture, no visible weave, ' +
+  'no herringbone, no knitted stitches, no checkerboard, no material grain, no straw or leather texture, no sheen.';
+
+/* Hats whose colour IS black. These take BLACK_PUSH instead of COLOUR_PUSH;
+ * see the note on BLACK_PUSH for why the two cannot both apply. */
+const BLACK_HATS = new Set(['bowler', 'top-hat']);
+
 const HAT_DESCRIPTIONS = {
-  'flat-cap': 'a tweed flat cap, brown herringbone, with a short stubby peak',
-  bobble: 'a knitted winter bobble hat, chunky red and cream stripes, with a big fluffy pom-pom on top',
-  'sou-wester': "a bright yellow oilskin sou'wester rain hat with a wide flared brim that is longer at the back",
-  boater: 'a straw boater hat, pale yellow woven straw with a flat top and a red ribbon band',
-  bucket: 'a soft canvas bucket hat, olive green, with a downward-sloping brim all the way round',
-  beanie: 'a plain snug knitted beanie, teal, with a rolled brim',
-  beret: 'a soft wool beret, dark red, slouching to one side with a tiny stalk on top',
-  headscarf: 'a floral headscarf knotted under the chin, cream with small blue flowers',
-  visor: 'a plastic sun visor, bright white with a green translucent peak and no crown',
-  'baseball-cap': 'a baseball cap, royal blue with a curved peak and a button on top',
-  earmuffs: 'a pair of fluffy pink earmuffs joined by a padded headband',
-  'daisy-chain': 'a woven flower crown of white daisies with yellow centres and small green leaves',
-  bowler: 'a black bowler hat with a rounded dome crown and a narrow curled brim',
-  deerstalker: 'a brown checked deerstalker hat with ear flaps tied up and a small peak front and back',
-  cowboy: 'a tan leather cowboy hat with a tall creased crown and wide upturned brim',
-  'hard-hat': 'a bright yellow construction hard hat with moulded ridges across the top',
-  'top-hat': 'a tall black silk top hat with a straight crown and a grey band',
-  crown: 'a chunky gold crown with five rounded points topped with red and blue jewels',
-  'party-hat': 'a striped cone party hat, pink and yellow, with a small pom-pom at the tip',
-  antlers: 'a pair of brown branching deer antlers on a thin headband',
+  'flat-cap': 'a flat cap in plain warm brown, with a short stubby peak at the front',
+  bobble: 'a winter bobble hat in chunky red and cream horizontal stripes, with a big fluffy cream pom-pom on top',
+  /* The silhouette IS the hat. Without the long flared back brim this came back
+   * as a generic floppy yellow sun hat, indistinguishable from the boater. */
+  'sou-wester':
+    "a bright yellow rain hat (a sou'wester) seen from the side, with a small rounded crown and a markedly " +
+    'asymmetric brim: short and turned up at the front, sweeping long and wide at the back to throw rain off the neck, ' +
+    'with a thin chin strap hanging loose below',
+  boater:
+    'a boater hat in pale straw yellow with a completely flat circular top, a low straight crown, ' +
+    'a narrow flat brim, and a red ribbon band',
+  bucket: 'a bucket hat in plain olive green, with a downward-sloping brim all the way round',
+  beanie: 'a snug beanie in plain teal, with a thick rolled brim',
+  beret: 'a beret in plain dark red, slouching to one side, with a tiny stalk on top',
+  /* A headscarf is worn framing a face, so the model obligingly left the face
+   * out — a big blank white oval in the middle that reads as an empty head-shaped
+   * hole. It has to be described as a piece of cloth, not as something worn. */
+  headscarf:
+    'a headscarf lying folded as a closed triangle of cloth with its two ends knotted together at the bottom point, ' +
+    'plain cream with a simple pattern of small flat blue flowers drawn on it. ' +
+    'It is solid cloth all the way across with NO opening, NO gap, NO hole and NO blank oval in the middle',
+  visor: 'a sun visor, bright white with a green peak and no crown, so the top is open',
+  'baseball-cap': 'a baseball cap in plain royal blue with a curved peak and a button on top',
+  earmuffs: 'a pair of fluffy pink earmuffs joined by a padded headband over the top',
+  'daisy-chain': 'a flower crown ring of white daisies with round yellow centres and small green leaves',
+  bowler: 'a bowler hat in plain solid black with a rounded dome crown and a narrow brim curled up at the sides',
+  /* Both peaks and the flaps, or it is just a cap with a bow on it — which is
+   * exactly what the first attempt produced. */
+  deerstalker:
+    'a deerstalker hunting cap in plain muted brown, seen from the side, with a peak at the FRONT and a second ' +
+    'matching peak at the BACK, and two soft ear flaps folded up over the crown and tied together on top with a small bow',
+  /* Came back two-tone — a pale cream crown on a brown brim, reading as two
+   * different hats stuck together. The single colour is now stated as such. */
+  cowboy:
+    'a cowboy hat in one single flat shade of medium tan brown all over, the crown and the brim exactly the same ' +
+    'colour as each other, with a creased crown of ordinary modest height and a wide brim upturned at the sides',
+  'hard-hat': 'a construction hard hat in bright yellow with a few moulded ridges running front to back over the top',
+  'top-hat': 'a tall top hat in plain solid black with a straight cylindrical crown and a grey band',
+  crown:
+    'a crown in bright gleaming golden yellow with five rounded points, each tipped with a round red or blue jewel',
+  'party-hat': 'a cone-shaped party hat in bright pink and yellow diagonal stripes, with a small pom-pom at the tip',
+  /* The first version left a wide pale ellipse at the base that read as an empty
+   * head-shaped hole, which is the one thing these props must never show. */
+  antlers:
+    'a pair of brown branching deer antlers mounted on a simple thin headband, seen straight from the front. ' +
+    'The headband is a narrow flat strip like a hairband, drawn edge-on as a single thin curved line, ' +
+    'NOT a wide ring, NOT an oval, NOT a circle, with no gap or hole of any kind in the middle',
+  /* Only earns its own slot if it is obviously not the cowboy hat, so the height
+   * is stated as a comparison and pushed to the point of absurdity. */
   'ten-gallon':
-    'an enormous ten-gallon cowboy hat, comically oversized, with a very tall rounded crown far taller than a normal hat ' +
-    'and a broad sweeping brim curled up at both sides, in warm tan leather with a braided dark brown band',
+    'an absurdly oversized ten-gallon cowboy hat in plain tan brown with a dark brown band. ' +
+    'The crown is enormously, comically TALL — at least twice the height of a normal cowboy hat and taller than the ' +
+    'brim is wide, a huge rounded tower of a crown — above a broad sweeping brim curled up at both sides',
   propeller:
-    'a childrens propeller beanie: a small round skullcap in bright red, yellow, blue and green quarter panels, ' +
-    'with a thin post on top carrying a two-bladed spinning propeller',
+    "a children's propeller beanie: a small round skullcap in bright red, yellow, blue and green quarter panels, " +
+    'with a thin post on top carrying a two-bladed propeller',
 };
 
 for (const hat of HATS) {
@@ -161,26 +220,177 @@ const SHEEP = [
   },
 ];
 
+/* The dog's colouring, stated far harder than feels necessary.
+ *
+ * First run asked for "flat black and white fur" and got three mid-GREY dogs.
+ * The cause is the style reference: its only dark tone is the warm grey of the
+ * sheep's face, so at strength 0.46 "black" was pulled straight to that grey. A
+ * grey collie beside a white sheep loses the whole black-and-white read the
+ * sheepdog depends on, so black is now asserted and grey explicitly refused. */
+const DOG_COAT =
+  'The dark fur is DEEP SOLID BLACK, the same near-black as the ink outline — pure black, definitely NOT grey, ' +
+  'not silver, not charcoal, not washed out — in bold simple flat patches against pure white fur.';
+
 const DOG = [
   {
     id: 'dog-sit',
     subject:
-      'A cartoon border collie sheepdog in side view facing right, sitting upright and alert. Flat black and white fur in bold simple patches, a white blaze down the muzzle, one ear up and one ear folded, a bushy tail curled round, pink tongue out.',
+      'A cartoon border collie sheepdog in side view facing right, sitting upright and alert, ' +
+      `with a white blaze down the muzzle, one ear up and one ear folded, a bushy tail curled round, pink tongue out. ${DOG_COAT}`,
     goofy: true,
   },
   {
     id: 'dog-run',
     subject:
-      'A cartoon border collie sheepdog in side view facing right, running flat out with all four legs stretched wide, ears pinned back, tongue flapping out of the side of its mouth. Flat black and white fur in bold simple patches.',
+      'A cartoon border collie sheepdog in side view facing right, running flat out with all four legs stretched wide, ' +
+      `ears pinned back, tongue flapping out of the side of its mouth. ${DOG_COAT}`,
     goofy: true,
   },
   {
     id: 'dog-herding',
     subject:
-      'A cartoon border collie sheepdog in side view facing right, crouched low in the classic herding stalk with its head down, shoulders low, eyes locked forward in an intense comical stare, tail straight out behind. Flat black and white fur in bold simple patches.',
+      'A cartoon border collie sheepdog in side view facing right, crouched low in the classic herding stalk with its ' +
+      `head down, shoulders low, eyes locked forward in an intense comical stare, tail straight out behind. ${DOG_COAT}`,
     goofy: true,
   },
 ];
+
+/* --- Silly "hats" that are not hats -------------------------------------
+ *
+ * Requested: a fish, a flower pot with a rose, sunglasses, reading glasses, and
+ * whatever else is funny. The joke only lands if the thing is instantly
+ * recognisable as itself while being an absurd choice of headwear, so every one
+ * here is picked for a silhouette that survives at sheep-head size — a prop that
+ * needs a second look has already lost the gag.
+ *
+ * These are generated but NOT wired into the game: like any new hat they need an
+ * `sp-hat-<id>` symbol drawn on the shared 60x60 crown anchor and an id in
+ * look.js before a player can pick one, and `npm run hats` fails if art, symbol
+ * and id do not all three exist. `sitsOn` records the intended anchor so whoever
+ * draws the symbol knows whether it perches on the crown or sits over the eyes.
+ */
+const SILLY = {
+  fish: {
+    isAnimal: true,
+    sitsOn: 'crown',
+    description:
+      'a single plump cartoon fish lying flat on its side, seen from the side, with a fat rounded blue-green body, ' +
+      'a big triangular tail fin, one round googly eye and a comically glum downturned mouth',
+  },
+  flowerpot: {
+    sitsOn: 'crown',
+    description:
+      'a small terracotta orange flower pot with a rim, holding one single tall red rose in full bloom on a green stem ' +
+      'with two green leaves',
+  },
+  sunglasses: {
+    sitsOn: 'eyes',
+    description:
+      'a pair of sunglasses seen straight from the front, with two big rounded very dark black lenses and thick black frames ' +
+      'and short arms folded out to each side',
+  },
+  'reading-glasses': {
+    sitsOn: 'eyes',
+    description:
+      'a pair of ordinary round reading glasses seen straight from the front, with thin dark wire frames, ' +
+      'two clear round empty lenses, a small bridge between them and short arms out to each side',
+  },
+  'rubber-duck': {
+    sitsOn: 'crown',
+    description:
+      'a classic bath-time rubber duck in bright yellow, seen from the side, with a flat orange beak and one small black dot eye',
+  },
+  'traffic-cone': {
+    sitsOn: 'crown',
+    description: 'a road traffic cone: a bright orange cone with one white reflective band round it, on a square orange base',
+  },
+  teacup: {
+    sitsOn: 'crown',
+    description:
+      'a dainty white china teacup with a curly handle, sitting on a matching round saucer, with a small blue floral band, ' +
+      'seen from the side',
+  },
+  watermelon: {
+    sitsOn: 'crown',
+    description:
+      'a single thick wedge of watermelon seen from the side, curved rind side down: bright red-pink flesh with a few black ' +
+      'seeds, a thin white line, and a green rind',
+  },
+  'birthday-cake': {
+    sitsOn: 'crown',
+    description:
+      'a small round birthday cake seen from the side, with pink icing, a scalloped white cream border, ' +
+      'and one single lit candle on top with a little orange flame',
+  },
+  'rain-cloud': {
+    sitsOn: 'crown',
+    description:
+      'a small grumpy grey rain cloud, a fat bumpy cloud shape with four blue teardrop raindrops falling in a row beneath it',
+  },
+  'sleeping-cat': {
+    isAnimal: true,
+    sitsOn: 'crown',
+    description:
+      'a small ginger tabby cat curled up fast asleep in a tight circle, seen from the side, with its tail wrapped round, ' +
+      'eyes closed as two small curved lines, and one ear flopped',
+  },
+  saucepan: {
+    sitsOn: 'crown',
+    description:
+      'a metal saucepan turned completely upside down like a helmet, seen from the side, in flat grey steel ' +
+      'with one long black handle sticking straight out to the side',
+  },
+  'ice-cream': {
+    sitsOn: 'crown',
+    description:
+      'an ice cream cone standing upright, seen from the side, with a pale tan waffle cone below and two round scoops ' +
+      'stacked on top — one pink, one mint green — and a red cherry on the very top',
+  },
+  pigeon: {
+    isAnimal: true,
+    sitsOn: 'crown',
+    description:
+      'a fat scruffy cartoon pigeon standing in side view, plump blue-grey body, a small orange beak, ' +
+      'one round unimpressed googly eye, and two little orange feet',
+  },
+  cactus: {
+    sitsOn: 'crown',
+    description:
+      'a small potted cactus: a fat rounded green cactus with two short arms and simple little spines, ' +
+      'in a plain terracotta orange pot, with one tiny pink flower on top',
+  },
+  'fried-egg': {
+    sitsOn: 'crown',
+    description:
+      'a single fried egg, sunny side up, seen from above: a soft wobbly white with a big round bright yellow yolk in the middle',
+  },
+  snail: {
+    isAnimal: true,
+    sitsOn: 'crown',
+    description:
+      'a small cheerful cartoon snail in side view, with a big round spiral shell in warm brown, a soft pale green body, ' +
+      'and two long eye stalks with round googly eyes on the ends',
+  },
+  'deely-boppers': {
+    sitsOn: 'crown',
+    description:
+      'a novelty party headband with two thin bouncy springs standing up from it, each topped with a round glittery pink ball. ' +
+      'The headband is a narrow flat strip drawn edge-on as a single thin curved line, NOT a ring, NOT an oval, ' +
+      'with no gap or hole of any kind in the middle',
+  },
+  ufo: {
+    sitsOn: 'crown',
+    description:
+      'a tiny cartoon flying saucer seen from the side: a flat silver-grey disc with a clear glass dome on top, ' +
+      'three round coloured lights along the rim, and a small green alien with one eye peeking out of the dome',
+  },
+  'banana-peel': {
+    sitsOn: 'crown',
+    description:
+      'a single banana peel draped open like a floppy hat, seen from the side, with a bright yellow skin ' +
+      'and three limp peel strips flopping down and outwards, the fruit gone',
+  },
+};
 
 /* Ribbons carry a numeral, which is the thing this model is least reliable at.
  * Describing it as a shape ("the single large digit 1") rather than as quoted
@@ -233,22 +443,51 @@ const EXTRAS = [
   },
 ];
 
+/* Every headwear prop is drawn with nothing under it, because the game layers it
+ * over the sheep sprite rather than baking it in — and a stray head in the art is
+ * the failure mode that keeps recurring, so it is refused item by item. */
+const NOTHING_WEARING_IT =
+  'drawn on its own as one single object with nothing wearing it and nothing underneath it: ' +
+  'no head, no face, no person, no animal, no sheep, no mannequin, no stand, no hook — just the object by itself.';
+
+/* Four of the silly props ARE animals — a fish, a curled-up cat, a pigeon, a
+ * snail — so the blanket "no animal" above contradicts the subject. In practice
+ * the model resolves it by context and draws the fish anyway, but a prompt that
+ * argues with itself is one regeneration away from obeying the wrong half, so
+ * animals get the same clause with just that phrase dropped. "No sheep" stays:
+ * the failure to prevent is a sheep drawn wearing the prop. */
+const NOTHING_WEARING_IT_ANIMAL =
+  'drawn on its own as one single object with nothing wearing it and nothing underneath it: ' +
+  'no head, no face, no person, no sheep, no mannequin, no stand, no hook — just the creature by itself.';
+
 /** Every asset, with the style preamble already composed into `prompt`. */
 export const ASSETS = [
   ...SHEEP.map((a) => ({ ...a, group: 'sheep' })),
   ...HATS.map((hat) => ({
     id: `hat-${hat.id}`,
     group: 'hats',
-    coloured: true,
+    coloured: !BLACK_HATS.has(hat.id),
+    black: BLACK_HATS.has(hat.id),
     inGame: true,
-    subject: `${HAT_DESCRIPTIONS[hat.id]}, drawn on its own as a single object with nothing wearing it. No head, no person, no animal, no mannequin, no stand — just the hat by itself.`,
+    flat: true,
+    subject: `${HAT_DESCRIPTIONS[hat.id]}, ${NOTHING_WEARING_IT}`,
   })),
   ...Object.entries(EXTRA_HATS).map(([id, hat]) => ({
     id: `hat-${id}`,
     group: 'hats-new',
     coloured: true,
     inGame: false,
-    subject: `${hat.description}, drawn on its own as a single object with nothing wearing it. No head, no person, no animal, no mannequin, no stand — just the hat by itself.`,
+    flat: true,
+    subject: `${hat.description}, ${NOTHING_WEARING_IT}`,
+  })),
+  ...Object.entries(SILLY).map(([id, prop]) => ({
+    id: `hat-${id}`,
+    group: 'hats-silly',
+    coloured: true,
+    inGame: false,
+    flat: true,
+    sitsOn: prop.sitsOn,
+    subject: `${prop.description}, ${prop.isAnimal ? NOTHING_WEARING_IT_ANIMAL : NOTHING_WEARING_IT}`,
   })),
   ...DOG.map((a) => ({ ...a, group: 'dog' })),
   ...RIBBONS.map((a) => ({ ...a, group: 'ribbons' })),
@@ -257,9 +496,19 @@ export const ASSETS = [
   aspectRatio: '1:1',
   goofy: false,
   coloured: false,
+  black: false,
+  flat: false,
   ...a,
   styleStrength: a.styleStrength ?? STRENGTH[a.group],
-  prompt: [STYLE, a.subject, a.goofy ? GOOFY : '', a.coloured ? COLOUR_PUSH : '', FRAMING]
+  prompt: [
+    STYLE,
+    a.subject,
+    a.goofy ? GOOFY : '',
+    a.coloured ? COLOUR_PUSH : '',
+    a.black ? BLACK_PUSH : '',
+    a.flat ? NO_TEXTURE : '',
+    FRAMING,
+  ]
     .filter(Boolean)
     .join(' '),
 }));

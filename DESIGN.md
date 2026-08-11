@@ -28,6 +28,36 @@ colors:
   raddle-6: "#0e9c8a"
   raddle-7: "#b5123f"
   raddle-8: "#4a6fd4"
+  fleece-blossom: "#f2a79b"
+  fleece-raddle-red: "#d1503c"
+  fleece-barn-red: "#8f2f22"
+  fleece-apricot: "#f5bd93"
+  fleece-marmalade: "#de7c33"
+  fleece-rust: "#9a4c15"
+  fleece-oat: "#f3d79a"
+  fleece-stubble-gold: "#d8a13a"
+  fleece-harvest: "#94661a"
+  fleece-new-hay: "#d8e39a"
+  fleece-meadow: "#a8bc45"
+  fleece-olive: "#6b7a22"
+  fleece-mint: "#a5dcb4"
+  fleece-pasture: "#4ea86c"
+  fleece-hedge-green: "#2b6b43"
+  fleece-dew: "#9adcd6"
+  fleece-teal: "#35a89c"
+  fleece-deep-teal: "#1d6a63"
+  fleece-sky: "#a8d4ec"
+  fleece-kingfisher: "#3f96c9"
+  fleece-slate-blue: "#1f5e83"
+  fleece-haze: "#b0c2ee"
+  fleece-cobalt: "#5470c4"
+  fleece-midnight: "#2e4283"
+  fleece-lilac: "#c9b6e8"
+  fleece-thistle: "#8360c0"
+  fleece-damson: "#503a7d"
+  fleece-clover: "#eeb0d0"
+  fleece-foxglove: "#cc4f92"
+  fleece-mulberry: "#862c5c"
 typography:
   display:
     fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
@@ -186,11 +216,13 @@ gap in a neutral surface. That single decision is what makes the aerial-map
 reading hold: a screen looks like surveyed land because it is genuinely divided
 into bounded regions rather than assembled out of floating panels.
 
-Colour does three jobs and they never trade places. Field colour owns whole
+Colour does four jobs and they never trade places. Field colour owns whole
 regions of ground. Farm hardware — enamel, steel, hazard, tractor red, buff — is
 the only vocabulary controls and content wells are allowed to speak. Raddle dye
-carries identity, and only identity. The palette is large but it is not loose:
-each family has a job, and the discipline is in never borrowing across them.
+carries assigned identity, and only identity. Chosen fleece — thirty colours a
+player picks for their own sheep — is the fourth, and it appears on nothing but a
+fleece. The palette is large but it is not loose: each family has a job, and the
+discipline is in never borrowing across them.
 
 **Key Characteristics:**
 
@@ -200,11 +232,12 @@ each family has a job, and the discipline is in never borrowing across them.
 - Two self-hosted variable faces — Bricolage Grotesque speaks, Archivo labels
 - Monumental wide figures for every number that matters
 - Identity by raddle dye, always redundantly coded
+- Thirty chosen fleece colours and twenty hats, worn by sheep and nothing else
 - One authored motion moment per phase, and nothing travels under reduced motion
 
 ## Colors
 
-Three separate colour systems that share a stylesheet and never share a job.
+Four separate colour systems that share a stylesheet and never share a job.
 
 ### Primary
 
@@ -263,6 +296,48 @@ two different ways depending on what is being marked:
   adjacent bands and a hash would sometimes hand two neighbouring paddocks the
   same colour.
 
+Since players choose a fleece, the hashed player dye is no longer what says
+*which player this is* — the fleece and the hat say that. The dye kept its other
+job: it is the mark that sprays on when a player answers, so it now reads as
+*this one has answered* more than as *this one is you*. Anyone with no look at all
+— a simulated player, anyone who never chose — keeps the hashed dye and the enamel
+fleece, and so renders exactly as they always did.
+
+### Chosen fleece
+
+**The thirty colours a player may pick for their own sheep.** Ten hue families,
+three shades each, ordered light → deep, laid out in the picker as families so
+the three shades of one hue read as a set rather than as three unrelated
+swatches. Every value is declared once in `public/shared/look.js` — imported by
+both the server and both surfaces — and mirrored into `public/shared/tokens.css`
+as `--fleece-<id>`, one custom property per colour. The hexes below are that
+list. **This section is the design system's record of them**; a fleece hex that
+is not written here is palette drift by definition, because the design hook has
+no other place to look.
+
+- **Red** — Blossom `#f2a79b`, Raddle red `#d1503c`, Barn red `#8f2f22`
+- **Orange** — Apricot `#f5bd93`, Marmalade `#de7c33`, Rust `#9a4c15`
+- **Gold** — Oat `#f3d79a`, Stubble gold `#d8a13a`, Harvest `#94661a`
+- **Lime** — New hay `#d8e39a`, Meadow `#a8bc45`, Olive `#6b7a22`
+- **Green** — Mint `#a5dcb4`, Pasture `#4ea86c`, Hedge green `#2b6b43`
+- **Teal** — Dew `#9adcd6`, Teal `#35a89c`, Deep teal `#1d6a63`
+- **Sky** — Sky `#a8d4ec`, Kingfisher `#3f96c9`, Slate blue `#1f5e83`
+- **Blue** — Haze `#b0c2ee`, Cobalt `#5470c4`, Midnight `#2e4283`
+- **Violet** — Lilac `#c9b6e8`, Thistle `#8360c0`, Damson `#503a7d`
+- **Pink** — Clover `#eeb0d0`, Foxglove `#cc4f92`, Mulberry `#862c5c`
+
+The band edges are the constraint that shaped the set. The pale band is never so
+pale it reads as the default enamel fleece, and the deep band never so dark it
+reads as the hedgerow ink outlining it — both ends are a real fill behind that
+outline, at sheep size, on a screenshared television.
+
+Nothing reaches for a `--fleece-*` token except a fleece, and the one exception is
+the picker's swatch, where the colour stands for itself. Not a paddock tint, not a
+chip border, not a hat — a hat is a prop and carries its own object colours. The
+sprite reads the chosen value through a single property, `--fleece`, set on
+whatever wraps the sheep and defaulting to `var(--enamel)` — so a sheep nobody has
+chosen for renders exactly as it did before the feature existed.
+
 ### Neutral
 
 - **Hedge** (`hedge`): near-black with a warm cast. Every border, every divider,
@@ -280,16 +355,33 @@ pip (which is marked by an enamel fill plus a ring), and *not* used for form
 errors (which are painted in earth on pale stubble). If a new element wants red,
 the answer is earth or hazard.
 
-**The Three Palettes Rule.** Field colour paints regions, hardware paints controls
-and wells, raddle paints identity. A control never takes a field colour; a field
-never takes hazard; raddle never appears on anything that is not an identity mark.
+**The Four Palettes Rule.** Field colour paints regions, hardware paints controls
+and wells, raddle paints assigned identity, fleece paints a chosen sheep. A
+control never takes a field colour; a field never takes hazard; raddle never
+appears on anything that is not an identity mark; a `--fleece-*` never appears on
+anything that is not a fleece.
 
 **The Never-Hue-Alone Rule.** Group and player identity never rests on colour. A
 group carries its dye *and* its position on the map, *and* its label on a stake,
 *and* its headcount, *and* — for the winner — a rosette, gold stubble ground, a
 red frame, the largest area, and a visually-hidden "Scored a point" sentence. A
-player carries their dye *and* their name plate. Colour is always the fourth or
-fifth carrier, never the first.
+player carries their fleece *and* their hat *and* their name plate. Thirty
+colours is well past the number anyone can tell apart, which is exactly why the
+hat exists: it is a second, shape-carried mark on the same animal, and in the
+picker both are named in text beside the swatch.
+
+**The Ink-Separation Rule.** The sheep's hedgerow-ink outline is the only thing
+holding its fleece apart from the ground it stands on, and a deep-band fleece is
+nearly as dark as that ink. Any fleece measuring under 3.5:1 against `--hedge`
+gets a pale rim *outside* the ink — two stacked 1.5px enamel drop-shadows, so the
+silhouette is carried by a light line no pasture or paddock tint can match; the
+rest are left exactly as authored. The
+threshold is applied by measurement at runtime (`fleeceNeedsRim()` in `tv.js`
+reads the hexes from `look.js` and the ink from the token it is actually drawn
+with) rather than from a hand-kept list of deep colours, so it stays true if
+either side moves. The floor is the 3:1 any non-text graphic has to clear; the
+margin above it is there because that outline is about one sprite unit wide by
+the time a paddock sheep renders inside a video-call tile.
 
 **The Plated Legend Rule.** Small text never sits directly on grass. Pale growth
 on pasture computes 2.46:1 at the lit end of the ground gradient, so every legend
@@ -454,14 +546,49 @@ sign at -1.1deg, the question at -0.5deg, the record sheet at -0.4deg — as obj
 staked into ground or laid on a table. Nothing else in the system is rotated.
 
 **Sprites** are one authored set in `shared/sprites.svg`: sheep, five-bar gate,
-rosette, sheepdog, stake, ear tag, five-bar tally. One stroke language throughout
-— hedgerow ink at 5 units, round caps and joins, no gradients, no filters. Fills
-are left to CSS wherever a symbol carries state, via three hook classes: `.fleece`
-(wool), `.raddle` (the dye blotch, `fill: currentColor` so `color` alone drives
-it), and `.ink` (structure). The `sp-stake` symbol is authored but not currently
+rosette, sheepdog, stake, ear tag, five-bar tally, and twenty hats. One stroke
+language throughout — hedgerow ink at 5 units, round caps and joins, no gradients,
+no filters. State is driven from outside, but only through what crosses a `<use>`:
+these symbols always render in a shadow tree, so a document rule like
+`.sheep__svg .fleece { fill: … }` never matches them. Inherited values and custom
+properties do get through, so a symbol that carries state reads a property and the
+class is a label only — `.fleece` (wool, filled `var(--fleece, var(--enamel))`),
+`.raddle` (the dye blotch, `fill: currentColor` so `color` alone drives it), and
+`.ink` (structure). The sheep carries a face — two eyes and a nose, same 5-unit
+ink, no new vocabulary. The `sp-stake` symbol is authored but not currently
 referenced by either surface.
 
+**The hat set** is twenty symbols, `sp-hat-<id>` for every id in `shared/look.js`:
+flat cap, bobble, sou'wester, boater, bucket, beanie, beret, headscarf, visor,
+baseball cap, earmuffs, daisy chain, bowler, deerstalker, cowboy, hard hat, top
+hat, crown, party hat, antlers. Each is authored in a **60×60 viewBox whose bottom
+centre (30,60) is the sheep's crown**. That single convention is what makes hats
+interchangeable by id: the sheep is 132×104 with its crown near (108,30), so every
+hat is placed identically at `x=78 y=-30 width=60 height=60` — the values carried
+by `HAT_BOX` in `look.js` and read from there rather than written into markup.
+There is no per-hat positioning anywhere in the build, and there must not be.
+
+A hat is a **prop, not identity**, so it carries its own object colours and inherits
+nothing from the animal underneath: without that it would take the fleece fill and
+the dye colour and vanish into the sheep. Straw (`--stubble`) stands in for any part
+of a hat that asks for the inherited paint.
+
+The box sits *above* the sheep's own 132×104 space, so a hatted sheep needs its
+viewBox opened upward by `HAT_BOX.y` rather than being allowed to overflow — the
+lobby flock and every paddock clip. A whole list shares one box whether each sheep
+is hatted or not, because sheep sitting at different heights reads as a fault too;
+a list with no hats in it keeps the original box, so a flock of unchosen sheep is
+pixel-for-pixel what it was. The eight hats flagged `tall: true` in `look.js`
+(bowler, deerstalker, cowboy, hard hat, top hat, crown, party hat, antlers) run
+high above the anchor and are the first thing a tight cell costs.
+
 ### Named Rules
+
+**The Crown-Anchor Rule.** Every hat is authored in the same 60×60 box with its
+bottom centre on the crown, and placed from `HAT_BOX`. A hat that needs its own
+offset to sit right is drawn wrong, not placed wrong — fix the artwork inside the
+box. The moment one hat gets a bespoke `x`/`y`, twenty hats become twenty
+positioning cases across three render sites.
 
 **The Hedgerow Rule.** All division is ink. There is no 1px grey rule, no
 `border-color: rgba(…)` hairline, and no reliance on a background-colour step to
@@ -570,11 +697,22 @@ and the headcount — plus a visually-hidden "Scored a point" sentence.
 
 ### Sheep tokens
 
-A sheep is a sprite plus a name plate. The fleece is enamel; the raddle blotch is
-`opacity: 0` and `scale: 0.4` until the player answers, at which point it sprays
-in. The name sits on its own ink plate at 55% so it stays legible on any field. A
-disconnected player's sheep drops to 40% opacity *and* strikes through the name —
-never opacity alone.
+A sheep is a sprite plus a name plate. The fleece is the colour that player chose,
+carried in as `--fleece` and falling back to enamel for anyone who has not chosen;
+the hat rides on top of it wherever the sheep is drawn — the lobby flock, the
+waiting flock during a question, and the sheep inside a paddock at the reveal. The
+raddle blotch is `opacity: 0` and `scale: 0.4` until the player answers, at which
+point it sprays in. The name sits on its own ink plate at 55% so it stays legible
+on any field. A disconnected player's sheep drops to 40% opacity *and* strikes
+through the name — never opacity alone.
+
+Two things ride on the fleece being chosen rather than fixed. A deep fleece gets
+the pale rim (see the Ink-Separation Rule) — marked per sheep as `data-deep`, so
+the rest of the flock is untouched. And the hat obeys the existing shedding rule
+rather than inventing one: when the reveal drops a paddock's sprite at
+`data-roomy="false"`, the hat goes with it, because it is part of the sprite and
+not a separate layer of information. The paddock tint behind the sheep stays
+whatever the group's rank dye says; a paddock is never tinted by a player.
 
 ### Navigation — the rotation strip
 
@@ -592,6 +730,12 @@ tractor red.
   anything not defined there with `color-mix()` or `calc()` from something that is.
   Both surfaces already hold this line.
 - **Do** draw division with hedgerow ink at one of the four weights (2/3/5/8px).
+- **Do** add a colour or a hat in `public/shared/look.js` first — it is the single
+  source of truth both the server and the surfaces import — then its
+  `--fleece-<id>` in `tokens.css`, then its hex in the Chosen fleece list above.
+  All three, or the design hook reads the new value as palette drift.
+- **Do** author a new hat inside the 60×60 crown-anchored box, and place it by
+  reading `HAT_BOX` rather than writing `78 / -30 / 60` anywhere.
 - **Do** use `.enamel-sign` when content needs a light ground. It is the only well.
 - **Do** carry identity redundantly — position, label, headcount, and shape before
   colour. Assume the viewer cannot distinguish two dyes.
@@ -616,9 +760,13 @@ tractor red.
   content on a light ground it is an enamel sign, or it does not exist.
 - **Don't** use tractor red for anything but winning. Errors take earth on pale
   stubble; warnings take hazard; the current round takes an enamel fill and a ring.
-- **Don't** cross the three palettes. A control never takes a field colour, a field
-  never takes hazard, and raddle dye never appears on anything that is not an
-  identity mark.
+- **Don't** cross the four palettes. A control never takes a field colour, a field
+  never takes hazard, raddle dye never appears on anything that is not an identity
+  mark, and a `--fleece-*` token never paints anything but a fleece — least of all
+  a hat, which is a prop with its own colours.
+- **Don't** define a colour, a hat, an id or a validation rule anywhere but
+  `shared/look.js`. If the server and the surfaces disagree about what is
+  selectable, a player is told their own choice does not exist.
 - **Don't** distinguish anything by hue alone, and don't convey a state with
   opacity alone (the disconnected sheep strikes through its name as well).
 - **Don't** give a paddock cell the full `--line-hedge` border. Each cell carries
@@ -658,3 +806,20 @@ Recorded rather than smoothed over, because both surfaces ship this way:
   variable, though its hex is hardcoded as the record sheet's rule lines.
 - **The 2px and 3px radii are not tokenised** despite being the most-used radii in
   the build; only 4px and 999px have names.
+- **Three fleece tokens are named after colours they are not.** `--fleece-pasture`
+  (`#4ea86c`) is not `--pasture` (`#2f6b33`), `--fleece-stubble-gold` (`#d8a13a`)
+  is not `--stubble` (`#e0ae35`), and `--fleece-raddle-red` (`#d1503c`) is not any
+  `--raddle-*`. The names are the words a player reads in the picker, which is the
+  right thing for them to be; the `--fleece-` prefix is the only thing keeping the
+  two apart in the stylesheet, so read the prefix before assuming a match.
+- **The deep-fleece rim is a CSS filter on a sprite**, in a system whose sprite
+  rule reads "no gradients, no filters". The authored SVG still holds that line —
+  the filter is applied from `tv.css` to the wrapper — but it is the first thing to
+  cite if someone argues the rule has already been broken. The alternative was a
+  second authored outline path on every fleece, which would have put the rule in
+  the sprite instead.
+- **The fleece palette and the hat set have never been seen on a screen.** Every
+  claim here about them — that the pale band does not read as enamel, that the
+  deep band is the one needing a rim, that a 60-unit hat survives a paddock — is
+  computed from the hexes and the geometry. The ink-separation threshold is at
+  least measured at runtime rather than asserted; the rest is not.

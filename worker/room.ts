@@ -118,6 +118,17 @@ export class Room extends DurableObject<Env> {
     this.ctx.acceptWebSocket(server, [role]);
     server.serializeAttachment(meta);
 
+    /* net.js heartbeats every 25s. Answered by the runtime itself, so twenty
+       idle phones cannot wake this object 48 times a minute between rounds —
+       which would make hibernation worth precisely nothing. The pair must match
+       the client's frame byte for byte. */
+    this.ctx.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair(
+        JSON.stringify({ t: 'ping' }),
+        JSON.stringify({ t: 'pong' }),
+      ),
+    );
+
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -132,6 +143,13 @@ export class Room extends DurableObject<Env> {
     }
     if (!isClientFrame(parsed)) {
       return this.#send(ws, { t: 'error', code: 'BAD_REQUEST', message: 'That frame had no type.' });
+    }
+
+    /* Belt and braces behind setWebSocketAutoResponse: a heartbeat that reaches
+       here anyway must not be answered with an error, or a healthy idle phone
+       collects a rejection every 25 seconds. */
+    if ((parsed as { t: string }).t === 'ping') {
+      return this.#send(ws, { t: 'pong' } as unknown as ServerFrame);
     }
 
     try {

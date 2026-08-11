@@ -31,6 +31,14 @@
   display: none !important;
 }
 
+/* The hat rides on the sheep in the sheep's own coordinate space (HAT_BOX in
+   shared/look.js). `color` is set on the <use> itself rather than on the svg
+   because the sheep around it drives the raddle blotch with `color`, and a hat
+   must not be sprayed with dye when the answer lands. */
+.use-hat {
+  color: var(--hedge);
+}
+
 html {
   height: 100%;
 }
@@ -577,7 +585,7 @@ body {
    against every one of them. The reason is text, in .look-note and in the
    chip's own accessible name; this is only the visual half of it. */
 .chip[data-state='clash'] .chip-name,
-.chip[data-state='gone'] .chip-name {
+.chip[data-state='spent'] .chip-name {
   text-decoration: line-through;
   text-decoration-thickness: 2px;
   color: color-mix(in srgb, var(--hedge) 62%, var(--enamel));
@@ -585,19 +593,19 @@ body {
 
 .chip[data-state='clash'] .chip-swatch,
 .chip[data-state='clash'] .chip-hat,
-.chip[data-state='gone'] .chip-swatch,
-.chip[data-state='gone'] .chip-hat {
+.chip[data-state='spent'] .chip-swatch,
+.chip[data-state='spent'] .chip-hat {
   opacity: 0.4;
 }
 
-.chip[data-state='gone'] {
+.chip[data-state='spent'] {
   background: var(--enamel-shade);
 }
 
-/* The hazard ring is 1.44:1 on enamel, so the chip carries the same hedge
-   halo the join form's controls do — both edges of the ring clear 3:1. */
+/* The shared hazard ring is 1.44:1 on enamel, so the chip carries the same
+   hedge halo the join form's controls do: the ring lands between the chip's
+   own hedge border and the halo outside it, and both edges clear 3:1. */
 .chip:focus-visible {
-  outline-color: var(--hedge);
   box-shadow: 0 0 0 calc(var(--line) * 3) var(--hedge);
 }
 
@@ -614,8 +622,8 @@ body {
 /* Reserved for two lines: the rule, a clash or a rejection all land here and
    none of them may move the lever. */
 .look-note {
-  min-height: 2.4rem;
-  font-size: 0.85rem;
+  min-height: 2.6rem;
+  font-size: 0.95rem;
   font-weight: 600;
   line-height: 1.35;
   text-wrap: pretty;
@@ -1059,6 +1067,10 @@ body {
      the one thing here built to scroll, so it is the one thing that gives. */
   .screen--question .question { max-height: calc(var(--vh, 100dvh) * 0.3); }
   .screen--question .sheep { width: min(46%, 10rem); }
+
+  /* The preview gives before the chips do: a picker you cannot reach into is
+     worse than a smaller sheep. */
+  .look-sheep { width: min(38vw, 8rem); }
 }
 
 @container pen (max-height: 620px) {
@@ -1102,4 +1114,19 @@ body {
   .q-bottom { gap: var(--s-1); }
 
   .action { margin-top: 0; }
+
+  /* Nothing to spare. The title goes to screen readers only — the sheep and
+     the chips say what this screen is, and it still has to name the region. */
+  .look-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .look-sheep { width: min(30vw, 6rem); }
+  .look-scroll { gap: var(--s-4); }
 }

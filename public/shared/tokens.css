@@ -76,6 +76,56 @@
   --raddle-7: #b5123f;
   --raddle-8: #4a6fd4;
 
+  /* --- Fleece colour ---------------------------------------------------
+     The thirty colours a player may choose for their own sheep. Ten hue
+     families, three shades each, light -> deep. These are declared in
+     shared/look.js, which both the server and the surfaces import; every hex
+     below is a copy of the value there and must not drift from it. Named for
+     the id so `--fleece-${colorId}` is derivable — see colourToken().
+
+     Unlike --raddle-*, these are identity, not grouping: a colour follows one
+     player wherever their sheep appears. Nothing else in the system may reach
+     for them, and a hat never takes one — a hat is a prop.                */
+  --fleece-blossom: #f2a79b;
+  --fleece-raddle-red: #d1503c;
+  --fleece-barn-red: #8f2f22;
+
+  --fleece-apricot: #f5bd93;
+  --fleece-marmalade: #de7c33;
+  --fleece-rust: #9a4c15;
+
+  --fleece-oat: #f3d79a;
+  --fleece-stubble-gold: #d8a13a;
+  --fleece-harvest: #94661a;
+
+  --fleece-new-hay: #d8e39a;
+  --fleece-meadow: #a8bc45;
+  --fleece-olive: #6b7a22;
+
+  --fleece-mint: #a5dcb4;
+  --fleece-pasture: #4ea86c;
+  --fleece-hedge-green: #2b6b43;
+
+  --fleece-dew: #9adcd6;
+  --fleece-teal: #35a89c;
+  --fleece-deep-teal: #1d6a63;
+
+  --fleece-sky: #a8d4ec;
+  --fleece-kingfisher: #3f96c9;
+  --fleece-slate-blue: #1f5e83;
+
+  --fleece-haze: #b0c2ee;
+  --fleece-cobalt: #5470c4;
+  --fleece-midnight: #2e4283;
+
+  --fleece-lilac: #c9b6e8;
+  --fleece-thistle: #8360c0;
+  --fleece-damson: #503a7d;
+
+  --fleece-clover: #eeb0d0;
+  --fleece-foxglove: #cc4f92;
+  --fleece-mulberry: #862c5c;
+
   /* --- Type ------------------------------------------------------------  */
   --face-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
   --face-ui: 'Archivo', ui-sans-serif, system-ui, sans-serif;

@@ -32,6 +32,7 @@ const tvCss = read('public/tv.css');
 const playCss = read('public/play.css');
 const sprites = read('public/shared/sprites.svg');
 const raddleSrc = read('public/shared/raddle.js');
+const lookSrc = read('public/shared/look.js');
 
 /* Body markup only — the bench supplies its own head. */
 const bodyOf = (html) => {
@@ -49,12 +50,25 @@ const shimImports = (src) =>
     .replace(/^import \{[^}]*\} from '\/shared\/net\.js';$/m,
              'const { connect, loadSprites, countdown } = window.__bench;')
     .replace(/^import \{[^}]*\} from '\/shared\/raddle\.js';$/m,
-             'const { raddleVar, raddleVarForRank, raddleFor } = window.__bench;');
+             'const { raddleVar, raddleVarForRank, raddleFor } = window.__bench;')
+    /* The look import spans many lines, so unlike the two above it cannot be
+       matched a line at a time. Its own binding list is kept rather than
+       rewritten to a fixed one: both surfaces import a different subset of
+       look.js, and whichever names they add next are already shimmed. */
+    .replace(/^import (\{[\s\S]*?\}) from '\/shared\/look\.js';$/m,
+             'const $1 = window.__bench;');
 
 const tvJs = shimImports(read('public/tv.js'));
 const playJs = shimImports(read('public/play.js'));
 
-const raddleModule = raddleSrc.replace(/^export (function|const)/gm, '$1').replace(/^export default .*$/gm, '');
+/* A shared module inlined as plain statements. The bodies are untouched — only
+   the export keywords go — so the ids, hexes and validation in the bench are
+   the ones look.js actually ships rather than a retyped copy that can drift. */
+const asStatements = (src) =>
+  src.replace(/^export (function|const)/gm, '$1').replace(/^export default .*$/gm, '');
+
+const raddleModule = asStatements(raddleSrc);
+const lookModule = asStatements(lookSrc);
 
 /* Storage is guarded: a sandboxed frame throws on access rather than returning
  * null, which would take the surface down before it rendered. */
@@ -96,6 +110,8 @@ const BENCH_RUNTIME = `
 
   ${raddleModule}
 
+  ${lookModule}
+
   let onFrameCb = null;
   const surface = window.__SURFACE__;
 
@@ -107,6 +123,11 @@ const BENCH_RUNTIME = `
 
   window.__bench = {
     raddleVar, raddleVarForRank, raddleFor,
+    /* The whole look surface, not just the names the surfaces import today:
+       the shim keeps each file's own binding list, so anything look.js exports
+       has to be reachable here or a new import lands as undefined. */
+    FLEECE_COLOURS, HATS, HAT_BOX, colourById, hatById, colourToken, colourVar,
+    lookKey, sameLook, validateLook, LOOK_COMBINATIONS,
     loadSprites: async () => {},
     countdown(endsAt, onTick) {
       let raf = null, lastWhole = null;
@@ -169,6 +190,10 @@ const qrDataUri = 'data:image/svg+xml;base64,' + Buffer.from(qrSvg).toString('ba
 
 const bench = read('tools/bench-shell.html')
   .replace('/*__TOKENS__*/', () => tokens)
+  /* The bench engine mirrors the server's look rules, so it needs the colours,
+     the hats and validateLook itself. Injected rather than restated: a second
+     copy of the id list is exactly the drift look.js exists to prevent. */
+  .replace('/*__LOOK__*/', () => lookModule)
   .replace('<!--__TV_DOC__-->', () => enc(tvDoc))
   .replace('<!--__PLAY_DOC__-->', () => enc(playDoc))
   .replace('window.__QR__ || \'\'', () => JSON.stringify(qrDataUri));

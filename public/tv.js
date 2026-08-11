@@ -7,7 +7,7 @@
 
 import { connect, loadSprites, countdown } from '/shared/net.js';
 import { raddleVar, raddleVarForRank } from '/shared/raddle.js';
-import { colourById, hatById, colourVar, HAT_BOX } from '/shared/look.js';
+import { colourById, hatById, colourToken, HAT_BOX } from '/shared/look.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const bind = (name) => document.querySelector(`[data-bind="${name}"]`);
@@ -54,8 +54,13 @@ function lookOf(who) {
   return colour || hat ? { colour, hat } : null;
 }
 
+/* The token name comes from look.js so it can never drift from the stylesheet
+   that defines it. The enamel fallback is not decoration: a --fleece-* that is
+   not defined yet makes `fill` invalid at computed-value time, and the sheep
+   would render black on a screen a room is watching. Unchosen is the right
+   failure. */
 const fleeceStyle = (look) =>
-  look && look.colour ? `--fleece:${colourVar(look.colour.id)};` : '';
+  look && look.colour ? `--fleece:var(${colourToken(look.colour.id)}, var(--enamel));` : '';
 
 /* --- Does the ink still separate this fleece from the field? -------------
    The sheep's outline is hedgerow ink, and it is the only thing holding the
@@ -67,7 +72,11 @@ const fleeceStyle = (look) =>
 
    Measured rather than listed: the fleece hexes come from look.js and the ink
    from the token it is actually drawn with, so this stays honest if either
-   moves. Below this ratio the ink is no longer doing its job. */
+   moves. The floor is 3:1, the same one any non-text graphic has to clear;
+   the margin above it is there because this line is one sprite unit wide by
+   the time a paddock sheep renders inside a screenshared window. Every deep
+   fleece measures 1.0-1.5:1 against the ground, so once the ink goes there is
+   nothing else holding the animal off the field. */
 const INK_SEPARATION = 3.5;
 
 const HEX = /^#([0-9a-f]{6})$/i;
@@ -230,7 +239,9 @@ function renderChoosing(s) {
     const note = bind('lobbyNote');
     if (!note) return;
     choosingLine = document.createElement('p');
-    choosingLine.className = 'lobbyflock__choosing';
+    /* Same size step as the note it follows — the surface scales `legend` for
+       a television — but tv.css takes the stencil back off it. */
+    choosingLine.className = 'lobbyflock__choosing legend';
     note.insertAdjacentElement('afterend', choosingLine);
   }
   choosingLine.hidden = n <= 0;
@@ -373,8 +384,8 @@ function renderReveal(s) {
   /* An answer carries a playerId, so the sheep standing in a paddock is the
      same sheep that stood in the flock. Read the look off the answer first in
      case the server ever sends it inline, then off the player it belongs to. */
-  const looks = new Map(s.players.map((p) => [p.id, p]));
-  const lookForAnswer = (a) => lookOf(a) || lookOf(looks.get(a.playerId)) || null;
+  const playerById = new Map(s.players.map((p) => [p.id, p]));
+  const lookForAnswer = (a) => lookOf(a) || lookOf(playerById.get(a.playerId)) || null;
   const headroom = groups.some((g) => g.answers.some((a) => !!(lookForAnswer(a) || {}).hat));
 
   const html = groups
@@ -541,6 +552,11 @@ const ROOM_KEY = 'flock.host.room';
 let myRoom = sessionStorage.getItem(ROOM_KEY) || null;
 
 const net = connect({
+  /* The room has to be in the URL, not only in the frame: the socket is routed
+     to one paddock before host.resume is ever read. Without this a reconnect
+     would open a brand-new paddock and orphan every phone already joined —
+     which is the exact failure the ROOM_KEY above exists to prevent. */
+  query: () => (myRoom ? { room: myRoom } : {}),
   identify: () => (myRoom ? { t: 'host.resume', room: myRoom } : { t: 'host.create' }),
   onFrame(frame) {
     switch (frame.t) {

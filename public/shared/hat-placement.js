@@ -13,6 +13,14 @@
  *   y      0..1 down the sheep, of the hat's CENTRE
  *   scale  hat width as a fraction of the sheep's width
  *   rot    degrees, clockwise
+ *   flip   mirror horizontally
+ *
+ * `flip` exists because the sheep always faces right and the props do not. Each
+ * was generated alone, with nothing to face, so a fish or a pigeon comes back
+ * pointing whichever way the model felt like — and a duck facing backwards off
+ * the back of a sheep's head reads as a mistake rather than a joke. Mirroring
+ * is free and lossless here, so it is a flag rather than a regenerated asset.
+ * It pivots about the hat's own centre, so flipping never moves it.
  *
  * `poses` overrides the shared placement for one pose. Most hats need none —
  * the head barely moves between idle, happy and confused — but the running
@@ -24,7 +32,13 @@
  */
 
 /** Sensible starting point for a hat nobody has tuned yet: on the crown. */
-export const DEFAULT_PLACEMENT = Object.freeze({ x: 0.7, y: 0.16, scale: 0.34, rot: 0 });
+export const DEFAULT_PLACEMENT = Object.freeze({
+  x: 0.7,
+  y: 0.16,
+  scale: 0.34,
+  rot: 0,
+  flip: false,
+});
 
 export const PLACEMENTS = {
   /* Tuned via /admin. Anything absent falls back to DEFAULT_PLACEMENT and is

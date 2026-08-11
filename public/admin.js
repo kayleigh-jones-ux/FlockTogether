@@ -78,7 +78,10 @@ function place(imgEl, hatId, p, box) {
   imgEl.style.height = `${h}px`;
   imgEl.style.left = `${p.x * box.w - w / 2}px`;
   imgEl.style.top = `${p.y * box.h - h / 2}px`;
-  imgEl.style.transform = `rotate(${p.rot}deg)`;
+  /* Read right to left: mirror the sprite, then rotate the mirrored thing in
+     the parent's space. Rotating first would make the rot control run backwards
+     the moment a hat was flipped, which is a maddening way to lose an hour. */
+  imgEl.style.transform = `rotate(${p.rot}deg)${p.flip ? ' scaleX(-1)' : ''}`;
 }
 
 function render() {
@@ -97,6 +100,7 @@ function render() {
   $('in-y').value = round(p.y);
   $('in-scale').value = round(p.scale);
   $('in-rot').value = round(p.rot, 1);
+  $('in-flip').checked = !!p.flip;
 
   const guides = $('guides').checked;
   for (const g of ['guide-v', 'guide-h']) $(g).hidden = !guides;
@@ -134,6 +138,9 @@ function paintList() {
     img.src = `/art/hat-${hat.id}.png`;
     img.alt = '';
     img.loading = 'lazy';
+    /* The list mirrors too, so a glance down it shows which way each prop is
+       actually facing rather than which way it was drawn. */
+    if (activeOf(hat.id).flip) img.style.transform = 'scaleX(-1)';
 
     const name = document.createElement('span');
     name.className = 'hats__name';
@@ -249,6 +256,22 @@ for (const [id, key] of [['in-x', 'x'], ['in-y', 'y'], ['in-scale', 'scale'], ['
   });
 }
 
+$('in-flip').addEventListener('change', (ev) => {
+  commit(current.id, { flip: ev.target.checked });
+});
+
+/* F flips. Half the props face the wrong way, so this is the most-pressed
+   control on the page and it should not require aiming at a checkbox. Ignored
+   while typing into a field, or it would eat the f in a filter. */
+window.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'f' && ev.key !== 'F') return;
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  const el = document.activeElement;
+  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return;
+  ev.preventDefault();
+  commit(current.id, { flip: !activeOf(current.id).flip });
+});
+
 $('reset').addEventListener('click', () => {
   delete work[current.id];
   render();
@@ -302,7 +325,11 @@ function source() {
     const entry = work[hat.id];
     if (!entry) continue;
     const b = baseOf(hat.id);
-    const head = `  '${hat.id}': { x: ${round(b.x)}, y: ${round(b.y)}, scale: ${round(b.scale)}, rot: ${round(b.rot, 1)}`;
+    /* flip is emitted only when true. It is a flag, not a measurement, and
+       `flip: false` on forty entries is noise that hides the ones that matter. */
+    const head =
+      `  '${hat.id}': { x: ${round(b.x)}, y: ${round(b.y)}, scale: ${round(b.scale)}, ` +
+      `rot: ${round(b.rot, 1)}${b.flip ? ', flip: true' : ''}`;
     const overrides = entry.poses && Object.keys(entry.poses).length ? entry.poses : null;
     if (!overrides) {
       lines.push(`${head} },`);
@@ -311,7 +338,9 @@ function source() {
     lines.push(`${head},`);
     lines.push('    poses: {');
     for (const [p, o] of Object.entries(overrides)) {
-      const parts = Object.entries(o).map(([k, v]) => `${k}: ${round(v, k === 'rot' ? 1 : 3)}`);
+      const parts = Object.entries(o).map(([k, v]) =>
+        typeof v === 'boolean' ? `${k}: ${v}` : `${k}: ${round(v, k === 'rot' ? 1 : 3)}`,
+      );
       lines.push(`      '${p}': { ${parts.join(', ')} },`);
     }
     lines.push('    },');

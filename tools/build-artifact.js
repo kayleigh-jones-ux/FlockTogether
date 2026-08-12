@@ -195,7 +195,8 @@ const BENCH_RUNTIME = `
     /* The whole look surface, not just the names the surfaces import today:
        the shim keeps each file's own binding list, so anything look.js exports
        has to be reachable here or a new import lands as undefined. */
-    FLEECE_COLOURS, HATS, HAT_BOX, colourById, hatById, colourToken, colourVar,
+    FLEECE_COLOURS, HATS, HAT_OPTIONS, NO_HAT, isBareHead, HAT_BOX,
+    colourById, hatById, colourToken, colourVar,
     lookKey, sameLook, validateLook, LOOK_COMBINATIONS,
     /* The art surface, on the same terms: whatever a surface imports next from
        hat-placement or sheep-art is already reachable here. */

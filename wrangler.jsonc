@@ -53,7 +53,7 @@
     "REVEAL_MS": "9000",
     "SCORES_MS": "8000",
     "LOBBY_MIN_PLAYERS": "2",
-    "MAX_PLAYERS": "20",
+    "MAX_PLAYERS": "50",
     "DEFAULT_ROUNDS": "9"
   }
 

@@ -24,6 +24,13 @@
  */
 
 import { placementFor, LAYER } from '/shared/hat-placement.js';
+import { NO_HAT } from '/shared/look.js';
+
+/* Bare is a choice with an id, not an empty string (see NO_HAT in look.js), so
+   every entry point has to know that one hat id means "draw nothing" rather
+   than "fetch /art/hat-none.png". Asked once, here, so the three places that
+   reach for hat art cannot disagree about it. */
+const wearsAHat = (hatId) => !!hatId && hatId !== NO_HAT;
 
 export const DEFAULT_POSE = 'sheep-idle';
 
@@ -79,7 +86,7 @@ export function headroomFor(hatIds, pose = DEFAULT_POSE) {
   const sheep = aspectOf(pose);
   let worst = 0;
   for (const id of hatIds) {
-    if (!id) continue;
+    if (!wearsAHat(id)) continue;
     const p = placementFor(id, pose);
     const w = p.scale; /* of the sheep's width */
     const h = p.scale / aspectOf(`hat-${id}`);
@@ -132,7 +139,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => `&${{ '&': 'amp', '<': 'l
 export function sheepArtHTML({
   pose = DEFAULT_POSE, hatId = '', className = '', headroom = 0, marked = false, alt = '',
 } = {}) {
-  const hat = hatId
+  const hat = wearsAHat(hatId)
     ? `<img class="sheepart__hat" src="${resolve(`hat-${hatId}`)}" alt="" style="${hatStyle(hatId, pose)}" draggable="false">`
     : '';
   return `<span class="sheepart ${className}" style="--art-headroom:${pct(headroom)}" data-marked="${marked ? 'true' : 'false'}"${
@@ -163,7 +170,7 @@ export function paintSheepArt(host, { pose = DEFAULT_POSE, hatId = '', headroom 
   }
 
   let hat = host.querySelector('.sheepart__hat');
-  if (!hatId) {
+  if (!wearsAHat(hatId)) {
     if (hat) hat.remove();
   } else {
     if (!hat) {

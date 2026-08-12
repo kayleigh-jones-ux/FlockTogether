@@ -360,14 +360,6 @@ const SILLY = {
       'a metal saucepan turned completely upside down like a helmet, seen from the side, in flat grey steel ' +
       'with one long black handle sticking straight out to the side',
   },
-  'ice-cream': {
-    sitsOn: 'crown',
-    description:
-      'a DROPPED ice cream, seen from the side: the pale tan waffle cone lies toppled over on its side, and the two ' +
-      'round scoops — one pink, one mint green — have fallen out and squashed into a soft splat beside it, ' +
-      'with a red cherry rolled loose. The whole thing is low, spread out and flat along the bottom as if it just ' +
-      'landed on the ground. Sad and funny, not neat',
-  },
   pigeon: {
     isAnimal: true,
     sitsOn: 'crown',

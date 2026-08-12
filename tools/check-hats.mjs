@@ -16,7 +16,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { HATS, FLEECE_COLOURS, LOOK_COMBINATIONS } from '../public/shared/look.js';
+import { HATS, HAT_OPTIONS, FLEECE_COLOURS, LOOK_COMBINATIONS } from '../public/shared/look.js';
 import { PLACEMENTS } from '../public/shared/hat-placement.js';
 import { ASSETS } from './asset-manifest.mjs';
 
@@ -166,11 +166,16 @@ if (dupeIds.length) fail(`duplicate hat ids: ${[...new Set(dupeIds)].join(', ')}
    only comfortable while combinations vastly exceed that cap; this states the
    margin out loud so shrinking either list is a visible decision. */
 
-const MAX_PLAYERS = 20;
+/* Kept in step with wrangler.jsonc by hand — this is a floor check, not a
+   binding, and reading the jsonc from here to save one number would be a worse
+   trade than the duplication. */
+const MAX_PLAYERS = 50;
 if (LOOK_COMBINATIONS < MAX_PLAYERS * 4) {
   fail(`only ${LOOK_COMBINATIONS} looks for up to ${MAX_PLAYERS} players — too tight`);
 } else {
-  pass(`${FLEECE_COLOURS.length} colours x ${HATS.length} hats = ${LOOK_COMBINATIONS} looks`);
+  /* HAT_OPTIONS, not HATS: going bare is a pickable option and part of the
+     unique pair, so it counts towards how many distinct sheep a party has. */
+  pass(`${FLEECE_COLOURS.length} colours x ${HAT_OPTIONS.length} options = ${LOOK_COMBINATIONS} looks`);
 }
 
 console.log(bad ? `\n${bad} problem(s)` : '\nhat registry consistent');

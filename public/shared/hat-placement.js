@@ -272,14 +272,6 @@ export const PLACEMENTS = {
       'sheep-running': { x: 0.733, y: 0, rot: -18 },
     },
   },
-  'ice-cream': { x: 0.75, y: 0.066, scale: 0.326, rot: -2,
-    poses: {
-      'sheep-running': { rot: -26, x: 0.677, y: 0.068, scale: 0.369 },
-      'sheep-confused': { x: 0.636, y: 0.062, rot: -20, scale: 0.417 },
-      'sheep-happy': { rot: -12, scale: 0.384, x: 0.657, y: 0.043 },
-      'sheep-idle': { rot: -10, scale: 0.417, x: 0.729, y: 0.055 },
-    },
-  },
   'flowerpot': { x: 0.763, y: 0, scale: 0.191, rot: 0,
     poses: {
       'sheep-idle': { x: 0.761, y: 0 },

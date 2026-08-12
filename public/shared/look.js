@@ -135,7 +135,6 @@ export const HATS = Object.freeze([
   { id: 'teacup',          name: 'Teacup',          tall: false },
   { id: 'rubber-duck',     name: 'Rubber duck',     tall: true },
   { id: 'pigeon',          name: 'Pigeon',          tall: true },
-  { id: 'ice-cream',       name: 'Ice cream',       tall: true },
   { id: 'flowerpot',       name: 'Flowerpot',       tall: true },
   { id: 'cactus',          name: 'Cactus',          tall: true },
   { id: 'birthday-cake',   name: 'Birthday cake',   tall: true },
@@ -165,11 +164,33 @@ export const HATS = Object.freeze([
  * builds the SVG sheep. */
 export const HAT_BOX = Object.freeze({ size: 60, x: 78, y: -30 });
 
+/* --- going bare ----------------------------------------------------------
+ * A sheep with nothing on its head is a choice, not the absence of one, so it
+ * is a value like any other rather than an empty string threaded through every
+ * caller. It is deliberately NOT in HATS: that array is the list of things with
+ * art, a prompt and a tuned placement behind them, and `npm run hats` checks all
+ * three for every entry. A bare head has none of those and never will.
+ *
+ * It IS part of the pair, though, which is the point of giving it an id. Two
+ * bare-headed players must still differ by fleece, exactly as two players in
+ * bobble hats must — otherwise a room could fill with sheep nobody can tell
+ * apart, which is the one thing the uniqueness rule exists to prevent.
+ */
+export const NO_HAT = 'none';
+
+const BARE = Object.freeze({ id: NO_HAT, name: 'No hat', tall: false, bare: true });
+
+/** Every hat a player may pick, bare included, in picker order. */
+export const HAT_OPTIONS = Object.freeze([BARE, ...HATS]);
+
 const COLOUR_BY_ID = new Map(FLEECE_COLOURS.map((c) => [c.id, c]));
-const HAT_BY_ID = new Map(HATS.map((h) => [h.id, h]));
+const HAT_BY_ID = new Map(HAT_OPTIONS.map((h) => [h.id, h]));
 
 export const colourById = (id) => COLOUR_BY_ID.get(String(id)) || null;
 export const hatById = (id) => HAT_BY_ID.get(String(id)) || null;
+
+/** Does this look wear nothing? The surfaces ask before reaching for art. */
+export const isBareHead = (hatId) => String(hatId) === NO_HAT;
 
 /** The CSS custom property carrying a colour, defined in tokens.css. */
 export const colourToken = (id) => `--fleece-${id}`;
@@ -198,6 +219,6 @@ export function validateLook(raw) {
 }
 
 /** How many distinct looks exist. Sanity: must exceed any sane MAX_PLAYERS. */
-export const LOOK_COMBINATIONS = FLEECE_COLOURS.length * HATS.length;
+export const LOOK_COMBINATIONS = FLEECE_COLOURS.length * HAT_OPTIONS.length;
 
 export default { FLEECE_COLOURS, HATS, validateLook, lookKey, sameLook };

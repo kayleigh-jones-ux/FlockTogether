@@ -1,5 +1,5 @@
 {
-  "generated": 54,
+  "generated": 53,
   "assets": {
     "dog-herding": {
       "w": 320,
@@ -130,11 +130,6 @@
       "w": 256,
       "h": 163,
       "aspect": 1.5706
-    },
-    "hat-ice-cream": {
-      "w": 256,
-      "h": 107,
-      "aspect": 2.3925
     },
     "hat-party-hat": {
       "w": 166,

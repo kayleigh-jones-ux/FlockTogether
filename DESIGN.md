@@ -77,6 +77,24 @@ typography:
     fontWeight: 800
     lineHeight: 1.03
     letterSpacing: "-0.032em"
+  question-short:
+    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "clamp(1.9rem, 9.5vw, 2.7rem)"
+    fontWeight: 800
+    lineHeight: 1.05
+    letterSpacing: "-0.03em"
+  question-mid:
+    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "clamp(1.5rem, 7.2vw, 2.1rem)"
+    fontWeight: 800
+    lineHeight: 1.08
+    letterSpacing: "-0.028em"
+  question-long:
+    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "clamp(1.2rem, 5.6vw, 1.7rem)"
+    fontWeight: 800
+    lineHeight: 1.12
+    letterSpacing: "-0.025em"
   numerals:
     fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "clamp(3rem, 7.5vw, 8rem)"
@@ -85,12 +103,37 @@ typography:
     letterSpacing: "-0.03em"
     fontVariation: "font-stretch: 125%"
     fontFeature: "tabular-nums lining-nums"
+  hero:
+    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "clamp(1.6rem, 8.5vw, 2.4rem)"
+    fontWeight: 800
+    lineHeight: 1.02
+    letterSpacing: "-0.02em"
   body:
     fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.95rem"
     fontWeight: 600
     lineHeight: 1.35
     letterSpacing: "normal"
+  field:
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "normal"
+  code:
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.9rem"
+    fontWeight: 900
+    lineHeight: 1.1
+    letterSpacing: "0.22em"
+    fontVariation: "font-stretch: 125%"
+  latch:
+    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.3rem"
+    fontWeight: 800
+    lineHeight: 1.1
+    letterSpacing: "-0.01em"
   legend:
     fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "clamp(0.75rem, 0.72vw, 0.95rem)"

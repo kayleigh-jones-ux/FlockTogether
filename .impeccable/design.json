@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-06T00:00:00.000Z",
+  "generatedAt": "2026-08-12T00:35:21.023Z",
   "title": "Design System: Flock Together",
   "extensions": {
     "colorMeta": {
@@ -8,168 +8,535 @@
         "role": "primary",
         "displayName": "Deep Pasture",
         "canonical": "#1c4a22",
-        "tonalRamp": ["#081a0b", "#0f2d13", "#16401c", "#1c4a22", "#2d6d35", "#4f9457", "#84bb8b", "#c3ddc7"]
+        "tonalRamp": [
+          "#081a0b",
+          "#0f2d13",
+          "#16401c",
+          "#1c4a22",
+          "#2d6d35",
+          "#4f9457",
+          "#84bb8b",
+          "#c3ddc7"
+        ]
       },
       "pasture": {
         "role": "primary",
         "displayName": "Pasture",
         "canonical": "#2f6b33",
-        "tonalRamp": ["#0c1e0d", "#153318", "#1f4a22", "#2f6b33", "#3f8c44", "#63ac68", "#97cb9b", "#cde6cf"]
+        "tonalRamp": [
+          "#0c1e0d",
+          "#153318",
+          "#1f4a22",
+          "#2f6b33",
+          "#3f8c44",
+          "#63ac68",
+          "#97cb9b",
+          "#cde6cf"
+        ]
       },
       "pasture-lit": {
         "role": "primary",
         "displayName": "Lit Pasture",
         "canonical": "#478b3b",
-        "tonalRamp": ["#0f2109", "#1a3a13", "#28571d", "#357428", "#478b3b", "#63a755", "#93c789", "#c9e3c3"]
+        "tonalRamp": [
+          "#0f2109",
+          "#1a3a13",
+          "#28571d",
+          "#357428",
+          "#478b3b",
+          "#63a755",
+          "#93c789",
+          "#c9e3c3"
+        ]
       },
       "growth": {
         "role": "primary",
         "displayName": "Growth Green",
         "canonical": "#8fbf3f",
-        "tonalRamp": ["#1e2a0b", "#334713", "#4a681c", "#628a26", "#7aa733", "#8fbf3f", "#b1d475", "#d9eab4"]
+        "tonalRamp": [
+          "#1e2a0b",
+          "#334713",
+          "#4a681c",
+          "#628a26",
+          "#7aa733",
+          "#8fbf3f",
+          "#b1d475",
+          "#d9eab4"
+        ]
       },
       "growth-pale": {
         "role": "primary",
         "displayName": "Pale Growth",
         "canonical": "#b7d768",
-        "tonalRamp": ["#26300f", "#3d4d18", "#556b22", "#6f8a2d", "#8ba93e", "#a3c353", "#b7d768", "#dcebb2"]
+        "tonalRamp": [
+          "#26300f",
+          "#3d4d18",
+          "#556b22",
+          "#6f8a2d",
+          "#8ba93e",
+          "#a3c353",
+          "#b7d768",
+          "#dcebb2"
+        ]
       },
       "stubble": {
         "role": "secondary",
         "displayName": "Cut Stubble",
         "canonical": "#e0ae35",
-        "tonalRamp": ["#33260a", "#513c10", "#6f5316", "#8e6c1d", "#ae8724", "#c99a2c", "#e0ae35", "#f2d68f"]
+        "tonalRamp": [
+          "#33260a",
+          "#513c10",
+          "#6f5316",
+          "#8e6c1d",
+          "#ae8724",
+          "#c99a2c",
+          "#e0ae35",
+          "#f2d68f"
+        ]
       },
       "stubble-pale": {
         "role": "secondary",
         "displayName": "Pale Stubble",
         "canonical": "#f0d391",
-        "tonalRamp": ["#3a2f13", "#59491f", "#79632b", "#9a7f39", "#bc9c49", "#d6b76a", "#f0d391", "#faecc9"]
+        "tonalRamp": [
+          "#3a2f13",
+          "#59491f",
+          "#79632b",
+          "#9a7f39",
+          "#bc9c49",
+          "#d6b76a",
+          "#f0d391",
+          "#faecc9"
+        ]
       },
       "earth": {
         "role": "tertiary",
         "displayName": "Ploughed Earth",
         "canonical": "#a8562c",
-        "tonalRamp": ["#2a1409", "#42200e", "#5c2d14", "#78401b", "#944b25", "#a8562c", "#c8804f", "#e6bda0"]
+        "tonalRamp": [
+          "#2a1409",
+          "#42200e",
+          "#5c2d14",
+          "#78401b",
+          "#944b25",
+          "#a8562c",
+          "#c8804f",
+          "#e6bda0"
+        ]
       },
       "earth-deep": {
         "role": "tertiary",
         "displayName": "Deep Earth",
         "canonical": "#7d3d1f",
-        "tonalRamp": ["#1f0e07", "#33170b", "#4a2210", "#632e16", "#7d3d1f", "#9d5730", "#c28a63", "#e3c3ae"]
+        "tonalRamp": [
+          "#1f0e07",
+          "#33170b",
+          "#4a2210",
+          "#632e16",
+          "#7d3d1f",
+          "#9d5730",
+          "#c28a63",
+          "#e3c3ae"
+        ]
       },
       "hedge": {
         "role": "neutral",
         "displayName": "Hedgerow Ink",
         "canonical": "#12180f",
-        "tonalRamp": ["#070a06", "#0d110b", "#12180f", "#1e2719", "#2e3b27", "#4a5a40", "#7d8d72", "#c0c9b8"]
+        "tonalRamp": [
+          "#070a06",
+          "#0d110b",
+          "#12180f",
+          "#1e2719",
+          "#2e3b27",
+          "#4a5a40",
+          "#7d8d72",
+          "#c0c9b8"
+        ]
       },
       "hedge-soft": {
         "role": "neutral",
         "displayName": "Soft Hedge",
         "canonical": "#263021",
-        "tonalRamp": ["#0a0d08", "#131810", "#1c2419", "#263021", "#3a4833", "#556349", "#8b9a80", "#c8d1c0"]
+        "tonalRamp": [
+          "#0a0d08",
+          "#131810",
+          "#1c2419",
+          "#263021",
+          "#3a4833",
+          "#556349",
+          "#8b9a80",
+          "#c8d1c0"
+        ]
       },
       "enamel": {
         "role": "neutral",
         "displayName": "White Enamel",
         "canonical": "#f5efe0",
-        "tonalRamp": ["#2e2a20", "#4a4436", "#67604e", "#867e68", "#a79e86", "#c8bfa8", "#e2d9c4", "#f5efe0"]
+        "tonalRamp": [
+          "#2e2a20",
+          "#4a4436",
+          "#67604e",
+          "#867e68",
+          "#a79e86",
+          "#c8bfa8",
+          "#e2d9c4",
+          "#f5efe0"
+        ]
       },
       "enamel-shade": {
         "role": "neutral",
         "displayName": "Weathered Enamel",
         "canonical": "#e2d9c4",
-        "tonalRamp": ["#2b271c", "#454031", "#605945", "#7d745b", "#9b9174", "#bcb094", "#e2d9c4", "#f2ece0"]
+        "tonalRamp": [
+          "#2b271c",
+          "#454031",
+          "#605945",
+          "#7d745b",
+          "#9b9174",
+          "#bcb094",
+          "#e2d9c4",
+          "#f2ece0"
+        ]
       },
       "steel": {
         "role": "neutral",
         "displayName": "Galvanised Steel",
         "canonical": "#b7bcb2",
-        "tonalRamp": ["#22251f", "#373b33", "#4e5349", "#676c61", "#82877b", "#9da297", "#b7bcb2", "#dcdfd9"]
+        "tonalRamp": [
+          "#22251f",
+          "#373b33",
+          "#4e5349",
+          "#676c61",
+          "#82877b",
+          "#9da297",
+          "#b7bcb2",
+          "#dcdfd9"
+        ]
       },
       "steel-dark": {
         "role": "neutral",
         "displayName": "Dark Steel",
         "canonical": "#8b9188",
-        "tonalRamp": ["#1a1c19", "#2c2f2a", "#40443d", "#565b52", "#6d7369", "#8b9188", "#adb2aa", "#d5d8d2"]
+        "tonalRamp": [
+          "#1a1c19",
+          "#2c2f2a",
+          "#40443d",
+          "#565b52",
+          "#6d7369",
+          "#8b9188",
+          "#adb2aa",
+          "#d5d8d2"
+        ]
       },
       "hazard": {
         "role": "secondary",
         "displayName": "Hazard Gate Paint",
         "canonical": "#f2c400",
-        "tonalRamp": ["#382d00", "#584700", "#786100", "#9a7d00", "#bd9a00", "#dcb400", "#f2c400", "#fbe487"]
+        "tonalRamp": [
+          "#382d00",
+          "#584700",
+          "#786100",
+          "#9a7d00",
+          "#bd9a00",
+          "#dcb400",
+          "#f2c400",
+          "#fbe487"
+        ]
       },
       "tractor-red": {
         "role": "tertiary",
         "displayName": "Tractor Red",
         "canonical": "#d6402a",
-        "tonalRamp": ["#330d07", "#4f150c", "#6d1f12", "#8d2a19", "#ae3521", "#d6402a", "#e57a68", "#f4c1b7"]
+        "tonalRamp": [
+          "#330d07",
+          "#4f150c",
+          "#6d1f12",
+          "#8d2a19",
+          "#ae3521",
+          "#d6402a",
+          "#e57a68",
+          "#f4c1b7"
+        ]
       },
       "buff": {
         "role": "neutral",
         "displayName": "Ledger Buff",
         "canonical": "#e8dcc0",
-        "tonalRamp": ["#2d2718", "#484028", "#645939", "#82744b", "#a2915f", "#c3b184", "#e8dcc0", "#f5efdf"]
+        "tonalRamp": [
+          "#2d2718",
+          "#484028",
+          "#645939",
+          "#82744b",
+          "#a2915f",
+          "#c3b184",
+          "#e8dcc0",
+          "#f5efdf"
+        ]
       },
-      "raddle-1": { "role": "tertiary", "displayName": "Raddle Orange", "canonical": "#e8501e", "tonalRamp": ["#391004", "#571a07", "#77250b", "#993110", "#bd3e15", "#e8501e", "#f28a63", "#f9c8b3"] },
-      "raddle-2": { "role": "tertiary", "displayName": "Raddle Magenta", "canonical": "#d9257a", "tonalRamp": ["#34061c", "#51092c", "#700d3d", "#90124f", "#b31a63", "#d9257a", "#e86ba6", "#f5b8d2"] },
-      "raddle-3": { "role": "tertiary", "displayName": "Raddle Blue", "canonical": "#1e63c8", "tonalRamp": ["#04152f", "#072248", "#0b3163", "#0f417f", "#15529d", "#1e63c8", "#5f92dd", "#b3ccf1"] },
-      "raddle-4": { "role": "tertiary", "displayName": "Raddle Amber", "canonical": "#f2a100", "tonalRamp": ["#382500", "#583b00", "#785200", "#9a6a00", "#bd8300", "#dc9800", "#f2a100", "#fbd287"] },
-      "raddle-5": { "role": "tertiary", "displayName": "Raddle Violet", "canonical": "#7a2fbf", "tonalRamp": ["#1c0a2e", "#2d1049", "#3f1866", "#532084", "#682aa4", "#7a2fbf", "#a471d6", "#d4bced"] },
-      "raddle-6": { "role": "tertiary", "displayName": "Raddle Teal", "canonical": "#0e9c8a", "tonalRamp": ["#03241f", "#053b34", "#08544a", "#0a6e61", "#0c8779", "#0e9c8a", "#4dc0b2", "#a9e2da"] },
-      "raddle-7": { "role": "tertiary", "displayName": "Raddle Crimson", "canonical": "#b5123f", "tonalRamp": ["#2b040f", "#440718", "#5f0a22", "#7c0d2c", "#9a1037", "#b5123f", "#d75e7f", "#efb4c4"] },
-      "raddle-8": { "role": "tertiary", "displayName": "Raddle Periwinkle", "canonical": "#4a6fd4", "tonalRamp": ["#0d1533", "#15234f", "#1e326e", "#28428e", "#3455b0", "#4a6fd4", "#869ce4", "#c5cff4"] }
+      "raddle-1": {
+        "role": "tertiary",
+        "displayName": "Raddle Orange",
+        "canonical": "#e8501e",
+        "tonalRamp": [
+          "#391004",
+          "#571a07",
+          "#77250b",
+          "#993110",
+          "#bd3e15",
+          "#e8501e",
+          "#f28a63",
+          "#f9c8b3"
+        ]
+      },
+      "raddle-2": {
+        "role": "tertiary",
+        "displayName": "Raddle Magenta",
+        "canonical": "#d9257a",
+        "tonalRamp": [
+          "#34061c",
+          "#51092c",
+          "#700d3d",
+          "#90124f",
+          "#b31a63",
+          "#d9257a",
+          "#e86ba6",
+          "#f5b8d2"
+        ]
+      },
+      "raddle-3": {
+        "role": "tertiary",
+        "displayName": "Raddle Blue",
+        "canonical": "#1e63c8",
+        "tonalRamp": [
+          "#04152f",
+          "#072248",
+          "#0b3163",
+          "#0f417f",
+          "#15529d",
+          "#1e63c8",
+          "#5f92dd",
+          "#b3ccf1"
+        ]
+      },
+      "raddle-4": {
+        "role": "tertiary",
+        "displayName": "Raddle Amber",
+        "canonical": "#f2a100",
+        "tonalRamp": [
+          "#382500",
+          "#583b00",
+          "#785200",
+          "#9a6a00",
+          "#bd8300",
+          "#dc9800",
+          "#f2a100",
+          "#fbd287"
+        ]
+      },
+      "raddle-5": {
+        "role": "tertiary",
+        "displayName": "Raddle Violet",
+        "canonical": "#7a2fbf",
+        "tonalRamp": [
+          "#1c0a2e",
+          "#2d1049",
+          "#3f1866",
+          "#532084",
+          "#682aa4",
+          "#7a2fbf",
+          "#a471d6",
+          "#d4bced"
+        ]
+      },
+      "raddle-6": {
+        "role": "tertiary",
+        "displayName": "Raddle Teal",
+        "canonical": "#0e9c8a",
+        "tonalRamp": [
+          "#03241f",
+          "#053b34",
+          "#08544a",
+          "#0a6e61",
+          "#0c8779",
+          "#0e9c8a",
+          "#4dc0b2",
+          "#a9e2da"
+        ]
+      },
+      "raddle-7": {
+        "role": "tertiary",
+        "displayName": "Raddle Crimson",
+        "canonical": "#b5123f",
+        "tonalRamp": [
+          "#2b040f",
+          "#440718",
+          "#5f0a22",
+          "#7c0d2c",
+          "#9a1037",
+          "#b5123f",
+          "#d75e7f",
+          "#efb4c4"
+        ]
+      },
+      "raddle-8": {
+        "role": "tertiary",
+        "displayName": "Raddle Periwinkle",
+        "canonical": "#4a6fd4",
+        "tonalRamp": [
+          "#0d1533",
+          "#15234f",
+          "#1e326e",
+          "#28428e",
+          "#3455b0",
+          "#4a6fd4",
+          "#869ce4",
+          "#c5cff4"
+        ]
+      }
     },
     "typographyMeta": {
       "display": {
         "displayName": "Display / Wordmark",
-        "purpose": "Bricolage Grotesque at 800. The voice with an opinion: wordmark, hero, group label, button text. Never used for a number."
+        "purpose": "The wordmark, and only the wordmark."
       },
       "headline": {
         "displayName": "Headline",
-        "purpose": "Scene titles on the shared display. Balanced wrapping, tight negative tracking."
+        "purpose": "Scene headlines on the shared display."
       },
       "question": {
         "displayName": "Question",
-        "purpose": "The one thing the whole room must read. Set on a rotated enamel sign. On the phone it is tiered by character count (short/mid/long) rather than truncated, and scrolls inside the sign if it still will not fit."
+        "purpose": "The question itself, set as large as the display allows."
+      },
+      "question-short": {
+        "displayName": "Question short",
+        "purpose": "A question of 34 characters or fewer, on the phone."
+      },
+      "question-mid": {
+        "displayName": "Question mid",
+        "purpose": "A question of 72 characters or fewer, on the phone."
+      },
+      "question-long": {
+        "displayName": "Question long",
+        "purpose": "A long question. The phone never truncates — it tiers the size, then scrolls the sign."
       },
       "numerals": {
         "displayName": "Monumental Numerals",
-        "purpose": "Archivo pushed to 900 weight and 125% width, tabular lining figures. Countdown, headcounts, scores, room code. The one voice that must read across a room and survive being downscaled inside a video-call window."
+        "purpose": "The countdown, headcounts, scores and the room code."
+      },
+      "hero": {
+        "displayName": "Hero",
+        "purpose": "The phone's own headline — one line, its whole screen."
       },
       "body": {
         "displayName": "Body / Aside",
-        "purpose": "Archivo at 600. Explanatory copy on the phone controller only; the display carries almost no body text."
+        "purpose": "Explanatory copy on the phone."
+      },
+      "field": {
+        "displayName": "Field",
+        "purpose": "Every text input on the phone. Never below 1rem: iOS zooms the viewport on a focused input under 16px."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "The room code field, sized to be typed while read off a television."
+      },
+      "latch": {
+        "displayName": "Latch",
+        "purpose": "The one primary action on any phase. Sized with its 60px thumb target, not against other type."
       },
       "legend": {
         "displayName": "Painted Legend",
-        "purpose": "Archivo at 700 and 112% width, uppercase, 0.14em tracked. Silkscreened panel labels, as painted on farm signage. Floor held at 0.75rem because uppercase at this tracking stops being readable one-handed below about 12px. The display re-clamps it to clamp(0.8rem, 0.95vw, 1.45rem) because the shared cap is a phone cap."
+        "purpose": "Silkscreened panel labels."
       }
     },
     "shadows": [
-      { "name": "lift-sign", "value": "0 6px 0 var(--hedge), 0 14px 28px -8px rgb(10 24 8 / 0.55)", "purpose": "Enamel sign, record sheet, phone lever. A real ink offset for the plate's own edge plus a ground-tinted cast shadow." },
-      { "name": "lift-token", "value": "0 3px 0 rgb(18 24 15 / 0.85), 0 8px 14px -6px rgb(10 24 8 / 0.5)", "purpose": "The smaller plate: ear tag, locked-in confirmation." },
-      { "name": "lift-panel", "value": "0 10px 30px -10px rgb(10 24 8 / 0.6)", "purpose": "Blur only, no offset. Dark objects sitting ON the map — countdown box, paddock plot, connection notice — which read as pressed onto the ground rather than lifted off it." },
-      { "name": "press-in", "value": "inset 0 3px 8px -2px rgb(10 24 8 / 0.45)", "purpose": "The only inset in the system. Every text input, so a slot reads as a recess cut into a sign." },
-      { "name": "focus-halo-on-enamel", "value": "0 0 0 calc(var(--line) * 3) var(--hedge)", "purpose": "Painted outside the hazard focus ring on light-ground controls. The ring's width plus its offset plus a stroke of hedge, so both edges of the ring clear 3:1 on enamel." }
+      {
+        "name": "lift-sign",
+        "value": "0 6px 0 var(--hedge), 0 14px 28px -8px rgb(10 24 8 / 0.55)",
+        "purpose": "Enamel sign, record sheet, phone lever. A real ink offset for the plate's own edge plus a ground-tinted cast shadow."
+      },
+      {
+        "name": "lift-token",
+        "value": "0 3px 0 rgb(18 24 15 / 0.85), 0 8px 14px -6px rgb(10 24 8 / 0.5)",
+        "purpose": "The smaller plate: ear tag, locked-in confirmation."
+      },
+      {
+        "name": "lift-panel",
+        "value": "0 10px 30px -10px rgb(10 24 8 / 0.6)",
+        "purpose": "Blur only, no offset. Dark objects sitting ON the map — countdown box, paddock plot, connection notice — which read as pressed onto the ground rather than lifted off it."
+      },
+      {
+        "name": "press-in",
+        "value": "inset 0 3px 8px -2px rgb(10 24 8 / 0.45)",
+        "purpose": "The only inset in the system. Every text input, so a slot reads as a recess cut into a sign."
+      },
+      {
+        "name": "focus-halo-on-enamel",
+        "value": "0 0 0 calc(var(--line) * 3) var(--hedge)",
+        "purpose": "Painted outside the hazard focus ring on light-ground controls. The ring's width plus its offset plus a stroke of hedge, so both edges of the ring clear 3:1 on enamel."
+      }
     ],
     "motion": [
-      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Arrivals. The default easing for every authored moment except the rosette." },
-      { "name": "ease-gate", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Quintic deceleration for the rosette pin and the phone's press travel. Deliberately not an elastic overshoot — the weight comes from the scale and rotate in the keyframes." },
-      { "name": "t-fast", "value": "160ms", "purpose": "Press travel and hover shifts." },
-      { "name": "t-base", "value": "320ms", "purpose": "The raddle spray, screen arrival, the gate's per-tick interpolation, the countdown's colour change." },
-      { "name": "t-slow", "value": "620ms", "purpose": "Paddocks settling, the rosette pinning, the phone's dye splat." },
-      { "name": "t-run", "value": "900ms", "purpose": "Defined in tokens.css but not referenced by either surface as built." }
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Arrivals. The default easing for every authored moment except the rosette."
+      },
+      {
+        "name": "ease-gate",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Quintic deceleration for the rosette pin and the phone's press travel. Deliberately not an elastic overshoot — the weight comes from the scale and rotate in the keyframes."
+      },
+      {
+        "name": "t-fast",
+        "value": "160ms",
+        "purpose": "Press travel and hover shifts."
+      },
+      {
+        "name": "t-base",
+        "value": "320ms",
+        "purpose": "The raddle spray, screen arrival, the gate's per-tick interpolation, the countdown's colour change."
+      },
+      {
+        "name": "t-slow",
+        "value": "620ms",
+        "purpose": "Paddocks settling, the rosette pinning, the phone's dye splat."
+      },
+      {
+        "name": "t-run",
+        "value": "900ms",
+        "purpose": "Defined in tokens.css but not referenced by either surface as built."
+      }
     ],
     "breakpoints": [
-      { "name": "display-narrow", "value": "900px (or orientation: portrait) — the display stacks its lobby and question rows rather than shrinking type" },
-      { "name": "phone-short", "value": "620px viewport height — the flock sprite and countdown shrink" },
-      { "name": "pen-780", "value": "container pen (max-height: 780px) — the question gives up height so the countdown keeps its room" },
-      { "name": "pen-620", "value": "container pen (max-height: 620px) — the flock is dropped entirely, the rail collapses to one row, the clock label goes to screen readers only" },
-      { "name": "paddock-150", "value": "container (max-height: 150px) — the paddock cell sheds its sheep sprites" },
-      { "name": "paddock-110", "value": "container (max-height: 110px) — the cell sheds player names and steps every size down" },
-      { "name": "paddock-74", "value": "container (max-height: 74px) — the cell sheds its headcount; the field's own area already states it" }
+      {
+        "name": "display-narrow",
+        "value": "900px (or orientation: portrait) — the display stacks its lobby and question rows rather than shrinking type"
+      },
+      {
+        "name": "phone-short",
+        "value": "620px viewport height — the flock sprite and countdown shrink"
+      },
+      {
+        "name": "pen-780",
+        "value": "container pen (max-height: 780px) — the question gives up height so the countdown keeps its room"
+      },
+      {
+        "name": "pen-620",
+        "value": "container pen (max-height: 620px) — the flock is dropped entirely, the rail collapses to one row, the clock label goes to screen readers only"
+      },
+      {
+        "name": "paddock-150",
+        "value": "container (max-height: 150px) — the paddock cell sheds its sheep sprites"
+      },
+      {
+        "name": "paddock-110",
+        "value": "container (max-height: 110px) — the cell sheds player names and steps every size down"
+      },
+      {
+        "name": "paddock-74",
+        "value": "container (max-height: 74px) — the cell sheds its headcount; the field's own area already states it"
+      }
     ]
   },
   "components": [
@@ -315,16 +682,56 @@
       "One authored motion moment per phase, and nothing travels under reduced motion"
     ],
     "rules": [
-      { "name": "The Reserved Rosette Rule", "body": "Tractor red belongs to winning and to nothing else. It is the rosette sprite's fill, the winning paddock's frame, and the leading record row's inset stroke. It is deliberately not used for the current-round pip (which is marked by an enamel fill plus a ring), and not used for form errors (which are painted in earth on pale stubble). If a new element wants red, the answer is earth or hazard.", "section": "colors" },
-      { "name": "The Three Palettes Rule", "body": "Field colour paints regions, hardware paints controls and wells, raddle paints identity. A control never takes a field colour; a field never takes hazard; raddle never appears on anything that is not an identity mark.", "section": "colors" },
-      { "name": "The Never-Hue-Alone Rule", "body": "Group and player identity never rests on colour. A group carries its dye and its position on the map, and its label on a stake, and its headcount, and — for the winner — a rosette, gold stubble ground, a red frame, the largest area, and a visually-hidden 'Scored a point' sentence. A player carries their dye and their name plate. Colour is always the fourth or fifth carrier, never the first.", "section": "colors" },
-      { "name": "The Plated Legend Rule", "body": "Small text never sits directly on grass. Pale growth on pasture computes 2.46:1 at the lit end of the ground gradient, so every legend that carries real content (tallies, provenance, counts, notes) is painted on an ink plate at rgb(18 24 15 / 0.62) first.", "section": "colors" },
-      { "name": "The Downscaled-Display Rule", "body": "Every display-side size is anchored to a vw middle term rather than a fixed rem, because the shared screen is routinely a browser window inside a video call, not a full-bleed television. When the window shrinks, the type shrinks with it and the composition survives; a fixed ramp would either blow out on a 4K panel or overflow in a shared tile. The one place this is overridden explicitly is .legend, whose shared clamp caps at 0.95rem — right for a phone, far too small on a television — so tv.css re-clamps it to clamp(0.8rem, 0.95vw, 1.45rem).", "section": "typography" },
-      { "name": "The Two Voices Rule", "body": "Bricolage says things. Archivo labels and counts. A number never gets the display face; a question never gets the UI face.", "section": "typography" },
-      { "name": "The Length-Tiered Question Rule", "body": "The phone never truncates a question. It tiers the size by character count instead — short (<=34 chars), mid (<=72), long — and if it still will not fit, the sign scrolls internally rather than cutting the text.", "section": "typography" },
-      { "name": "The Reserved Strip Rule", "body": "Anything that can appear must already have its space. The phone reserves --strip (1.5rem) at the top of the pen for the connection notice, reserves 1.15rem for the lock-note line, and gives the send lever and the locked-in confirmation one shared 60px cell — so a socket drop, a status message, or a submitted answer never shifts the layout under a thumb.", "section": "layout" },
-      { "name": "The Ground-Tinted Shadow Rule", "body": "Shadows are rgb(10 24 8 / …) — a dark green — never neutral black or grey. On saturated pasture a grey shadow reads as a smudge.", "section": "elevation" },
-      { "name": "The Hedgerow Rule", "body": "All division is ink. There is no 1px grey rule, no border-color: rgba(…) hairline, and no reliance on a background-colour step to separate two regions. If two things must be distinguished, a hedge goes between them at one of the four weights.", "section": "shapes" }
+      {
+        "name": "The Reserved Rosette Rule",
+        "body": "Tractor red belongs to winning and to nothing else. It is the rosette sprite's fill, the winning paddock's frame, and the leading record row's inset stroke. It is deliberately not used for the current-round pip (which is marked by an enamel fill plus a ring), and not used for form errors (which are painted in earth on pale stubble). If a new element wants red, the answer is earth or hazard.",
+        "section": "colors"
+      },
+      {
+        "name": "The Three Palettes Rule",
+        "body": "Field colour paints regions, hardware paints controls and wells, raddle paints identity. A control never takes a field colour; a field never takes hazard; raddle never appears on anything that is not an identity mark.",
+        "section": "colors"
+      },
+      {
+        "name": "The Never-Hue-Alone Rule",
+        "body": "Group and player identity never rests on colour. A group carries its dye and its position on the map, and its label on a stake, and its headcount, and — for the winner — a rosette, gold stubble ground, a red frame, the largest area, and a visually-hidden 'Scored a point' sentence. A player carries their dye and their name plate. Colour is always the fourth or fifth carrier, never the first.",
+        "section": "colors"
+      },
+      {
+        "name": "The Plated Legend Rule",
+        "body": "Small text never sits directly on grass. Pale growth on pasture computes 2.46:1 at the lit end of the ground gradient, so every legend that carries real content (tallies, provenance, counts, notes) is painted on an ink plate at rgb(18 24 15 / 0.62) first.",
+        "section": "colors"
+      },
+      {
+        "name": "The Downscaled-Display Rule",
+        "body": "Every display-side size is anchored to a vw middle term rather than a fixed rem, because the shared screen is routinely a browser window inside a video call, not a full-bleed television. When the window shrinks, the type shrinks with it and the composition survives; a fixed ramp would either blow out on a 4K panel or overflow in a shared tile. The one place this is overridden explicitly is .legend, whose shared clamp caps at 0.95rem — right for a phone, far too small on a television — so tv.css re-clamps it to clamp(0.8rem, 0.95vw, 1.45rem).",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Voices Rule",
+        "body": "Bricolage says things. Archivo labels and counts. A number never gets the display face; a question never gets the UI face.",
+        "section": "typography"
+      },
+      {
+        "name": "The Length-Tiered Question Rule",
+        "body": "The phone never truncates a question. It tiers the size by character count instead — short (<=34 chars), mid (<=72), long — and if it still will not fit, the sign scrolls internally rather than cutting the text.",
+        "section": "typography"
+      },
+      {
+        "name": "The Reserved Strip Rule",
+        "body": "Anything that can appear must already have its space. The phone reserves --strip (1.5rem) at the top of the pen for the connection notice, reserves 1.15rem for the lock-note line, and gives the send lever and the locked-in confirmation one shared 60px cell — so a socket drop, a status message, or a submitted answer never shifts the layout under a thumb.",
+        "section": "layout"
+      },
+      {
+        "name": "The Ground-Tinted Shadow Rule",
+        "body": "Shadows are rgb(10 24 8 / …) — a dark green — never neutral black or grey. On saturated pasture a grey shadow reads as a smudge.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Hedgerow Rule",
+        "body": "All division is ink. There is no 1px grey rule, no border-color: rgba(…) hairline, and no reliance on a background-colour step to separate two regions. If two things must be distinguished, a hedge goes between them at one of the four weights.",
+        "section": "shapes"
+      }
     ],
     "dos": [
       "Do put every new value in public/shared/tokens.css first, and derive anything not defined there with color-mix() or calc() from something that is. Both surfaces already hold this line.",

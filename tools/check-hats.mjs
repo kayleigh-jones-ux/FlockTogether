@@ -102,6 +102,57 @@ if (ungenerated.length) {
   pass(`all ${HATS.length} selectable hats have an art prompt`);
 }
 
+/* --- placement shape -----------------------------------------------------
+   Pasted in from /admin by hand, so it is worth checking as untrusted input.
+   The dangerous mistake is a misspelled pose: an override under 'sheep-idel'
+   throws no error anywhere, it simply never applies, and the hat quietly keeps
+   the shared placement on the one pose you tuned it for. */
+
+const POSES = ['sheep-idle', 'sheep-happy', 'sheep-confused', 'sheep-running'];
+const FIELDS = { x: [0, 1], y: [0, 1], scale: [0.02, 2], rot: [-180, 180] };
+const FLAGS = ['flip', 'behind'];
+
+let shapeBad = 0;
+const shapeFail = (msg) => { shapeBad += 1; fail(msg); };
+
+for (const [id, entry] of Object.entries(PLACEMENTS)) {
+  if (!HATS.some((h) => h.id === id)) {
+    shapeFail(`placement for "${id}", which is not a hat in look.js`);
+    continue;
+  }
+  const check = (obj, where) => {
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === 'poses') continue;
+      if (FLAGS.includes(key)) {
+        if (typeof value !== 'boolean') shapeFail(`${where}: ${key} should be true or false`);
+        continue;
+      }
+      const range = FIELDS[key];
+      if (!range) { shapeFail(`${where}: unknown field "${key}"`); continue; }
+      if (typeof value !== 'number' || Number.isNaN(value)) {
+        shapeFail(`${where}: ${key} is not a number`);
+      } else if (value < range[0] || value > range[1]) {
+        shapeFail(`${where}: ${key}=${value} is outside ${range[0]}..${range[1]}`);
+      }
+    }
+  };
+  check(entry, id);
+  for (const [pose, override] of Object.entries(entry.poses || {})) {
+    if (!POSES.includes(pose)) {
+      shapeFail(`${id}: override for "${pose}", which is not a pose — it will never apply`);
+      continue;
+    }
+    check(override, `${id}/${pose}`);
+  }
+}
+if (!shapeBad) {
+  const overrides = Object.values(PLACEMENTS).reduce(
+    (n, e) => n + Object.keys(e.poses || {}).length,
+    0,
+  );
+  pass(`every placement is in range, with ${overrides} per-pose overrides`);
+}
+
 /* --- names ---------------------------------------------------------------- */
 
 const unnamed = HATS.filter((h) => !h.name || !h.name.trim());

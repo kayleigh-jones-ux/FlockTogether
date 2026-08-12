@@ -12,42 +12,11 @@ import { QuestionBank } from './questions';
 
 export { Room, QuestionBank };
 
-/* The hat bench changes nothing on the server — it hands you source to paste —
- * so an unguessable address is proportionate protection for it. The question
- * editor is different: it writes state every room then plays from, on a public
- * workers.dev URL. So it takes a token, and it FAILS CLOSED. With no
- * ADMIN_TOKEN set nothing is editable at all, rather than everything being
- * editable by anyone who tries /api/questions.
+/* The question editor writes state every room then plays from, on a public
+ * workers.dev URL. It used to fail closed behind an ADMIN_TOKEN; that gate has
+ * been removed by request, so /api/questions is now open to anyone who reaches
+ * it. Put the token check back (see git history) if this URL ever leaks.
  */
-function authorise(request: Request, env: Env): Response | null {
-  const expected = env.ADMIN_TOKEN;
-  if (!expected) {
-    return Response.json(
-      {
-        error: 'No ADMIN_TOKEN is set, so the question editor is locked.',
-        fix: 'npx wrangler secret put ADMIN_TOKEN',
-      },
-      { status: 503 },
-    );
-  }
-  const header = request.headers.get('Authorization') ?? '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-
-  /* Compared in constant time. The difference is unmeasurable over the public
-     internet, but a token check that returns early on the first wrong byte is
-     the kind of thing that gets copied into somewhere it does matter. */
-  if (!safeEqual(token, expected)) {
-    return Response.json({ error: 'Wrong or missing token.' }, { status: 401 });
-  }
-  return null;
-}
-
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
 
 /* Codes are read aloud off a TV and typed on a phone in a dim room, so the
    alphabet drops every glyph that gets misread: no O, 0, I, 1 or L. */
@@ -145,9 +114,6 @@ export default {
 
     /* --- the question bank --------------------------------------------- */
     if (url.pathname === '/api/questions') {
-      const denied = authorise(request, env);
-      if (denied) return denied;
-
       const bank = env.QUESTIONS.getByName('bank');
 
       if (request.method === 'GET') {

@@ -1,9 +1,8 @@
 /* Exercises the question bank API against a running Worker.
-   Usage: node tools/smoke-questions.mjs http://127.0.0.1:8787 <token>
-   The token must match ADMIN_TOKEN wherever the Worker is running. */
+   Usage: node tools/smoke-questions.mjs http://127.0.0.1:8787
+   The admin token was removed, so /api/questions is open — no token needed. */
 
 const BASE = (process.argv[2] || 'http://127.0.0.1:8787').replace(/\/$/, '');
-const TOKEN = process.argv[3] || '';
 
 let bad = 0;
 const chk = (name, cond, extra = '') => {
@@ -14,10 +13,7 @@ const chk = (name, cond, extra = '') => {
 const call = (init = {}) =>
   fetch(BASE + '/api/questions' + (init.query || ''), {
     method: init.method || 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init.token === null ? {} : { Authorization: `Bearer ${init.token ?? TOKEN}` }),
-    },
+    headers: { 'Content-Type': 'application/json' },
     ...(init.body ? { body: JSON.stringify(init.body) } : {}),
   });
 
@@ -26,19 +22,9 @@ const page = await fetch(BASE + '/admin/questions');
 const html = await page.text();
 chk('/admin/questions serves the editor', page.ok && html.includes('id="qlist"'), String(page.status));
 
-/* --- the gate ------------------------------------------------------------ */
-const noAuth = await call({ token: null });
-chk('no token is refused', noAuth.status === 401 || noAuth.status === 503, String(noAuth.status));
-
-const wrong = await call({ token: 'definitely-not-the-token' });
-chk('a wrong token is refused', wrong.status === 401 || wrong.status === 503, String(wrong.status));
-
-if (noAuth.status === 503) {
-  const body = await noAuth.json();
-  console.log('\nADMIN_TOKEN is not set on this Worker, so it is locked — which is the');
-  console.log('correct default. It told us how to fix it:', body.fix);
-  process.exit(bad ? 1 : 0);
-}
+/* --- open access ---------------------------------------------------------- */
+const noAuth = await call();
+chk('the bank reads without any token', noAuth.ok, String(noAuth.status));
 
 /* --- reading -------------------------------------------------------------- */
 const list = await call();

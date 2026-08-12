@@ -1,37 +1,22 @@
 /* The question editor.
  *
  * Unlike the hat bench this one writes: every room draws from the bank it
- * saves. So it holds a token, it asks before destroying anything, and it warns
- * before you navigate away from unsaved work — the three things that separate
- * an editor from a viewer.
+ * saves. So it asks before destroying anything, and it warns before you
+ * navigate away from unsaved work — the two things that separate an editor
+ * from a viewer. The admin token was removed by request, so it opens straight
+ * into the editor.
  */
 
 const $ = (id) => document.getElementById(id);
-const TOKEN_KEY = 'flock.admin.token';
 const WARN_AT = 70; // characters; the display's comfortable ceiling
 
-let token = '';
 let dirty = false;
 let seedSize = 0;
-
-/* Storage can throw outright in a locked-down browser, and losing the token is
-   a re-type, not a failure worth taking the page down for. */
-const store = {
-  read() {
-    try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; }
-  },
-  write(v) {
-    try { sessionStorage.setItem(TOKEN_KEY, v); } catch { /* ignore */ }
-  },
-  drop() {
-    try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
-  },
-};
 
 const api = (init = {}) =>
   fetch('/api/questions' + (init.query || ''), {
     method: init.method || 'GET',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     ...(init.body ? { body: JSON.stringify(init.body) } : {}),
   });
 
@@ -158,22 +143,6 @@ async function save() {
 
 /* --- wiring -------------------------------------------------------------- */
 
-$('gate').addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  token = $('token').value.trim();
-  $('gate-err').textContent = '';
-  if (!token) { $('gate-err').textContent = 'Paste the token first.'; return; }
-  try {
-    await load();
-    store.write(token);
-    $('gate').hidden = true;
-    $('editor').hidden = false;
-  } catch (err) {
-    store.drop();
-    $('gate-err').textContent = String(err.message || err);
-  }
-});
-
 $('add').addEventListener('click', () => {
   const row = addRow({ id: '', text: '', seconds: null, enabled: true }, { focus: true });
   row.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -210,11 +179,9 @@ window.addEventListener('beforeunload', (ev) => {
   ev.returnValue = '';
 });
 
-/* A token already in this tab means straight in. */
-const saved = store.read();
-if (saved) {
-  token = saved;
-  load()
-    .then(() => { $('gate').hidden = true; $('editor').hidden = false; })
-    .catch(() => { store.drop(); token = ''; });
-}
+/* No gate any more — open straight into the editor. The editor must be visible
+   BEFORE load() adds the rows: each question textarea auto-sizes to its
+   scrollHeight, and a display:none element reports 0, which would collapse every
+   row's text to zero height (it is clipped by .q-text overflow:hidden). */
+$('editor').hidden = false;
+load().catch((e) => say(String(e.message || e), true));

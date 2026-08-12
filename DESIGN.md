@@ -77,6 +77,14 @@ typography:
     fontWeight: 800
     lineHeight: 1.03
     letterSpacing: "-0.032em"
+  numerals-compact:
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "clamp(2.1rem, 11vw, 2.8rem)"
+    fontWeight: 900
+    lineHeight: 0.86
+    letterSpacing: "-0.03em"
+    fontVariation: "font-stretch: 125%"
+    fontFeature: "tabular-nums lining-nums"
   question-short:
     fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
     fontSize: "clamp(1.9rem, 9.5vw, 2.7rem)"

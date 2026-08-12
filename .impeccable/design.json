@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-12T00:35:21.023Z",
+  "generatedAt": "2026-08-12T00:36:46.191Z",
   "title": "Design System: Flock Together",
   "extensions": {
     "colorMeta": {
@@ -407,6 +407,10 @@
       "question": {
         "displayName": "Question",
         "purpose": "The question itself, set as large as the display allows."
+      },
+      "numerals-compact": {
+        "displayName": "Numerals compact",
+        "purpose": "The countdown on a phone under 620px tall, where the full numerals step would push the question off the screen."
       },
       "question-short": {
         "displayName": "Question short",

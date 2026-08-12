@@ -286,6 +286,25 @@
   filter: drop-shadow(0 4px 5px rgb(10 24 8 / 0.42));
 }
 
+/* Who has answered, without a single moving pixel.
+ *
+ * This used to be a dye mark animated onto the fleece, which flashed: the
+ * waiting flock is rewritten through innerHTML every time anyone answers, so
+ * every mark already on screen replayed at once, several times a round. The
+ * state is static now — a sheep still waiting is held back, and answering
+ * brings it forward — so repainting the list a hundred times looks identical
+ * to painting it once.
+ *
+ * Scoped to the waiting flock on purpose. In the lobby nobody has answered and
+ * nothing should be dimmed. */
+.flock--waiting .sheep[data-marked='false'] .sheep__art {
+  opacity: 0.45;
+}
+
+.flock--waiting .sheep[data-marked='false'] .sheep__name {
+  opacity: 0.6;
+}
+
 /* The ink outline is the only thing holding a fleece apart from the field
    behind it, and it stops doing that when the fleece is nearly as dark as the
    ink itself — the deep band of the palette measures around 2:1 against
@@ -393,35 +412,14 @@
   margin-top: var(--s-4);
 }
 
-/* The gate: an aerial view, so it swings in the plane of the screen on its
-   hinge post. Angle is driven from the clock by tv.js. */
-.gate {
-  position: absolute;
-  inset-inline: clamp(var(--s-4), 4vw, var(--s-8));
-  inset-block-end: 0;
-  block-size: clamp(46px, 7vh, 82px);
-  pointer-events: none;
-}
+/* The gate that swung shut across the round is gone, and with it .gate,
+   .gate__post and .gate__leaf. It was driven from the countdown, which only
+   fires on whole seconds: the angle stepped roughly 1.7 degrees once a second
+   and the rotate transition ratcheted through every step, so the closer the
+   round got to the wire the more it read as a rendering fault. The numeric
+   clock was already carrying the time, and it carries it alone now.
 
-.gate__post {
-  position: absolute;
-  inset-block: -6px auto;
-  inset-inline-start: -7px;
-  inline-size: 14px;
-  block-size: calc(100% + 12px);
-  background: var(--steel-dark);
-  border: var(--line-hair) solid var(--hedge);
-  border-radius: 3px;
-}
-
-.gate__leaf {
-  inline-size: 100%;
-  block-size: 100%;
-  transform-origin: 0% 50%;
-  rotate: calc(var(--gate-open, 1) * -76deg);
-  transition: rotate var(--t-base) linear;
-  filter: drop-shadow(0 6px 8px rgb(10 24 8 / 0.5));
-}
+   The `.gatesign` header and `--ease-gate` are unrelated and still in use. */
 
 /* --- GROUPING ---------------------------------------------------------- */
 
@@ -600,18 +598,12 @@
   color: var(--hedge);
 }
 
-/* Same two properties as the flock: fleece from the player, dye from the field
-   they ended up in. Here the dye is always shown — being in a paddock at all is
-   what it records — so the raddle layer is simply on, with no mark animation to
-   replay every time the map re-renders. */
+/* Fleece from the player. Which field they ended up in is carried by the
+   paddock around them — its tint, its label and its headcount — so the sheep
+   no longer wears a dye mark to say it twice at 18px. */
 .pad-sheep__art {
   inline-size: clamp(18px, 1.7vw, 34px);
   flex: 0 0 auto;
-  --raddle: var(--tint);
-}
-
-.pad-sheep__art .sheepart__raddle {
-  opacity: 1;
 }
 
 /* A deep fleece on a deep tint, at the size a paddock sheep actually renders,
@@ -871,6 +863,67 @@
   translate: 5px 0;
 }
 
+/* --- Host control: the question set ------------------------------------
+   A small enamel-signed control, on the same ink plate as the lobby notes so
+   it reads as host chrome rather than part of the flock. */
+.setpick {
+  align-self: flex-start;
+  display: grid;
+  gap: var(--s-2);
+  max-inline-size: min(100%, 460px);
+  padding: var(--s-3);
+  background: rgb(18 24 15 / 0.55);
+  border-radius: 3px;
+}
+
+.setpick__label { color: var(--stubble-pale); }
+
+.setpick__row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: stretch; }
+
+.setpick__input {
+  inline-size: 7.5rem;
+  font-family: var(--face-ui);
+  font-weight: 800;
+  font-size: clamp(1rem, 1.3vw, 1.4rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--hedge);
+  background: var(--enamel);
+  border: var(--line) solid var(--hedge);
+  border-radius: 2px;
+  padding: var(--s-2);
+}
+
+.setpick__input::placeholder {
+  color: color-mix(in oklab, var(--hedge) 42%, var(--enamel));
+  letter-spacing: 0.1em;
+}
+
+.setpick__btn {
+  padding: var(--s-2) var(--s-4);
+  background: var(--hedge);
+  color: var(--enamel);
+  border: var(--line) solid var(--hedge);
+  border-radius: 2px;
+  font-family: var(--face-ui);
+  font-weight: 700;
+  font-size: clamp(0.82rem, 1vw, 1.2rem);
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease-out-expo);
+}
+
+.setpick__btn:hover { background: color-mix(in oklab, var(--hedge) 82%, var(--enamel)); }
+
+.setpick__btn--clear { background: transparent; color: var(--stubble-pale); }
+.setpick__btn--clear[hidden] { display: none; }
+
+.setpick__status {
+  color: var(--stubble-pale);
+  font-weight: 600;
+  font-size: clamp(0.78rem, 1vw, 1.2rem);
+}
+
 /* --- Connection notice ------------------------------------------------- */
 
 .link {
@@ -926,13 +979,10 @@
 
 }
 
-/* Reduced motion: nothing travels. The gate is drawn already shut, the
-   paddocks are drawn already settled, the dog holds still. */
+/* Reduced motion: nothing travels. The paddocks are drawn already settled and
+   the dog holds still. The flock needs no rule here — mark state is static for
+   everyone now, moving or not. */
 @media (prefers-reduced-motion: reduce) {
-  .gate__leaf {
-    transition: none;
-  }
-
   .working__dog {
     animation: none;
   }

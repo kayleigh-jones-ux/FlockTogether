@@ -28,9 +28,11 @@
   FIRST VIEWPORT: Hazard-yellow gate sign across the top carrying the name, the
   room code as a lot number and a nine-paddock rotation strip. Beneath it one
   open field: during a question the question stands mid-field on an enamel
-  stake, monumental figures count down beside a five-bar gate swinging shut on
-  its hinge, and the flock waits as one sheep per player, fleece plain until
-  their answer sprays a raddle mark on it.
+  stake, monumental figures count down beside it, and the flock waits as one
+  sheep per player — held back until their answer lands, and brought forward
+  when it does. (The swinging gate and the sprayed raddle mark were both cut:
+  each was driven off a once-a-second tick or an innerHTML repaint, and both
+  read as flicker rather than motion. Nothing in the flock moves now.)
   FORM: Paddock Rotation, candidate 7 of the ordered list, seed key 75aaed95.
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
 -->
@@ -67,6 +69,20 @@
       <h2 class="headline" data-bind="lobbyHeadline">Waiting for the flock</h2>
       <p class="lobbyflock__note legend" data-bind="lobbyNote">Two sheep needed to open the gate</p>
       <ul class="flock flock--lobby" data-bind="lobbyFlock"></ul>
+
+      <!-- Which questions this game draws from. Empty = the full bank; a 6-char
+           set code narrows it to that custom set. -->
+      <div class="setpick">
+        <label class="legend setpick__label" for="pack-code">Question set</label>
+        <div class="setpick__row">
+          <input class="setpick__input" id="pack-code" type="text" inputmode="latin"
+                 autocomplete="off" spellcheck="false" maxlength="6" placeholder="CODE">
+          <button class="setpick__btn" type="button" data-action="pack-apply">Use set</button>
+          <button class="setpick__btn setpick__btn--clear" type="button" data-action="pack-clear" hidden>Full bank</button>
+        </div>
+        <p class="setpick__status" data-bind="packStatus">Using the full question bank</p>
+      </div>
+
       <button class="latch" type="button" data-action="start" disabled>
         <span class="latch__bar"></span>
         <span class="latch__text">Open the gate</span>
@@ -92,10 +108,11 @@
 
     <ul class="flock flock--waiting" data-bind="waitingFlock"></ul>
 
-    <div class="gate" data-bind="gate" aria-hidden="true">
-      <span class="gate__post"></span>
-      <svg class="gate__leaf" viewBox="0 0 168 104" preserveAspectRatio="none"><use href="#sp-gate"/></svg>
-    </div>
+    <!-- The swinging gate that used to close across the round has been removed.
+         The countdown only ticks on whole seconds, so its angle jumped about
+         1.7 degrees once a second and the rotate transition ratcheted through
+         each step — it read as a glitch rather than a gate. The clock above
+         carries the time. -->
   </section>
 
   <!-- GROUPING ---------------------------------------------------------- -->

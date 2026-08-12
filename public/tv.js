@@ -6,7 +6,7 @@
    ========================================================================== */
 
 import { connect, loadSprites, countdown } from '/shared/net.js';
-import { raddleVar, raddleVarForRank } from '/shared/raddle.js';
+import { raddleVarForRank } from '/shared/raddle.js';
 import { colourById, hatById, colourToken } from '/shared/look.js';
 import { loadArt, headroomFor, sheepArtHTML } from '/shared/sheep-art.js';
 
@@ -20,10 +20,16 @@ const el = {
     [...document.querySelectorAll('[data-scene]')].map((n) => [n.dataset.scene, n]),
   ),
   clock: $('.clock'),
-  gate: bind('gate'),
   startBtn: document.querySelector('[data-action="start"]'),
+  packInput: document.getElementById('pack-code'),
+  packApply: document.querySelector('[data-action="pack-apply"]'),
+  packClear: document.querySelector('[data-action="pack-clear"]'),
   link: bind('link'),
 };
+
+/* The set-code alphabet, matched to the server: no O, 0, I, 1 or L. */
+const PACK_ALPHABET = /[^ABCDEFGHJKMNPQRSTUVWXYZ23456789]/g;
+const sanitizePack = (v) => String(v || '').toUpperCase().replace(PACK_ALPHABET, '').slice(0, 6);
 
 let latest = null;
 let stopClock = null;
@@ -134,7 +140,7 @@ function sheepArt(cls, look, headroom, marked) {
 function sheepMarkup(p, { marked, headroom }) {
   const look = lookOf(p);
   return `
-    <li class="sheep" style="--raddle:${raddleVar(p.id)};${fleeceStyle(look)}"
+    <li class="sheep" style="${fleeceStyle(look)}"
         data-marked="${marked ? 'true' : 'false'}"
         data-deep="${fleeceNeedsRim(look && look.colour) ? 'true' : 'false'}"
         data-connected="${p.connected === false ? 'false' : 'true'}">
@@ -216,6 +222,7 @@ function renderLobby(s) {
   el.startBtn.disabled = !ready;
 
   renderChoosing(s);
+  renderPack(s);
 
   const headroom = headroomOf(s.players.map(lookOf));
   setHTML(
@@ -250,6 +257,24 @@ function renderChoosing(s) {
   }
 }
 
+/* Which question set the next game will draw from. The pack rides on every
+   frame, but only the lobby shows it — the input has no meaning once the gate
+   is open. The input value is never written from state, so a host mid-type is
+   never interrupted; only the status line and the clear button reflect the
+   server's answer. */
+function renderPack(s) {
+  const pack = s.pack || null;
+  if (pack) {
+    text(
+      bind('packStatus'),
+      `Set “${pack.name}” — ${pack.size} ${pack.size === 1 ? 'question' : 'questions'}`,
+    );
+  } else {
+    text(bind('packStatus'), 'Using the full question bank');
+  }
+  if (el.packClear) el.packClear.hidden = !pack;
+}
+
 /* --- Question ----------------------------------------------------------- */
 
 function renderQuestion(s) {
@@ -268,26 +293,19 @@ function renderQuestion(s) {
   startClock(s);
 }
 
-/* Honoured in JS as well as CSS: killing only the CSS transition would leave
-   the gate stepping ~76deg/N across the screen once a second, which is motion,
-   just uninterpolated. Under reduced motion the gate is simply drawn shut. */
-const stillness = window.matchMedia('(prefers-reduced-motion: reduce)');
-
+/* The gate that swung shut across the round used to be driven from here. It is
+   gone: countdown() only calls back when the whole second changes, so the angle
+   moved in one jump per second and the CSS transition ratcheted through each
+   one. Nothing is left to interpolate — the clock is a number, and a number
+   changing once a second is exactly right. */
 function startClock(s) {
   if (stopClock) stopClock();
   stopClock = null;
   if (!s.endsAt) return;
 
-  const total = Math.max(1, s.endsAt - Date.now());
-  if (stillness.matches) el.gate.style.setProperty('--gate-open', '0');
-
-  stopClock = countdown(s.endsAt, (whole, msLeft) => {
+  stopClock = countdown(s.endsAt, (whole) => {
     text(bind('seconds'), whole);
     el.clock.dataset.state = whole <= 10 ? 'urgent' : 'calm';
-    if (stillness.matches) return;
-    /* The gate closes across the round: 1 = wide open, 0 = shut. */
-    const openness = Math.max(0, Math.min(1, msLeft / total));
-    el.gate.style.setProperty('--gate-open', openness.toFixed(3));
   });
 }
 
@@ -575,6 +593,12 @@ const net = connect({
         render(frame);
         break;
       case 'error':
+        /* A bad set code is a lobby-local problem: say so on the set line and
+           leave the room alone, rather than raising the connection banner. */
+        if (frame.code === 'PACK_NOT_FOUND') {
+          text(bind('packStatus'), frame.message || 'No set with that code.');
+          break;
+        }
         /* The room we were resuming is genuinely gone — the server restarted,
            or it was swept while empty. Forget it and open a fresh paddock
            rather than sitting on a dead code. */
@@ -605,6 +629,29 @@ el.startBtn.addEventListener('click', () => {
   el.startBtn.disabled = true;
   net.send({ t: 'host.start' });
 });
+
+/* Arming a custom set. The server validates the code and echoes the resolved
+   set back on the next state frame; a miss comes back as PACK_NOT_FOUND. */
+if (el.packInput) {
+  el.packInput.addEventListener('input', () => {
+    const clean = sanitizePack(el.packInput.value);
+    if (el.packInput.value !== clean) el.packInput.value = clean;
+  });
+  el.packInput.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); el.packApply.click(); }
+  });
+}
+if (el.packApply) {
+  el.packApply.addEventListener('click', () => {
+    net.send({ t: 'host.pack', code: sanitizePack(el.packInput.value) });
+  });
+}
+if (el.packClear) {
+  el.packClear.addEventListener('click', () => {
+    el.packInput.value = '';
+    net.send({ t: 'host.pack', code: '' });
+  });
+}
 
 /* A host leaving the tab open all evening should not accumulate timers. */
 window.addEventListener('pagehide', () => {

@@ -50,28 +50,17 @@
   pointer-events: none;
 }
 
-/* The raddle blotch on the flank. Opaque rather than multiplied, because it is
-   the one thing that must read on a black fleece as clearly as on a white one —
-   real raddle is a dye stick, and it covers. Masked all the same, so it can
-   never spray past the wool onto the face or the field.
-
-   Invisible until marked: this is the authored moment of the question phase. */
-.sheepart__raddle {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  opacity: 0;
-  background: radial-gradient(
-    ellipse 11% 13% at 33% 48%,
-    var(--raddle, transparent) 0 62%,
-    transparent 74%
-  );
-  -webkit-mask-image: var(--fleece-mask);
-  mask-image: var(--fleece-mask);
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  pointer-events: none;
-}
+/* There is deliberately no raddle layer here.
+ *
+ * The SVG sheep carried a dye blotch animated onto the fleece when an answer
+ * landed, and the art sheep reproduced it as a masked ellipse. On the display
+ * that read as flashing dots, because the flock is repainted through innerHTML
+ * whenever anyone answers: every sheep is destroyed and rebuilt, and a CSS
+ * animation restarts on a freshly created element, so every mark on screen
+ * replayed at once on every submission. Who has answered is shown by the
+ * waiting flock itself now (see tv.css) — a static difference that cannot
+ * flash however often the list is rewritten.
+ */
 
 .sheepart__hat {
   position: absolute;
@@ -82,27 +71,9 @@
   pointer-events: none;
 }
 
-/* The mark landing. Scale on the animal, the dye fading up on top of it. */
-.sheepart[data-marked='true'] .sheepart__box {
-  animation: sheepart-jolt var(--t-base, 320ms) var(--ease-out-expo, ease-out) both;
-}
-
-.sheepart[data-marked='true'] .sheepart__raddle {
-  animation: sheepart-spray var(--t-base, 320ms) var(--ease-out-expo, ease-out) both;
-}
-
-@keyframes sheepart-jolt {
-  0%   { scale: 1; }
-  60%  { scale: 1.06; }
-  100% { scale: 1; }
-}
-
-@keyframes sheepart-spray {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sheepart[data-marked='true'] .sheepart__box { animation: none; }
-  .sheepart[data-marked='true'] .sheepart__raddle { animation: none; opacity: 1; }
-}
+/* Nothing here animates on `data-marked`, and nothing should. A sheep in the
+   flock is rebuilt from scratch every time any player answers, so any keyframe
+   hung off that attribute plays again on every rebuild — for every sheep at
+   once, not just the one whose state changed. Mark state is carried by static
+   properties only; if this needs a transition later, the flock has to stop
+   being repainted through innerHTML first. */

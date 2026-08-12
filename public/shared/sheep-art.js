@@ -14,7 +14,6 @@
  *   sheep    the pose itself, straight off /art/<pose>.png
  *   fleece   the player's colour, multiplied through <pose>-fleece.png so it
  *            lands on wool and nowhere else — the face and legs stay grey
- *   raddle   the dye mark, sprayed on when an answer lands
  *   hat      everything else, placed from placementFor(hatId, pose)
  *
  * Everything is sized in PERCENTAGES of the box rather than pixels, because a
@@ -125,7 +124,9 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => `&${{ '&': 'amp', '<': 'l
  * @param {string} [o.hatId]     '' for a bare sheep
  * @param {string} [o.className] extra classes on the outer element
  * @param {number} [o.headroom]  fraction of width to reserve above, from headroomFor
- * @param {boolean} [o.marked]   the raddle mark has landed on this one
+ * @param {boolean} [o.marked]   this player's answer is in; styled statically
+ *                               by the surface, never animated (see the note
+ *                               about repainting in sheep-art.css)
  * @param {string} [o.alt]       accessible name; omitted means decorative
  */
 export function sheepArtHTML({
@@ -139,7 +140,6 @@ export function sheepArtHTML({
   }><span class="sheepart__box" style="--fleece-mask:url('${resolve(`${pose}-fleece`)}')"
     ><img class="sheepart__body" src="${resolve(pose)}" alt="" draggable="false"
     ><span class="sheepart__fleece"></span
-    ><span class="sheepart__raddle"></span
     >${hat}</span></span>`;
 }
 

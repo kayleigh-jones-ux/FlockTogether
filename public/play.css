@@ -819,9 +819,8 @@ body {
   50% { box-shadow: var(--press-in), 0 0 0 var(--line-bold) var(--tractor-red); }
 }
 
-/* The player's own sheep. The raddle path inside the sprite is
-   fill="currentColor", so `color` is the whole mechanism: transparent until
-   the answer lands, then sprayed. */
+/* The player's own sheep, and the ground the mark bloom is positioned
+   against — hence position: relative. */
 .flank {
   position: relative;
   display: grid;
@@ -834,21 +833,17 @@ body {
   /* On a short phone the flock shrinks rather than the send lever getting
      squeezed off the bottom. The art keeps the sheep in proportion. */
   max-height: 100%;
-  --raddle: var(--mark);
 }
 
-/* The dye landing on the wool. The layer and the keyframes are shared with the
-   display in shared/sheep-art.css; only the timing is this surface's, because
-   here the mark is the answer committing and it is allowed to take longer. */
-.flank.marked .sheep .sheepart__box {
-  animation: sheepart-jolt var(--t-slow) var(--ease-gate) both;
-}
+/* Nothing is sprayed onto the fleece here either — the dye layer is gone from
+   shared/sheep-art.css, so this surface and the display cannot disagree about
+   what a marked sheep looks like. The bloom below is the whole moment now, and
+   it is enough: this phone shows one sheep, the player just pressed send, and
+   they are looking straight at it. */
 
-.flank.marked .sheep .sheepart__raddle {
-  animation: sheepart-spray var(--t-slow) var(--ease-gate) both;
-}
-
-/* A soft radial bloom behind the fleece, standing in for the dye mark. */
+/* A soft radial bloom over the fleece, standing in for the dye mark. It plays
+   once, on the player's own action, on an element nothing repaints — which is
+   why it never had the flicker the display's mark did. */
 .flank::after {
   content: '';
   position: absolute;
@@ -1099,10 +1094,7 @@ body {
   .latch[disabled] { transform: none; }
   .screen.is-on { animation: none; }
   .dog { animation: none; }
-  /* The mark is drawn on rather than travelling onto the fleece: the dye is
-     already there, and the bloom that carried it never happens. */
-  .flank.marked .sheep .sheepart__box { animation: none; }
-  .flank.marked .sheep .sheepart__raddle { animation: none; opacity: 1; }
+  /* The bloom that carried the mark never happens. */
   .flank.marked::after { animation: none; opacity: 0; }
   .rosette { animation: none; }
   .screen--question.urgent .slate {

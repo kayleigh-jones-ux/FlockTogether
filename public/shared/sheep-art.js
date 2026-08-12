@@ -165,7 +165,24 @@ export function paintSheepArt(host, { pose = DEFAULT_POSE, hatId = '', headroom 
     host.dataset.pose = pose;
     const body = host.querySelector('.sheepart__body');
     const box = host.querySelector('.sheepart__box');
-    if (body) body.src = resolve(pose);
+    if (body) {
+      /* The mask below is swapped in this same branch, and it takes effect at
+         once. The body's HEIGHT does not: it comes from the PNG's intrinsic
+         size, and a src that has only just been assigned has none until it
+         decodes. The box collapses to zero for
+         those frames and the fleece, which is inset:0 against it, is stretched
+         over nothing; when the art does land the sheep pops into place. The
+         poses are not the same shape either — idle is 448x396 and confused is
+         448x428 — so the jump is real and not a rounding step.
+
+         Declaring the ratio makes the box the right height on the same frame the
+         pose changes, so the mask and the body are never a different shape from
+         each other. Only when the manifest actually knows this pose: without it
+         aspectOf() answers 1 for everything, and a square sheep is worse than a
+         late one. */
+      if (ASSETS[pose]) body.style.aspectRatio = String(aspectOf(pose));
+      body.src = resolve(pose);
+    }
     if (box) box.style.setProperty('--fleece-mask', `url('${resolve(`${pose}-fleece`)}')`);
   }
 

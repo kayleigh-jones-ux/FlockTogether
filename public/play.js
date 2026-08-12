@@ -112,6 +112,9 @@ const el = {
   scoresSub: $('scores-sub'),
   scoresNote: $('scores-note'),
   scoresGo: $('scores-go'),
+  rematch: $('rematch'),
+  againGo: $('again-go'),
+  newgameGo: $('newgame-go'),
 };
 
 const screens = {
@@ -1455,6 +1458,28 @@ el.lobbyGo.addEventListener('click', () => release('lobby'));
 el.revealGo.addEventListener('click', () => release('reveal'));
 el.scoresGo.addEventListener('click', () => release('scores'));
 
+/* The two endings. Both are host-only and both are refused anywhere but the
+   final scoreboard, so the server answers a stale tap with silence rather than
+   an error — which is why these disable themselves on the tap and wait for the
+   state frame to tell them what happened, rather than waiting for a reply that
+   is never coming. */
+function endGame(frame, saying) {
+  if (!net || !isHost()) return;
+  if (!net.send(frame)) {
+    lookNote('That did not send — you dropped off for a moment. Try again.', true, true);
+    return;
+  }
+  el.againGo.disabled = true;
+  el.newgameGo.disabled = true;
+  setText(el.scoresNote, saying);
+}
+
+el.againGo.addEventListener('click', () =>
+  endGame({ t: 'player.again' }, 'Rounding them up for another go…'));
+
+el.newgameGo.addEventListener('click', () =>
+  endGame({ t: 'player.newgame' }, 'Opening a fresh paddock…'));
+
 /* ------------------------------------------------------------------ countdown */
 
 function startClock(endsAt) {
@@ -1746,6 +1771,19 @@ function renderScores(you) {
   const place = Number(you.rank) || players.filter((p) => (p.score || 0) > mine).length + 1;
 
   screens.scores.dataset.final = isFinal ? 'true' : 'false';
+
+  /* The evening is over and this phone is the one holding the controls. Shown
+     only at the final board: mid-game scoreboards have a Continue, and the two
+     are different jobs — one moves the game on, these two end it. Re-enabled on
+     every final frame, so a tap that did not take (a dropped socket, a frame
+     that crossed the room changing hands) leaves a working button rather than a
+     dead one. */
+  const canEnd = isFinal && isHost();
+  show(el.rematch, canEnd);
+  if (canEnd) {
+    el.againGo.disabled = false;
+    el.newgameGo.disabled = false;
+  }
   setText(el.bigScore, String(mine));
   setText(el.scoreUnit, plural(mine, 'point', 'points'));
 
@@ -1783,6 +1821,36 @@ function renderScores(you) {
 
 function onFrame(frame) {
   if (!frame || typeof frame.t !== 'string') return;
+
+  /* This paddock has been packed up and a new one is open. The server sends
+     this and then closes the socket, so net.js will reconnect on its own — the
+     job here is to make sure it reconnects to the RIGHT place. Everything tying
+     this phone to the old paddock has to go: the remembered room, the playerId
+     and the rejoin token are all worthless in a paddock that never issued them,
+     and a phone that keeps them spends the next game trying to rejoin a room
+     that answers ROOM_NOT_FOUND.
+
+     The new code is offered rather than joined. Kayleigh chose "a brand new
+     paddock" knowing everyone rescans, and a phone that silently teleported
+     itself into a game its owner has not looked at yet would be a worse
+     surprise than a screen saying where to go. */
+  if (frame.t === 'room.closed') {
+    /* forgetIdentity() is the existing way to stop being somebody here: it
+       drops the stored id and token, the saved answer, the look and the picker
+       state. The room goes with it, because the code we were remembering is the
+       one that just closed. */
+    forgetIdentity();
+    me.room = '';
+    joinState = 'out';
+    state = null;
+    setScreen('join');
+    setJoinError(
+      frame.next
+        ? `That game is finished. The next paddock is ${sanitizeCode(frame.next)} — scan the code on the big screen.`
+        : 'That game is finished. Scan the code on the big screen to join the next one.',
+    );
+    return;
+  }
 
   if (frame.t === 'joined') {
     clearTimeout(handshakeTimer);

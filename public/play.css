@@ -900,23 +900,52 @@ body {
 }
 
 /* ------------------------------------------------------------ the host badge
-   A hazard-painted tag pinned to the fleece, not a caption floating near it:
-   it sits ON the animal, tilted the way a stuck-on tag sits, and carries the
-   same ink edge and lift every other piece of hardware here does. Nothing
-   about it moves — the flock reads as marked or not, never as flashing. */
+   A hazard-painted tag, tilted the way a stuck-on tag sits, carrying the same
+   ink edge and lift every other piece of hardware here does. Nothing about it
+   moves — the flock reads as marked or not, never as flashing.
+
+   IT STANDS ABOVE THE ANIMAL, AND CLEAR OF ITS HAT.
+   It used to be `position: absolute; top: 58%`, which laid a hazard-yellow
+   plate across the back of the one sheep on this screen — the player's own,
+   the fleece and hat they have just spent the picker choosing. A label that
+   covers the thing it labels is not a label.
+
+   A row of its own is what clears the HAT and not merely the body, and it does
+   it without a number anyone has to keep up to date: --art-headroom is padding
+   INSIDE .sheepart (shared/sheep-art.css), so the crown of a ten-gallon —
+   26.7% of the sheep's width above the animal's own box — is already inside
+   row 2. Whatever hat is worn, and whatever headroomFor() measured for it, the
+   badge is above all of it. Reserving clearance here in pixels instead would be
+   the same measurement made twice, and the copy would be wrong the first time a
+   taller hat is drawn. The display reasons this out identically — see
+   .sheep__host in tv.css.
+
+   The clear space is a margin on the badge and not a grid `gap`, because a gap
+   is spent between two rows whether or not the first one has anything in it:
+   every phone that is not the host's has [hidden] on the badge, and a gap would
+   push their sheep down a line for a tag they cannot see. */
 
 .hostmark {
-  position: relative;
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: auto;
+  justify-items: center;
   flex: none;
 }
 
+.hostmark > .sheepart {
+  grid-row: 2;
+}
+
 .hostmark-badge {
-  position: absolute;
-  left: 50%;
-  top: 58%;
+  grid-row: 1;
+  /* The clear space Kayleigh asked for, and it is --s-2 rather than --s-1
+     because the tilt spends most of one step on its own: the -5deg drops the
+     tag's low corner about 2.3px below where the flat tag ends, so a 4px margin
+     measured out as 1.7px of daylight above the crown of a ten-gallon — clear,
+     but not readably clear. */
+  margin-bottom: var(--s-2);
   /* Tracking is tightened from the silkscreen default so four letters stay
-     inside the sheep they are pinned to at the size the lobby draws it. */
+     as compact as the sheep they belong to at the size the lobby draws it. */
   letter-spacing: 0.06em;
   padding: 0 var(--s-1);
   background: var(--hazard);
@@ -925,7 +954,7 @@ body {
   border-radius: var(--radius-sign);
   box-shadow: var(--lift-token);
   white-space: nowrap;
-  transform: translate(-50%, -50%) rotate(-5deg);
+  transform: rotate(-5deg);
   pointer-events: none;
 }
 
@@ -1575,4 +1604,19 @@ body {
      have to shrink together or the gap closes and it starts to look like a
      contender. */
   .above-sheep { width: min(7vw, 1.5rem); }
+}
+
+/* The two endings, shown only to the host and only at the final board. Stacked
+   rather than side by side: they are not a pair of equal choices, and two
+   latches sharing a row on a 320px phone is two thumb targets neither of which
+   is comfortable. Playing again keeps everything and reads as the default;
+   starting a new game retires the paddock and sends everyone back to the QR
+   code, so it takes the quiet treatment the other destructive controls use. */
+.rematch {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.rematch[hidden] {
+  display: none;
 }

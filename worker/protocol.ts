@@ -272,7 +272,50 @@ export type ErrorCode =
  */
 
 export type ServerFrame =
+  /** "Here is a paddock, its join link and its QR." Sent in TWO situations, and
+   *  the display's job is identical in both, which is exactly why there is one
+   *  frame rather than two:
+   *
+   *    1. The paddock answering the display's own host.create / host.resume.
+   *    2. A paddock that has just been SUPERSEDED by `player.newgame`, naming
+   *       its successor. The room in this frame is then NOT the room whose
+   *       socket it arrived on — it is the brand new one, with a brand new
+   *       code, and the old socket is closed immediately behind it.
+   *
+   *  Either way the display stores `room`, paints the code and the QR, and
+   *  (re)attaches its socket to that code, which is host.resume's whole job.
+   *  Case 2 needs no new display logic at all: the close that follows makes
+   *  net.js re-evaluate its `query` and open against the code it has just been
+   *  given. Reusing host.resume here is deliberate — see the notes on
+   *  `player.newgame` for why the successor cannot simply be this same object
+   *  under a different name. */
   | { t: 'room.created'; room: string; joinUrl: string; qr: string }
+  /** "This paddock is finished — let go of it." Sent to PLAYER sockets only,
+   *  once, when the host starts a new game: `room` is the paddock they are
+   *  holding (now retired) and `next` is the code that replaced it.
+   *
+   *  It exists because a phone has no other way to find out. Its localStorage
+   *  still names the old room and the old playerId, and net.js reconnects on
+   *  its own — so without this the phone spends the evening quietly trying to
+   *  rejoin a game that ended, which is the exact failure this frame is here to
+   *  prevent. On receipt the phone must drop its stored identity (that seat
+   *  exists only in the retired paddock and cannot be carried over: the new
+   *  paddock has never heard of that playerId or its token) and come back in
+   *  through the join screen as a new player, re-picking a look.
+   *
+   *  `next` is a convenience, not an instruction to auto-join: the phone may
+   *  pre-fill the code so nobody has to read it off the television, but the
+   *  player still joins by hand, because a new paddock means a new name check,
+   *  a new look claim and a new host. A phone that misses this frame entirely —
+   *  backgrounded, offline, mid-reconnect — is still caught: the retired
+   *  paddock answers every later frame, player.rejoin included, with
+   *  ROOM_NOT_FOUND, which the phone already turns into "that paddock has been
+   *  packed up". This frame is the fast path, not the only one.
+   *
+   *  No QR and no join URL, deliberately: this goes to every phone in the room
+   *  and the QR is a multi-kilobyte data URI that only the television has any
+   *  use for. */
+  | { t: 'room.closed'; room: string; next: string }
   /** The one frame that carries the rejoin token, and it goes to the joining
    *  phone alone. The phone stores `token` next to the `playerId` it already
    *  keeps and sends both back on every player.rejoin; a phone that loses it
@@ -321,7 +364,43 @@ export type ClientFrame =
    *  drawn on, and the server drops the frame unless the room is still in it:
    *  without that stamp an impatient double-tap on the reveal advances twice
    *  and skips the scoreboard the second tap was never meant to touch. */
-  | { t: 'player.continue'; phase: HostGatedPhase };
+  | { t: 'player.continue'; phase: HostGatedPhase }
+  /* --- the two rematches -------------------------------------------------
+   * Both are drawn on the FINAL scoreboard, both are the host's alone (the
+   * server compares the sending socket's playerId to hostId exactly as
+   * player.start and player.continue do, and answers NOT_HOST otherwise), and
+   * both are refused from any other phase. Nothing new is needed on the state
+   * frame to draw them: `phase === 'final'` and `you.isHost` already say when
+   * and to whom, and the room's own reply — a lobby state frame, or
+   * room.created / room.closed — says what happened.
+   *
+   * They are TWO FRAMES rather than one frame with a mode field on purpose.
+   * The two outcomes are not variations of each other: one keeps the paddock
+   * and everyone in it, the other abandons the paddock and every seat in it.
+   * A single `{ t: 'player.rematch', mode }` would put that difference in a
+   * payload field that isClientFrame does not check, and a mistyped or dropped
+   * field would silently pick one of them. Which one it picked would be a
+   * coin toss decided by a default, and one of the two faces is destructive.
+   */
+  /** PLAY AGAIN WITH THE SAME SHEEP. The paddock is replayed in place: same
+   *  code, same players, same locked looks, and every phone stays exactly where
+   *  it is. Scores, streaks, ranks, answer costs and the round index all reset
+   *  and the room returns to its lobby, where the host starts it with
+   *  player.start as they normally would — this frame does NOT start a game.
+   *  Nobody rejoins and nobody re-picks; there is no new room code, so the
+   *  display's stored code and every phone's stored identity stay valid.
+   *  Answered by a state frame with phase 'lobby'. */
+  | { t: 'player.again' }
+  /** START A NEW GAME. A BRAND NEW PADDOCK with a new code, which everyone
+   *  rejoins by scanning the QR again. This paddock is retired: it keeps its
+   *  record so it can go on answering, but it will never play again and every
+   *  frame it receives from here on is refused with ROOM_NOT_FOUND — except
+   *  host.create / host.resume, which are answered with the SUCCESSOR's
+   *  room.created so an old display tab finds its way across on its own.
+   *  Answered by room.created (to the display, naming the new paddock) and
+   *  room.closed (to every phone), after which every socket on this paddock is
+   *  closed. */
+  | { t: 'player.newgame' };
 
 /* --- socket identity -----------------------------------------------------
  * Attached to each hibernatable WebSocket. The DO can be evicted and woken

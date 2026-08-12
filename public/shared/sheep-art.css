@@ -15,12 +15,38 @@
   padding-top: var(--art-headroom, 0%);
 }
 
-/* isolate so a prop sent behind the sheep stops at the sheep, and so the fleece
-   tint multiplies against the animal rather than against whatever ground the
-   surface happens to put behind it. Without it a negative-stacking child
-   escapes to the nearest ancestor that owns a stacking context, and multiply
-   picks up the pasture. */
+/* THE BOX HAS TO BE A BLOCK. This is the whole of the layer stack's geometry.
+ *
+ * Everything stacked in here is absolutely positioned against this element: the
+ * fleece takes `inset: 0` and the hat is sized and placed in PERCENTAGES of it.
+ * Both therefore resolve against this box's padding box — and a <span> is inline
+ * by default, which means there is no padding box to resolve against. An inline
+ * whose only in-flow child is a block (.sheepart__body is display: block) is
+ * split around that block, and what an absolutely positioned child then gets for
+ * a containing block is the bounding box of the fragments the split left behind.
+ * Here every remaining child is itself absolutely positioned, so those fragments
+ * hold nothing, and their bounds are whatever the engine happens to synthesise.
+ *
+ * Measured, before this line existed, on the same page in the same browser:
+ *   .look-sheep (block parent)  fleece 176 x 155.56 — the body's box, correct
+ *   .lobby-sheep (flex parent)  fleece  27.2 x 48.06 — HALF, pinned to the right
+ *   .score-sheep (flex parent)  fleece  56 x 107     — HALF, pinned to the right
+ * A half-width box with `mask-size: 100% 100%` squeezes the whole wool mask into
+ * the head end of the animal, which is why the score screen painted the fleece
+ * on the sheep's FACE while the wool behind it stayed white; the hat, sized in
+ * percentages of that same box, came out half the size it should be. WebKit
+ * synthesises nothing at all for an empty fragment, so on iOS the box measured
+ * zero and BOTH layers disappeared together — every sheep on the phone bare, on
+ * code that draws correctly on a desktop engine. One `display: block` is the
+ * difference between a defined containing block and four different guesses.
+ *
+ * isolate so a prop sent behind the sheep stops at the sheep, and so the fleece
+ * tint multiplies against the animal rather than against whatever ground the
+ * surface happens to put behind it. Without it a negative-stacking child
+ * escapes to the nearest ancestor that owns a stacking context, and multiply
+ * picks up the pasture. */
 .sheepart__box {
+  display: block;
   position: relative;
   isolation: isolate;
 }
@@ -47,6 +73,15 @@
   mask-image: var(--fleece-mask);
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
+  /* Stated rather than left to the initial `repeat`. 100% 100% is a fractional
+     pixel count at almost every size this sheep is drawn at, and a mask laid
+     down one rounding step short tiles the next copy of itself into the gap —
+     a sliver of wool along the far edge, on the phone only, because that is
+     where the sizes are fractional. Both spellings, because the prefixed
+     longhands are a separate set on WebKit: setting only the unprefixed one
+     leaves -webkit-mask-repeat at `repeat` on the engines that still read it. */
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   pointer-events: none;
 }
 

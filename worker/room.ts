@@ -35,6 +35,11 @@ import { DurableObject } from 'cloudflare:workers';
 import QRCode from 'qrcode';
 import { validateLook, lookKey } from '../public/shared/look.js';
 import { groupAnswersWithFallback, fuzzyGroup } from './grouping';
+/* The bank's own idea of when two questions are the same question. Imported,
+   never re-typed: this room writes the memory and the bank reads it, so a
+   second copy of that rule here would drift and a rematch would go back to
+   asking the same nine questions with nobody able to see why. */
+import { normalizeQuestionText } from './questions';
 import type {
   ClientFrame,
   ErrorCode,
@@ -116,6 +121,91 @@ const ALARM_SLOP_MS = 250;
    lobby that can never be started, hence the expiry. Comfortably longer than
    both RPCs and their retries. */
 const START_CLAIM_STALE_MS = 30000;
+/* Same job as START_CLAIM_STALE_MS, for the other frame that awaits another
+   Durable Object before it changes anything anybody can see: player.newgame
+   claims the move before it goes off to allocate a successor paddock. Same
+   expiry, for the same reason — an isolate evicted between the claim and the
+   allocation must not leave a final scoreboard whose New Game button is dead
+   forever. */
+const REMATCH_CLAIM_STALE_MS = 30000;
+/* How many past questions a paddock remembers for the sake of not asking them
+   again. A few games' worth: long enough that a rematch, and the rematch after
+   that, still find fresh material, short enough that the memory stays a line or
+   two of a record that is written on every round. Overflow is dropped from the
+   OLD end, so what falls off is always the least recently asked — which is
+   exactly the material it is safest to reuse anyway. */
+const MAX_RECENT_QUESTIONS = 60;
+
+/* --- allocating a paddock --------------------------------------------------
+ * This lived in index.ts, and it moved here because it is the other half of
+ * claim() and it now has a second caller: a room retiring itself in favour of a
+ * successor (player.newgame) has to allocate that successor, and duplicating
+ * the alphabet and the retry loop over there would be two copies of the rule
+ * about which glyphs are safe to read off a television.
+ *
+ * Codes are read aloud off a TV and typed on a phone in a dim room, so the
+ * alphabet drops every glyph that gets misread: no O, 0, I, 1 or L.
+ */
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export const ROOM_CODE_LENGTH = 4;
+
+function makeRoomCode(): string {
+  const bytes = new Uint8Array(ROOM_CODE_LENGTH);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (const b of bytes) out += CODE_ALPHABET[b % CODE_ALPHABET.length];
+  return out;
+}
+
+/** What a paddock may be born holding. Everything here is CONTINUITY from a
+    paddock that has just been retired in favour of this one — never anything a
+    player supplied — so a fresh room opened by the Worker passes none of it and
+    gets the same empty lobby it always did. */
+export interface RoomSeed {
+  /** So the successor can build its own join URL and QR before any socket has
+      told it where it lives. Not load-bearing (fetch() sets it from the first
+      connection either way), but it means the successor's very first frame is
+      right rather than right on the second attempt. */
+  origin?: string;
+  /** The armed custom set carries across a New Game. The host armed it on the
+      television and nothing about starting another game says they changed
+      their mind; making them re-type a six-character code to play the same set
+      twice would be a chore the old paddock could have spared them. Clearing it
+      is one tap on the display, which already has that button. */
+  packCode?: string | null;
+  packName?: string | null;
+  packSize?: number;
+  /** And the "not these again" memory, because it is a fact about the FLOCK
+      rather than about the room code. The same people scanning a new QR in the
+      same living room have just heard those questions; a brand new object with
+      an empty memory would ask them again on the very next game, which is the
+      failure this whole mechanism exists to prevent. */
+  recentQuestions?: string[];
+}
+
+/**
+ * Claim an unused code. Vacancy is decided by the room itself, atomically —
+ * two displays racing for the same code cannot both win.
+ *
+ * `avoid` is the caller's OWN code, and it is only ever passed by a room
+ * allocating its own successor. Handing a Durable Object an RPC addressed to
+ * itself is a re-entrancy hazard nobody needs to find out the hard way, and the
+ * call could only ever come back false anyway (the object plainly already has a
+ * record — its own). One in ~830,000 draws, and skipping it costs a line.
+ */
+export async function allocateRoom(
+  env: Env,
+  seed?: RoomSeed,
+  avoid?: string,
+): Promise<string | null> {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const code = makeRoomCode();
+    if (avoid && code === avoid) continue;
+    const claimed = await env.ROOM.getByName(code).claim(code, seed);
+    if (claimed) return code;
+  }
+  return null;
+}
 
 interface PlayerRecord {
   id: string;
@@ -272,6 +362,48 @@ interface RoomRecord {
       evicted mid-start cannot leave a lobby nobody can ever start. */
   startingAt: number | null;
 
+  /* --- the rematch -------------------------------------------------------- */
+  /** What this paddock has already asked, MOST RECENT FIRST, capped at
+      MAX_RECENT_QUESTIONS. Written one question at a time by #beginQuestion —
+      when it is put on the screen, not when the game resolves its list, so a
+      party abandoned at round three does not count six questions nobody ever
+      saw as spent — and passed to resolveGame so the next game in this paddock
+      asks something else.
+
+      IT LIVES HERE, ON THE ROOM RECORD, AND THAT IS THE WHOLE DESIGN.
+      The bank is a single global object shared by every party in the world, so
+      a memory kept there would be every room's memory at once: the second
+      paddock of the evening would be handed the leftovers of a game played by
+      strangers, and two rooms starting together would trample each other's
+      list. A memory kept in an isolate would be worse — this object is evicted
+      between rounds by design, so it would survive exactly as long as nobody
+      looked away, which is to say never on the one path that matters, a
+      rematch tapped after a long final scoreboard.
+
+      Survives a replay (player.again does not touch it — the point is to
+      remember ACROSS games) and is carried into a successor paddock by
+      player.newgame, because the flock is the same flock. */
+  recentQuestions: string[];
+  /** Epoch ms somebody claimed the New Game, or null. Exactly the same device
+      as startingAt and for exactly the same trap: #newGame awaits another
+      Durable Object (allocating the successor) before anything observable
+      changes, the input gate does NOT hold across that await, so without a
+      claim taken synchronously first, a double-tap allocates two paddocks and
+      the second one wins a race the display cannot see. Expires so an isolate
+      evicted mid-move leaves a button that works again rather than a dead one. */
+  retiringAt: number | null;
+  /** The code of the paddock that REPLACED this one, or null while this one is
+      still live. Set once, never cleared: it is the tombstone.
+
+      Its presence is the definition of retired, and every guard reads it rather
+      than a second `closed` flag — one fact, one field, no way for the two to
+      disagree. The record around it is deliberately left INTACT rather than
+      emptied out: a retired paddock still has to answer for itself, and an
+      emptied record is one forgotten guard away from looking like a fresh lobby
+      with a valid code that people can walk into. A few kilobytes is a cheap
+      price for a tombstone that cannot be mistaken for a vacancy. */
+  successor: string | null;
+
   /* --- the armed custom set ---------------------------------------------- */
   packCode: string | null;
   packName: string | null;
@@ -362,6 +494,17 @@ export class Room extends DurableObject<Env> {
       defaultSeconds: r.defaultSeconds ?? Number(this.env.ANSWER_SECONDS ?? 45),
       roundToken: r.roundToken ?? 0,
       startingAt: r.startingAt ?? null,
+      /* A record from before the rematch existed has no memory, which is the
+         truthful answer: it has no idea what it asked, so the next game it
+         resolves prefers nothing and behaves exactly as it always did. */
+      recentQuestions: Array.isArray(r.recentQuestions)
+        ? r.recentQuestions.filter((t): t is string => typeof t === 'string').slice(0, MAX_RECENT_QUESTIONS)
+        : [],
+      retiringAt: r.retiringAt ?? null,
+      /* Absent means live, and it must: every retirement guard in this file is
+         `successor !== null`, so a legacy record defaulting any other way would
+         retire every paddock that crossed the deploy. */
+      successor: r.successor ?? null,
       packCode: r.packCode ?? null,
       packName: r.packName ?? null,
       packSize: r.packSize ?? 0,
@@ -370,14 +513,24 @@ export class Room extends DurableObject<Env> {
 
   /**
    * Take this code if nobody holds it. Called by the Worker while allocating a
-   * fresh room. Atomic by virtue of being a Durable Object method: two displays
-   * racing for the same code cannot both win.
+   * fresh room, and by a paddock allocating its own successor. Atomic by virtue
+   * of being a Durable Object method: two displays racing for the same code
+   * cannot both win.
+   *
+   * `seed` is continuity from a RETIRED paddock and nothing else — see RoomSeed.
+   * It is applied only on the way in, so a code that is already taken keeps
+   * everything it has; the `if (this.#room) return false` above is what makes
+   * this safe to call speculatively in a loop.
+   *
+   * A retired paddock still holds its record, so it is never re-claimed and its
+   * code is never handed out a second time. That is deliberate: recycling a dead
+   * code would put a phone still holding it into somebody else's party.
    */
-  async claim(code: string): Promise<boolean> {
+  async claim(code: string, seed?: RoomSeed): Promise<boolean> {
     if (this.#room) return false;
     await this.#persist({
       code,
-      origin: '',
+      origin: seed?.origin ?? '',
       phase: 'lobby',
       roundIndex: 0,
       totalRounds: 0,
@@ -404,9 +557,12 @@ export class Room extends DurableObject<Env> {
       defaultSeconds: Number(this.env.ANSWER_SECONDS ?? 45),
       roundToken: 0,
       startingAt: null,
-      packCode: null,
-      packName: null,
-      packSize: 0,
+      recentQuestions: (seed?.recentQuestions ?? []).slice(0, MAX_RECENT_QUESTIONS),
+      retiringAt: null,
+      successor: null,
+      packCode: seed?.packCode ?? null,
+      packName: seed?.packName ?? null,
+      packSize: seed?.packSize ?? 0,
     });
     return true;
   }
@@ -498,6 +654,12 @@ export class Room extends DurableObject<Env> {
     const meta = this.#metaOf(ws);
     const room = this.#room;
     if (!meta?.playerId || !room) return;
+    /* A retired paddock closes every socket it has (see #retire), which lands
+       here twenty times in a row for a party of twenty. There is nothing left
+       to reconcile — nobody is playing, nothing is gated on a host, no alarm is
+       armed — so this returns rather than saving and broadcasting a roster
+       nobody is looking at, down sockets that are closing. */
+    if (room.successor) return;
     const player = room.players.find((p) => p.id === meta.playerId);
     if (!player || !player.connected) return;
     /* A phone that opened a second socket is still present — only the LAST one
@@ -699,6 +861,34 @@ export class Room extends DurableObject<Env> {
   /* ------------------------------------------------------------- frames */
 
   async #handle(ws: WebSocket, frame: ClientFrame): Promise<void> {
+    /* A RETIRED PADDOCK ANSWERS NOTHING ELSE. Its sockets were all closed when
+       it stepped aside, but that is not the end of the story: net.js reconnects
+       on its own, and both surfaces remember a room code across a reload, so
+       phones and old television tabs go on knocking on this door for as long as
+       they are open. Answering them normally is the failure Kayleigh named —
+       a phone quietly rejoining a game that finished — so every frame is
+       refused here, once, in one place, rather than by a `successor` check
+       remembered separately in nine handlers.
+
+       ROOM_NOT_FOUND and not a new code, deliberately: it is the answer the
+       phone already knows how to act on ("that paddock has been packed up"),
+       it drops the stored identity that only ever meant anything here, and it
+       says the same thing to a player.rejoin holding a perfectly valid token as
+       to one holding nonsense — which is the only way this frame does not
+       become an oracle for who was in the room. */
+    const retired = this.#room?.successor ?? null;
+    if (retired) {
+      if (frame.t === 'host.create' || frame.t === 'host.resume') {
+        /* Except the display, which is not knocking — it is lost. Point it at
+           the successor and close the socket behind the frame, exactly as the
+           move itself did; net.js re-evaluates its query on the reconnect and
+           lands on the new paddock. This is what rescues a television tab that
+           was asleep, reloaded, or opened after the move. */
+        return this.#pointAtSuccessor(ws, retired);
+      }
+      return this.#fail(ws, 'ROOM_NOT_FOUND', 'That paddock has been packed up.');
+    }
+
     switch (frame.t) {
       case 'host.create':
       case 'host.resume': {
@@ -739,6 +929,13 @@ export class Room extends DurableObject<Env> {
       case 'player.continue':
         return this.#continue(ws, frame.phase);
 
+      /* The two buttons on the final scoreboard. Same paddock, or a new one. */
+      case 'player.again':
+        return this.#again(ws);
+
+      case 'player.newgame':
+        return this.#newGame(ws);
+
       case 'player.join':
         return this.#join(ws, frame.name);
 
@@ -776,11 +973,14 @@ export class Room extends DurableObject<Env> {
     }
   }
 
-  #joinUrl(): string {
+  /** The join link for this paddock, or for another one on this same origin —
+      which is how a retiring paddock hands the display a working QR for its
+      successor before that successor has ever seen a request of its own. */
+  #joinUrl(code?: string): string {
     const room = this.#room;
     if (!room) return '';
     const base = room.origin || '';
-    return `${base}/play?room=${room.code}`;
+    return `${base}/play?room=${code ?? room.code}`;
   }
 
   /* --------------------------------------------------------------- lobby */
@@ -1036,7 +1236,17 @@ export class Room extends DurableObject<Env> {
     try {
       const bank = this.env.QUESTIONS.getByName('bank');
       settings = await bank.getSettings();
-      resolved = await bank.resolveGame(room.packCode, defaultRounds);
+      /* The room's own memory of what it has already asked goes with the
+         request, and it is the reason a replay is not the same nine questions.
+         It has to travel as an argument: the bank is ONE object shared by every
+         party in the world, so a "recently asked" list kept over there would be
+         every room's list at once — the second paddock of the evening would be
+         handed the leftovers of a game played by strangers. The memory is a
+         fact about THIS room, it is stored on this room's record (so it
+         survives the eviction between the final scoreboard and the rematch tap,
+         which an isolate would not), and it is passed here. A first game has an
+         empty one and resolves exactly as it always did. */
+      resolved = await bank.resolveGame(room.packCode, defaultRounds, room.recentQuestions);
     } catch (error) {
       /* A bank that threw leaves a lobby that never started, so it must leave a
          lobby that can be started again — on the next tap, not in thirty
@@ -1137,6 +1347,308 @@ export class Room extends DurableObject<Env> {
     return this.#nextRound();
   }
 
+  /* ------------------------------------------------------------- the rematch
+   * Two buttons on the final scoreboard, two very different promises:
+   *
+   *   player.again    — replay in place. Same code, same players, same locked
+   *                     looks. Nobody rejoins, nobody re-picks.
+   *   player.newgame  — a brand new paddock with a new code. Everyone scans
+   *                     the QR again; this one is retired.
+   *
+   * Both are the host's alone (#isHostSocket, the same test player.start and
+   * player.continue use — comparing the socket's playerId to hostId, which is
+   * the only check that survives a phone reconnecting or the host passing on),
+   * and both are meaningless anywhere but the final phase.
+   */
+
+  /** Is a New Game already under way? The claim (see #newGame) expires so an
+      isolate evicted mid-move cannot leave a final scoreboard whose buttons are
+      dead forever; until then it is what both handlers check to keep a paddock
+      from being replayed and retired at the same time. */
+  #rematchClaimed(): boolean {
+    const at = this.#room?.retiringAt ?? null;
+    return at !== null && Date.now() - at < REMATCH_CLAIM_STALE_MS;
+  }
+
+  /** PLAY AGAIN WITH THE SAME SHEEP. The paddock is put back to a playable
+      lobby with everyone still in it, and the host starts it with player.start
+      exactly as they did the first time — this does NOT start a game, and it
+      deliberately does not resolve any questions. Those are resolved at start,
+      which is where the "not these again" memory is read.
+
+      What survives: the room code, the roster, every look, every lock, the
+      host, the armed pack, and the memory of what this room has been asked.
+      What resets: score, streak, rank (a fall-out of score and cost), the
+      cumulative answer cost, the round index and every scrap of the round
+      engine. Nobody rejoins because nothing they are holding has changed —
+      their playerId, their token and their room code are all still good.
+
+      THE DOUBLE-TAP, AND WHY THIS ONE NEEDS NO CLAIM ON THE RECORD. #start had
+      to take one because its phase guard and its phase write are separated by
+      two RPCs to the question bank, and the Durable Object input gate is
+      released across an RPC — so both frames of a double-tap walked past a
+      guard that was still true. Here the guard below and the whole reset that
+      follows it are separated by NO AWAIT: room.phase is 'lobby' before this
+      turn of the event loop ends, so the second tap arrives at a room that is
+      no longer in 'final' and falls out at the guard, and the gate has been
+      held for the entire window. That is the same argument #continue makes and
+      it has the same expiry date: if an await of ANY kind is ever added between
+      the guard and the phase write — resolving questions here rather than at
+      start would be the obvious way in — this comment becomes false and this
+      method needs the claim #newGame takes. */
+  async #again(ws: WebSocket): Promise<void> {
+    const room = this.#room;
+    if (!room) return this.#fail(ws, 'ROOM_NOT_FOUND', 'That paddock is gone.');
+    /* Authority before phase, as in #start: a phone that is not holding the
+       controls should be told that, not handed a message about timing. */
+    if (!this.#isHostSocket(ws)) {
+      return this.#fail(ws, 'NOT_HOST', 'Only the host can start another game.');
+    }
+    /* Answered with SILENCE rather than an error, exactly as #continue is. The
+       only frames that reach here from another phase are the second half of a
+       double-tap and a button drawn on a screen the room has already left, and
+       neither deserves a red toast on the phone of the one person who has to
+       keep looking at their screen — least of all at the moment the lobby they
+       asked for is appearing. */
+    if (room.phase !== 'final') return;
+    /* A New Game is already in flight: this paddock is on its way out and must
+       not be reset into a lobby behind its own back. */
+    if (this.#rematchClaimed()) return;
+
+    room.phase = 'lobby';
+    room.roundIndex = 0;
+    /* Back to 0 rather than kept: the next game resolves its own list and may
+       well be a different length (a pack could have been edited between the two
+       games), and a lobby advertising nine rounds it has not chosen yet is a
+       promise nothing has made. */
+    room.totalRounds = 0;
+    room.questions = [];
+    room.question = null;
+    room.answers = {};
+    room.answerAt = {};
+    room.groups = [];
+    room.noAnswer = [];
+    room.endsAt = null;
+    room.questionStartedAt = null;
+    room.graceUntil = null;
+    room.deadline = null;
+    room.backstopAt = null;
+    room.groupingStartedAt = null;
+    room.groupingMinUntil = null;
+    room.groupingReady = false;
+    room.scoreboardReason = null;
+    room.groupingSource = null;
+    /* Bumped for the same reason #beginQuestion bumps it: it is the token every
+       async grouping result is checked against, and a stale one landing in the
+       new lobby would be answers from the last game arriving in this one. */
+    room.roundToken += 1;
+    /* Cleared, not because it should be set — #beginQuestion released it when
+       the last game began — but because a lobby nobody can start is the worst
+       thing this method could leave behind, and this is one assignment. */
+    room.startingAt = null;
+    /* recentQuestions is CONSPICUOUSLY NOT CLEARED. Remembering across games is
+       the entire point: this is the record the next player.start reads to avoid
+       asking the same nine questions to the same nine people. */
+
+    for (const p of room.players) {
+      p.score = 0;
+      p.streak = 0;
+      /* Zeroed with the score and for the same reason #start zeroes it: a
+         second game in the same paddock must not be tie-broken on how fast
+         people typed in the first one. */
+      p.answerCostTotal = 0;
+      p.groupId = null;
+      p.scoredThisRound = false;
+      /* look, locked, token, name and connected all stand. "Same sheep" is the
+         promise on the button, and the token especially: re-minting it would
+         invalidate the record on every phone in the room and turn a replay into
+         a re-join for everybody. */
+    }
+
+    /* THE TRAP IN THIS WHOLE METHOD. The lobby is the one phase that hands the
+       controls on when the host's phone stops proving it is awake, and that
+       proof (player.alive) is only sent FROM the lobby — play.js stops sending
+       it the moment the game starts. So hostSeenAt is now as old as the game
+       that has just finished: twenty minutes, an hour. Left as it is, the very
+       first alarm armed below is already overdue, and the host who just tapped
+       Play Again would have the controls taken off them within the second, in
+       front of everyone. Re-stamped here, so they get the full idle window a
+       fresh lobby would have given them. */
+    room.hostSeenAt = Date.now();
+    /* And settle the succession against the room as it is NOW, before the
+       lobby's alarm is armed off it. Very nearly a no-op — the phone that sent
+       this frame is the host and is plainly here, so this clears a pending
+       handover and returns — but "very nearly" is not a reason to leave a
+       departure timestamp lying around for #armAlarm to find. */
+    this.#ensureHost();
+
+    await this.#save();
+    this.#broadcastState();
+    /* The lobby's alarm, which is the silent-host handover and nothing else.
+       'final' had none armed at all (#toFinal deletes it), so without this the
+       replayed lobby would be the one phase with no clock behind it. */
+    await this.#armAlarm();
+  }
+
+  /** START A NEW GAME: a BRAND NEW PADDOCK with a new code.
+   *
+   * A Durable Object is keyed by its room code, so "a new code" cannot be this
+   * object under another name — it is a DIFFERENT OBJECT, and this one has to
+   * go and fetch it. Which raises the four questions this method answers:
+   *
+   * WHO ALLOCATES IT. This paddock does, through the same allocateRoom() the
+   * Worker uses to open one from cold: random codes offered to claim() until
+   * one is free, atomic because claim() is a method on the object being
+   * claimed. It is seeded with this paddock's origin, its armed pack and its
+   * memory of what has been asked — see RoomSeed — so the successor opens as
+   * the same party's next game rather than as a stranger.
+   *
+   * HOW THE DISPLAY LEARNS THE CODE. It is sent `room.created` naming the
+   * successor, which is the frame it already handles: it stores the code,
+   * paints it, and draws the QR. Then its socket is closed, so net.js
+   * re-evaluates its query, reconnects to the NEW code and identifies with
+   * host.resume — which is exactly the mechanism that already carries a display
+   * across a dropped connection. Nothing new is invented on the display side;
+   * host.resume was already the "attach me to this paddock" frame.
+   *
+   * WHAT HAPPENS TO THIS PADDOCK. It is retired, not deleted. `successor` is
+   * written, the record is left otherwise intact, and from then on #handle
+   * refuses every frame with ROOM_NOT_FOUND. Deleting the record instead would
+   * be far worse in two ways: the Worker's fetch() re-claims a code with no
+   * record, so this dead code would come back as a live empty lobby that people
+   * could walk into; and a phone reconnecting would be answered with a 404 on
+   * the socket upgrade, which is not a frame — net.js would simply retry it
+   * forever and the phone would sit on "reconnecting" having been told nothing.
+   *
+   * WHAT HAPPENS TO THE PHONES. Each is sent `room.closed` naming the successor
+   * and then has its socket closed. A phone that gets it drops the identity it
+   * was holding (that seat exists only here, and this paddock is finished) and
+   * comes back through the join screen. A phone that MISSES it — asleep,
+   * offline, mid-reconnect — is caught by the same door on the way back in:
+   * player.rejoin against a retired paddock is answered ROOM_NOT_FOUND, which
+   * play.js already turns into "that paddock has been packed up. Get the code
+   * off the big screen and join again." That is the letting-go this method owes
+   * them, and it does not depend on any frame arriving on time.
+   */
+  async #newGame(ws: WebSocket): Promise<void> {
+    const room = this.#room;
+    if (!room) return this.#fail(ws, 'ROOM_NOT_FOUND', 'That paddock is gone.');
+    if (!this.#isHostSocket(ws)) {
+      return this.#fail(ws, 'NOT_HOST', 'Only the host can start another game.');
+    }
+    /* Silence, for the same reasons as #again: from any other phase this is a
+       double-tap or a stale button. */
+    if (room.phase !== 'final') return;
+    if (this.#rematchClaimed()) return;
+
+    /* THE CLAIM, and this one is not optional. allocateRoom() is an RPC to
+       ANOTHER Durable Object, and the input gate does NOT hold across an RPC —
+       the identical trap #start was fixed for. Without this, both frames of a
+       double-tap (or a host with /play open in two tabs) walk past the phase
+       guard above, each allocates a paddock, and the room ends up with two: one
+       whose code went to the television and one that nobody will ever open,
+       sitting there holding a code out of circulation. Claimed synchronously
+       here, before the first await exists to be interleaved on, and persisted
+       immediately so it survives an eviction as well as an interleave. Every
+       exit below either clears it or supersedes it. */
+    room.retiringAt = Date.now();
+    await this.#save();
+
+    const seed: RoomSeed = {
+      origin: room.origin,
+      packCode: room.packCode,
+      packName: room.packName,
+      packSize: room.packSize,
+      recentQuestions: room.recentQuestions,
+    };
+
+    let next: string | null = null;
+    try {
+      next = await allocateRoom(this.env, seed, room.code);
+    } catch (error) {
+      /* Nothing has been retired yet, so the honest thing is to leave a paddock
+         whose button works on the NEXT tap rather than in thirty seconds.
+         #handle logs this and tells the phone to try again. */
+      room.retiringAt = null;
+      await this.#save();
+      throw error;
+    }
+    if (!next) {
+      room.retiringAt = null;
+      await this.#save();
+      return this.#fail(ws, 'BAD_REQUEST', 'Could not open a new paddock. Try again.');
+    }
+
+    /* Re-read after the await, as #enterGrouping does: the record this method
+       goes on to mutate must be the one the object is holding NOW, not a
+       reference captured before an RPC. The claim above is what actually keeps
+       anything meaningful from having happened in between. */
+    const now = this.#room;
+    if (!now || now.successor) return;
+
+    const joinUrl = this.#joinUrl(next);
+    const qr = await this.#qr(joinUrl);
+
+    /* Persist BEFORE broadcasting, as everything in this file does — and here
+       it decides the whole shape of the failure. The frames below tell a
+       television and twenty phones to let go of this paddock; if that were
+       announced and then lost to an eviction, the room they were told to leave
+       would still be answering as though it were live, and they would come
+       straight back into a game that is over. Written first, the worst case is
+       a paddock that is retired and has not managed to say so — which is the
+       case ROOM_NOT_FOUND already covers on their way back in. */
+    now.successor = next;
+    now.retiringAt = null;
+    await this.#save();
+    /* A tombstone must never wake up. 'final' armed nothing (#toFinal deletes
+       the alarm) so this is belt and braces, but a retired paddock with an
+       alarm pending is an object that opens its eyes for no one. */
+    await this.ctx.storage.deleteAlarm();
+
+    /* The display gets the frame it already knows: here is a paddock, its join
+       link and its QR. The phones get a lighter one — no QR, which is a
+       multi-kilobyte data URI that only a television has any use for. */
+    for (const socket of this.ctx.getWebSockets()) {
+      const meta = this.#metaOf(socket);
+      if (meta?.role === 'player') {
+        this.#send(socket, { t: 'room.closed', room: now.code, next });
+      } else {
+        this.#send(socket, { t: 'room.created', room: next, joinUrl, qr });
+      }
+      /* And then let go of them. Closing is not tidying up: it is the whole
+         mechanism. net.js reconnects on close and re-evaluates its query, so
+         the television opens against the new code by itself, and a phone that
+         did nothing with room.closed comes back to this paddock and is told
+         ROOM_NOT_FOUND — which is the answer it already knows how to act on.
+         Leaving the sockets open would leave every screen in the room attached
+         to a paddock that will never say anything again. */
+      this.#closeSocket(socket);
+    }
+  }
+
+  /** A display that has found its way to a retired paddock — a tab that was
+      asleep through the move, or one reloaded afterwards off a remembered code.
+      It is not knocking, it is lost, so it is handed the successor rather than
+      an error, in the frame it already handles, and its socket is closed behind
+      it so net.js re-attaches to the code it has just been given. */
+  async #pointAtSuccessor(ws: WebSocket, code: string): Promise<void> {
+    const joinUrl = this.#joinUrl(code);
+    this.#send(ws, { t: 'room.created', room: code, joinUrl, qr: await this.#qr(joinUrl) });
+    this.#closeSocket(ws);
+  }
+
+  /** Close a socket, after whatever was queued on it. 1000 is a NORMAL close —
+      this is not an error and must not read as one — and the reason is there
+      for anyone reading a log. Swallowed like #send does: a socket that has
+      already gone away is not something to propagate. */
+  #closeSocket(ws: WebSocket): void {
+    try {
+      ws.close(1000, 'This paddock has moved.');
+    } catch {
+      /* Already closing, or already gone. Nothing to do either way. */
+    }
+  }
+
   /* -------------------------------------------------------------- the round */
 
   async #beginQuestion(): Promise<void> {
@@ -1163,6 +1675,12 @@ export class Room extends DurableObject<Env> {
     room.startingAt = null;
     const q = room.questions[room.roundIndex];
     room.question = q ? q.text : null;
+    /* Remembered the moment it goes UP, not when the game resolved its list.
+       The difference is a party that walks out at round three: six questions
+       were resolved and never seen, and counting those as spent would make the
+       next game avoid material this room has no memory of. What is on the
+       screen is what has been asked. */
+    this.#rememberQuestion(room.question);
     const secs = q && q.seconds != null ? q.seconds : room.defaultSeconds;
     /* One `now` for both, so the round's t=0 and its deadline cannot disagree by
        the millisecond it takes to read the clock twice. */
@@ -1188,6 +1706,28 @@ export class Room extends DurableObject<Env> {
     await this.#save();
     this.#broadcastState();
     await this.#armAlarm();
+  }
+
+  /** Push a question onto this paddock's "not these again" memory. Pure
+      mutation — the caller saves, and #beginQuestion is about to.
+
+      Most recent FIRST, because that order IS the staleness ranking the bank
+      tops up from when it cannot fill a game with fresh material: index 0 is
+      the question asked most recently and therefore the last one that should
+      ever come back. Deduped on the way in — the same question asked twice
+      (a set in mode 'all' may hold two identical rows) must not occupy two
+      slots and push something genuinely older off the end — and re-inserted at
+      the front, since being asked again makes it the freshest memory, not the
+      oldest. Trimmed from the tail, so what is forgotten is always the material
+      it is safest to repeat. */
+  #rememberQuestion(text: string | null): void {
+    const room = this.#room;
+    if (!room) return;
+    const asked = String(text ?? '').trim();
+    if (!asked) return;
+    const key = normalizeQuestionText(asked);
+    room.recentQuestions = [asked, ...room.recentQuestions.filter((t) => normalizeQuestionText(t) !== key)]
+      .slice(0, MAX_RECENT_QUESTIONS);
   }
 
   async #submitAnswer(ws: WebSocket, rawText: string): Promise<void> {

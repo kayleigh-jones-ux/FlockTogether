@@ -156,10 +156,13 @@
           <span class="tag-name" id="tag-big-name"></span>
         </p>
         <p class="flockline">
-          <!-- The badge is pinned ONTO the sheep, not set beside it: whoever
-               holds the controls is a fact about that animal, and the join
-               screen has no sheep to put it on. play.js shows it only on the
-               host's own phone. -->
+          <!-- The badge belongs to this sheep and stands directly ABOVE it,
+               not beside it and not on it: whoever holds the controls is a fact
+               about that animal, and the join screen has no sheep to put it
+               over. It is a row of the .hostmark grid rather than a plate laid
+               across the fleece, so it clears the sheep's tallest hat without
+               anybody having to know how tall that is — see .hostmark in
+               play.css. play.js shows it only on the host's own phone. -->
           <span class="hostmark">
             <span class="sheepart ico--sheep" id="lobby-sheep" data-pose="sheep-idle" aria-hidden="true">
               <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
@@ -348,6 +351,16 @@
         <div class="gate">
           <p class="gate-note aside" id="scores-note" role="status" aria-live="polite" aria-atomic="true">&nbsp;</p>
           <button class="latch" type="button" id="scores-go" hidden>Next round</button>
+
+          <!-- The end of the evening, and only the host sees it. Two different
+               endings, so two buttons rather than one with a mode: playing again
+               keeps this paddock and everyone's sheep, while a new game retires
+               the paddock and hands out a new code for everyone to scan. The
+               second is the destructive one, so it is the quieter of the two. -->
+          <div class="rematch" id="rematch" hidden>
+            <button class="latch" type="button" id="again-go">Play again, same sheep</button>
+            <button class="quiet quiet--onfield" type="button" id="newgame-go">Start a new game</button>
+          </div>
         </div>
       </div>
     </section>

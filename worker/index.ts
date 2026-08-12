@@ -7,7 +7,7 @@
  * src/game.js, which is why the port is a re-housing rather than a redesign.
  */
 
-import { Room } from './room';
+import { Room, allocateRoom, ROOM_CODE_LENGTH } from './room';
 import { QuestionBank } from './questions';
 
 export { Room, QuestionBank };
@@ -18,31 +18,14 @@ export { Room, QuestionBank };
  * it. Put the token check back (see git history) if this URL ever leaks.
  */
 
-/* Codes are read aloud off a TV and typed on a phone in a dim room, so the
-   alphabet drops every glyph that gets misread: no O, 0, I, 1 or L. */
-const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const CODE_LENGTH = 4;
-
-function makeRoomCode(): string {
-  const bytes = new Uint8Array(CODE_LENGTH);
-  crypto.getRandomValues(bytes);
-  let out = '';
-  for (const b of bytes) out += CODE_ALPHABET[b % CODE_ALPHABET.length];
-  return out;
-}
-
-/** Claim an unused code. Vacancy is decided by the room itself, atomically. */
-async function allocateRoom(env: Env): Promise<string | null> {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const code = makeRoomCode();
-    const claimed = await env.ROOM.getByName(code).claim(code);
-    if (claimed) return code;
-  }
-  return null;
-}
+/* The code alphabet and the claim loop moved to room.ts, next to claim() —
+   which is the other half of allocating a paddock, and which now has a second
+   caller: a room retiring itself in favour of a successor allocates that
+   successor the same way this Worker opens a fresh one. One copy of the rule
+   about which glyphs are safe to read off a television, in one place. */
 
 const normaliseCode = (raw: string | null): string =>
-  String(raw ?? '').trim().toUpperCase().slice(0, CODE_LENGTH);
+  String(raw ?? '').trim().toUpperCase().slice(0, ROOM_CODE_LENGTH);
 
 async function asset(env: Env, request: Request, path: string): Promise<Response> {
   const url = new URL(request.url);

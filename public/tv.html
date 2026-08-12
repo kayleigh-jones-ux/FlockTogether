@@ -241,17 +241,57 @@
       <h2 class="headline">The dog's working</h2>
       <p class="working__note legend">Sorting the flock into paddocks</p>
 
-      <!-- An estimate, and drawn as one. Nothing on this screen knows when the
-           shepherd will answer, so the fill eases toward a hold rather than
-           toward an end, and only snaps full when the phase actually turns.
-           tv.js drives it from requestAnimationFrame — countdown() only calls
-           back on whole seconds, which is right for a number and a ratchet for
-           a bar. aria-hidden because the note above already says what is
-           happening, and a value that changes sixty times a second is nothing
-           but noise read aloud. -->
-      <div class="sortbar" data-bind="sortBar" aria-hidden="true">
-        <span class="sortbar__fill"></span>
-      </div>
+      <!-- A WHEEL, BECAUSE A WHEEL PROMISES NOTHING. What was here was a
+           progress bar easing toward a hold at 90%, and the hold was the
+           problem: honest in the code and a lie on the wall. A bar is read as
+           a distance travelled toward an end, so one that stops three-quarters
+           of the way across and sits there does not read as "still working",
+           it reads as STUCK — and it did that on every grouping that outran the
+           server's budget, which is exactly the one the room is already
+           anxious about. Nothing on this screen can know when the model will
+           answer, so the honest drawing is one that makes no claim about how
+           far along anything is. A turning wheel says work is happening and
+           says nothing else, and there is no value of it that can look stalled.
+
+           Every line of it is drawn by tv.css from this markup — tv.js does not
+           touch this scene at all any more, and the state frame's
+           groupingProgress is no longer read by this surface (it stays on the
+           wire; worker/protocol.ts owns that).
+
+           IT MUST SURVIVE ITS OWN ANIMATION BEING TURNED OFF. Under
+           prefers-reduced-motion tokens.css forces every animation to 1ms and a
+           single iteration, which does not stop one — it lands it on its LAST
+           keyframe. So a spinner whose visibility is carried by the animation
+           itself, a fading arc or a growing dash or a blur, comes to rest on
+           whichever end of that ramp it happened to stop on. That is the shape
+           of the fault that emptied this exact screen once already: everything
+           that made the dog visible lived inside a keyframe or inside a media
+           query, so every way of not running the timeline produced no dog at
+           all. This is a complete cartwheel with nothing running — tyre,
+           felloe, spokes, hub, and one hazard-painted spoke so the turn is
+           legible — and the keyframes rotate it and do nothing else. Stop them
+           by any means and the wheel is still a wheel.
+
+           aria-hidden because the headline and the note above already say what
+           is happening; a spinning wheel read aloud is a third voice on the
+           same sentence. -->
+      <svg class="sortwheel" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+        <g class="sortwheel__turn">
+          <!-- Ink first, enamel over it: the same order every other piece of
+               hardware on this screen is drawn in — a heavy hedgerow outline
+               with the white sitting inside it, not a white line on green. -->
+          <circle class="sortwheel__tyre" cx="60" cy="60" r="51"/>
+          <g class="sortwheel__spokes">
+            <line x1="60" y1="12" x2="60" y2="108"/>
+            <line x1="60" y1="12" x2="60" y2="108" transform="rotate(45 60 60)"/>
+            <line x1="60" y1="12" x2="60" y2="108" transform="rotate(90 60 60)"/>
+            <line x1="60" y1="12" x2="60" y2="108" transform="rotate(135 60 60)"/>
+          </g>
+          <line class="sortwheel__mark" x1="60" y1="60" x2="60" y2="12"/>
+          <circle class="sortwheel__felloe" cx="60" cy="60" r="51"/>
+          <circle class="sortwheel__hub" cx="60" cy="60" r="13"/>
+        </g>
+      </svg>
     </div>
   </section>
 

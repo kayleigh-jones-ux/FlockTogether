@@ -22,7 +22,6 @@ const el = {
   clock: $('.clock'),
   /* No start control. The first phone to lock in becomes the host and opens
      the gate from their own hand; this screen only ever says who that is. */
-  sortBar: bind('sortBar'),
   packInput: document.getElementById('pack-code'),
   packApply: document.querySelector('[data-action="pack-apply"]'),
   packClear: document.querySelector('[data-action="pack-clear"]'),
@@ -834,100 +833,34 @@ function renderRecord(s) {
 }
 
 /* --- Grouping ------------------------------------------------------------
-   The wait while the shepherd sorts the flock. There is nothing to count down
-   to: the model answers when it answers, and the room will not leave this
-   phase before groupingProgress.minUntil either way. So the bar is an ESTIMATE
-   and it is honest about being one — it eases toward a HOLD at 90% over the
-   server's own budget and then sits there for as long as it takes, rather than
-   creeping to 99% and lying, or jumping to 100% and lying sooner.
+   THERE IS NO CODE HERE ANY MORE, AND THAT IS THE POINT.
 
-   Every number comes off the wire (protocol.ts). expectedMs in particular: the
-   easing constant belongs to whoever knows the API timeout, and a copy of it
-   hardcoded here goes stale the day that budget changes and nobody thinks to
-   look at the display.
+   This screen used to drive a progress bar: an exponential ease toward a hold
+   at 90%, off groupingProgress.startedAt and the server's own expectedMs, on a
+   requestAnimationFrame loop with a sampled-once branch for reduced motion,
+   plus an endGrouping() that snapped the fill to 1 on the way out. All of it
+   was correct and all of it was in service of a drawing that read as broken:
+   a bar is understood as a distance to an end, so one that eases up to 90% and
+   waits there — which is the honest thing for a wait whose end nobody can know
+   — looks stalled, and looked most stalled on exactly the slow groupings the
+   room was already uneasy about. It is a wheel now (tv.html, tv.css), which
+   makes no claim about how far along anything is and therefore has no stalled
+   state to be misread as.
 
-   Driven from requestAnimationFrame, never from countdown(). countdown only
-   calls back when the whole second changes, which is exactly right for a
-   number and a ratchet for anything continuous — the same fault that took the
-   swinging gate off the question screen. */
-const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
+   So the whole phase is CSS on authored markup and this file does nothing for
+   it. Nothing to arm on entry, nothing to cancel on exit, no rAF loop to leak
+   if a display sits in this scene when the socket drops.
 
-/* Where the fill waits for news. */
-const BAR_HOLD = 0.9;
-/* Shape of the ease: about 95% of the way to the hold by the time the budget
-   is spent, which leaves a last sliver of travel for a grouping that runs long
-   — so a slow one still looks alive rather than abandoned. */
-const BAR_SHAPE = 3;
-
-let stopBar = null;
-let inGrouping = false;
-
-function barValue(gp, now) {
-  if (!gp || !gp.startedAt) return 0;
-  /* expectedMs is the server's own grouping budget and is what this should be
-     eased over. A frame that arrives without it falls back to the room's own
-     hold, minUntil - startedAt, because that is the only other duration on the
-     frame — and the room will not leave this phase before minUntil anyway, so
-     easing over it is at least a duration this screen knows to be real.
-
-     The trailing 1 is not a third guess, it is a guard: a frame carrying
-     neither number would otherwise divide by zero or by NaN. One millisecond
-     slams the bar to the hold on its first paint, which is precisely the lie
-     this bar exists not to tell — so it is a floor to fall on, never a budget
-     to plan for. If it is ever seen in the wild, the frame is the bug. */
-  const budget = Math.max(
-    1,
-    Number(gp.expectedMs) || Number(gp.minUntil) - Number(gp.startedAt) || 1,
-  );
-  /* Clamped, because these are epoch stamps compared against a clock this
-     display owns: a browser a second behind the Worker must start the bar at
-     empty rather than at a negative fill. */
-  const elapsed = Math.max(0, now - Number(gp.startedAt));
-  return BAR_HOLD * (1 - Math.exp((-BAR_SHAPE * elapsed) / budget));
-}
-
-/* A custom property rather than a width, so the fill is a composited transform
-   and sixty of these a second cost no layout. Nothing transitions it: a
-   transition on a value that is already being set every frame only lags it. */
-function paintBar(value) {
-  if (el.sortBar) el.sortBar.style.setProperty('--sort-fill', value.toFixed(4));
-}
-
-function renderGrouping(s) {
-  inGrouping = true;
-  const gp = s.groupingProgress || null;
-  if (stopBar) stopBar();
-  stopBar = null;
-
-  /* Reduced motion gets the value the bar has at this instant and nothing
-     else: one paint per state frame, no loop, no easing in flight. It is the
-     same number, sampled instead of animated.
-
-     A null groupingProgress takes the same path deliberately. The server sends
-     it only during this phase, so a null here is a frame that went missing —
-     and a bar with nothing to fill from should sit still rather than invent a
-     rate and keep climbing off its own guess. */
-  if (REDUCED_MOTION.matches || !gp) {
-    paintBar(barValue(gp, Date.now()));
-    return;
-  }
-
-  let raf = requestAnimationFrame(function step() {
-    paintBar(barValue(gp, Date.now()));
-    raf = requestAnimationFrame(step);
-  });
-  stopBar = () => cancelAnimationFrame(raf);
-}
-
-/* The sort landed. Snap the bar the rest of the way before the scene goes: a
-   bar is a claim that work will finish, and one abandoned at 90% leaves the
-   claim unfinished even on the frames nobody is quick enough to catch. */
-function endGrouping() {
-  inGrouping = false;
-  if (stopBar) stopBar();
-  stopBar = null;
-  paintBar(1);
-}
+   THE SPINNER NEEDS NOTHING OFF THE WIRE. groupingProgress still arrives on
+   every grouping frame — startedAt, minUntil, expectedMs (worker/protocol.ts) —
+   and this surface no longer reads any of it, deliberately rather than by
+   omission: each of those three numbers exists to answer "how far along?", and
+   that is the question the wheel is here to stop pretending to answer. Nothing
+   is lost with them. The server's five-second floor is enforced server-side and
+   always was — minUntil is only the wire copy of it — so the room still cannot
+   leave this scene before the dog has had its run, whether or not anything on
+   this screen has read the number. The frame is left alone; it is protocol.ts's
+   to trim if the phone ever stops wanting it too. */
 
 /* --- Render ------------------------------------------------------------- */
 
@@ -942,8 +875,6 @@ function render(s) {
     stopClock();
     stopClock = null;
   }
-
-  if (s.phase !== 'grouping' && inGrouping) endGrouping();
 
   /* Forget how big the flock was. The lobby's follow-the-newest scroll only
      fires when the list GREW, and this display outlives a game: if it is ever
@@ -972,8 +903,12 @@ function render(s) {
          is one more thing to get wrong for a saving of nothing. */
       renderQuestion(s);
       break;
+    /* Nothing. showScene() above has already put the grouping scene on, and
+       the dog and the wheel on it are CSS over markup authored in tv.html —
+       see the note above. Stated as a case rather than left to fall through to
+       `default`, so the next reader finds the answer at the place they look
+       for it instead of wondering which of the two omissions this was. */
     case 'grouping':
-      renderGrouping(s);
       break;
     case 'reveal':
       renderReveal(s);
@@ -1085,10 +1020,11 @@ if (el.packClear) {
   });
 }
 
-/* A host leaving the tab open all evening should not accumulate timers. */
+/* A host leaving the tab open all evening should not accumulate timers. The
+   grouping bar's rAF loop used to be cancelled here too; there is no loop left
+   to cancel now that the wheel is CSS, so the clock is the last one standing. */
 window.addEventListener('pagehide', () => {
   if (stopClock) stopClock();
-  if (stopBar) stopBar();
   net.close();
 });
 

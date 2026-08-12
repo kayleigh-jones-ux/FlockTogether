@@ -709,8 +709,28 @@
    draws, so this keys off the same attribute the badge itself is emitted with
    and the two cannot come apart. The name is stated rather than left to
    auto-placement, which would land it in row 3 anyway — but by inference, and
-   inference is what breaks silently when somebody adds a fourth child. */
-.sheep[data-host='true'] .sheep__art {
+   inference is what breaks silently when somebody adds a fourth child.
+
+   IT IS THE PERCH THAT MOVES, NOT THE ART, and that is the whole bug. This
+   rule named .sheep__art and was written when the art WAS the direct child of
+   .sheep — correct on the day. Then .sheep__perch was slid in between the two
+   to give the headroom percentage the animal's own width to resolve against
+   (see the note on it above), and from that moment the art was a grandchild:
+   `grid-row` on it is a property of a box in nobody's grid, so it was silently
+   ignored, the perch kept the `grid-area: 1 / 1` it is given unconditionally,
+   and the badge came back down into the animal's cell — laid across the sheep's
+   back exactly as it had been before this row existed. Measured on a 390px
+   phone the plate spans 648.6–672.1 and the animal's box 627.1–678.4: the label
+   is drawn wholly inside the thing it labels, and it is WIDER than the sheep
+   there (69.8px against 58px), which is why the phone shows it worse than a
+   television does. Nothing about the markup or this rule looked wrong; the
+   layout tree had simply moved out from under it.
+
+   Row 1 is above the perch, and the perch is where --art-headroom is spent —
+   so a ten-gallon rising 26.7% of the sheep's width above the animal's box
+   rises INSIDE row 2, and the badge clears the hat and not merely the body,
+   with no number here to be kept in step with the art. */
+.sheep[data-host='true'] .sheep__perch {
   grid-row: 2;
   grid-column: 1;
 }
@@ -1000,8 +1020,8 @@
    off the viewport: the header takes a different share of a portrait display,
    and a path in vw/vh would run the dog off the bottom of one. Nothing here is
    in a list and nothing here is repainted through innerHTML — this markup is
-   authored in tv.html and renderGrouping() never touches it — so keyframes are
-   safe on it in a way they are not on a sheep. */
+   authored in tv.html and tv.js has no code for this scene at all — so
+   keyframes are safe on it in a way they are not on a sheep. */
 .outrun {
   position: absolute;
   inset: clamp(var(--s-3), 2vw, var(--s-6));
@@ -1163,15 +1183,39 @@
 /* WHICH WAY. The turn is a scale THROUGH zero rather than a jump between the
    two facings: the art is drawn facing right, so -1 is the same dog looking
    left, and the ~450ms it takes to pass through nothing reads as the animal
-   pivoting on the spot. Both pivots are placed where the dog is already
-   stopped or already turning — at the check, and at the break for home — so
-   nothing pivots mid-stride. */
+   pivoting on the spot.
+
+   EACH PIVOT SITS ON THE MOMENT THE PATH ITSELF REVERSES, and that is the fix.
+   These two numbers used to be 42% and 81% — the check and the break for home,
+   which are where the POSE changes. It is an easy thing to believe and it is
+   wrong by a sixth of the circuit: read outrun-cast above and the x fraction
+   peaks at 23%, out on the fence line, and bottoms at 76%, at the foot of the
+   drive. From 23% the dog is already coming back right-to-left, and it spent
+   the whole of that leg — 23% to 39%, better than two seconds of every fifteen,
+   and the leg it DECELERATES along into the check, so the slowest and most
+   readable one — running backwards. On a phone that is most of what anybody
+   sees: this scene holds for about the server's five-second floor, so the room
+   watches the dog go out and come back and never reaches the pivot at all,
+   which is exactly why it reads as one fixed facing while the track carries it
+   both ways.
+
+   So both pivots are CENTRED on a reversal: scale crosses zero at 23% and at
+   76%, the sign of the facing changes on the same frame the direction of travel
+   does, and there is no interval left where the two disagree. Nothing snaps
+   mid-stride either — the path is turning a corner at both of them (the head of
+   the cast, and the break for home), which is precisely where an animal turns.
+
+   Two consequences worth stating, because both are wanted: the dog now rounds
+   the top of its cast facing the flock and holds the check that way, which is
+   what a collie coming round the head of a flock actually does; and the pivot
+   at 76% completes just before outrun-pose-run brings the gallop back at 81%,
+   so it turns and then breaks rather than breaking sideways. */
 @keyframes outrun-facing {
-  0%,  39%  { scale: 1 1; }
-  42%       { scale: 0 1; }
-  45%, 78%  { scale: -1 1; }
-  81%       { scale: 0 1; }
-  84%, 100% { scale: 1 1; }
+  0%,  20%  { scale: 1 1; }
+  23%       { scale: 0 1; }
+  26%, 73%  { scale: -1 1; }
+  76%       { scale: 0 1; }
+  79%, 100% { scale: 1 1; }
 }
 
 /* WHICH POSE. Two keyframe sets rather than one shared: they are on different
@@ -1208,32 +1252,96 @@
   50%      { translate: -0.8% -1.8%; rotate: 0.6deg; }
 }
 
-/* How far along the sort is. An estimate, drawn as one: it fills toward a hold
-   at 90% rather than toward an end, because nothing on this screen knows when
-   the shepherd will answer. See tv.js for the easing and where its numbers
-   come from — all three arrive on the wire.
+/* THE WHEEL THAT SAYS NOTHING ABOUT PROGRESS.
+   There was a bar here. It eased toward a hold at 90% and waited there, which
+   was the honest shape for a wait whose end nobody can know — and it read as a
+   fault anyway, because a bar is a distance to an end and one parked short of
+   it looks stuck rather than patient. A wheel makes no claim to be part-way
+   through anything, so it has no stalled state to be misread as.
 
-   No transition on the fill. requestAnimationFrame writes --sort-fill every
-   frame, and a transition layered on a value that is already being animated
-   only makes it lag the number it was handed. */
-.sortbar {
-  inline-size: min(46vw, 560px);
-  max-inline-size: 100%;
-  block-size: clamp(10px, 0.9vw, 18px);
-  margin-block-start: var(--s-2);
-  background: rgb(18 24 15 / 0.5);
-  border: var(--line-hair) solid var(--hedge);
-  border-radius: var(--radius-token);
-  overflow: hidden;
+   The whole thing is drawn from tv.html's authored markup; tv.js no longer
+   touches this scene, so there is no --sort-fill and nothing to drive. That
+   also means this is not in a list and is never repainted through innerHTML,
+   which is what makes keyframes safe here in the way they are not on a sheep.
+
+   NOTHING VISIBLE LIVES IN A KEYFRAME. Every stroke, fill and width below is a
+   base rule, and sortwheel-turn writes `rotate` and nothing else. That is the
+   whole defence against the trap that emptied this screen once already:
+   tokens.css forces animation-duration to 1ms under prefers-reduced-motion,
+   which does not stop an animation, it lands it on its last frame — so a
+   spinner whose visibility is carried by an opacity, a dash or a blur resolves
+   to whichever end of that ramp it happened to stop on. This one resolves to a
+   drawn cartwheel whatever the timeline does, and 360deg is 0deg besides. */
+.sortwheel {
+  /* The bar was 46vw of hazard yellow and this is one object, so the floor
+     carries most of the weight: a narrow or portrait display drops the vw term
+     to nothing, and a wheel that shrinks with it would be a bead under the
+     headline on the one screen a whole room is looking at. */
+  inline-size: clamp(72px, 7.5vw, 116px);
+  block-size: auto;
+  margin-block-start: var(--s-3);
+  /* An SVG clips to its own viewBox by default, and the ink tyre is a 15-unit
+     stroke centred on r=51 — its outer edge lands at 58.5 of a 60 radius, with
+     one and a half units to spare. That is close enough that thickening the
+     outline or nudging the radius would shave a flat edge off the wheel and
+     leave nothing in the markup to explain it, so the clip comes off. */
+  overflow: visible;
+  /* Lifted off the field the same way every sheep on this display is. */
+  filter: drop-shadow(0 4px 6px rgb(10 24 8 / 0.45));
 }
 
-.sortbar__fill {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-  background: var(--hazard);
-  transform-origin: left center;
-  scale: var(--sort-fill, 0) 1;
+/* The turn, and only the turn. transform-box is stated rather than inherited:
+   the origin of a transform on an SVG child resolves against whichever box
+   this names, and the wheel is centred in the viewBox — not in any one child's
+   bounding box, which is what the other value would measure. */
+.sortwheel__turn {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: sortwheel-turn 1800ms linear infinite;
+}
+
+/* Enamel on hedgerow ink, like every other piece of farm hardware on this
+   screen: the ink ring is laid first and the enamel felloe sits inside it, so
+   the wheel keeps an outline against the pasture at every size. Round caps on
+   the spokes — a cartwheel's spokes are turned wood, and a butt end reads as a
+   diagram. */
+.sortwheel__tyre {
+  fill: none;
+  stroke: var(--hedge);
+  stroke-width: 15;
+}
+
+.sortwheel__felloe {
+  fill: none;
+  stroke: var(--enamel);
+  stroke-width: 7;
+}
+
+.sortwheel__spokes line {
+  stroke: var(--enamel);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+/* One spoke painted, because eight identical ones turning read as a wheel
+   standing still — the symmetry hides the rotation at every speed. This is the
+   only thing on the wheel that tells the room it is moving, so it is drawn
+   heavier than its neighbours and in the gate paint. */
+.sortwheel__mark {
+  stroke: var(--hazard);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.sortwheel__hub {
+  fill: var(--hedge);
+  stroke: var(--enamel);
+  stroke-width: 5;
+}
+
+@keyframes sortwheel-turn {
+  from { rotate: 0deg; }
+  to   { rotate: 360deg; }
 }
 
 
@@ -1967,13 +2075,17 @@
      declarations moved up into the base rules and none of them is repeated
      here; a second opinion in a media query is how the two get to disagree.
 
-     The sort bar keeps whatever value the last state frame gave it: tv.js
-     stops driving it from requestAnimationFrame here and samples it once per
-     frame instead, so it still says how far along the sort is without anything
-     sliding. */
+     The wheel beside the dog is off here too, and for once that costs nothing:
+     every stroke of it is a base rule and the keyframes only rotate it, so
+     what is left is the drawn cartwheel rather than a spinner caught at some
+     arbitrary point of a fade. It is stopped rather than left to the 1ms rule
+     for the same reason the dog is — a full turn crammed into one millisecond
+     on entry is a flicker, and `animation: none` is the only thing that
+     actually clears a name. */
   .outrun__dog,
   .outrun__body,
-  .outrun__pose {
+  .outrun__pose,
+  .sortwheel__turn {
     animation: none;
   }
 

@@ -1,0 +1,108 @@
+/* The art sheep's layer stack. Shared by both surfaces so the display and the
+   phone cannot disagree about what a sheep looks like — the same player is on
+   both screens at once, and a fleece that reads differently between them reads
+   as a bug in the game rather than in the CSS.
+
+   Layer numbers come from LAYER in shared/hat-placement.js. They are written
+   out here because CSS cannot import them; if you change one, change both. */
+
+.sheepart {
+  display: block;
+  position: relative;
+  /* The room a hat needs above the sheep, measured per list by headroomFor()
+     and passed in. A percentage padding resolves against WIDTH, which is what
+     makes one number hold at every size this sheep is drawn at. */
+  padding-top: var(--art-headroom, 0%);
+}
+
+/* isolate so a prop sent behind the sheep stops at the sheep, and so the fleece
+   tint multiplies against the animal rather than against whatever ground the
+   surface happens to put behind it. Without it a negative-stacking child
+   escapes to the nearest ancestor that owns a stacking context, and multiply
+   picks up the pasture. */
+.sheepart__box {
+  position: relative;
+  isolation: isolate;
+}
+
+.sheepart__body {
+  display: block;
+  width: 100%;
+  height: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* The player's colour, painted through the wool mask. multiply keeps the ink
+   outline and the shading underneath — a flat fill would erase both and leave
+   a coloured silhouette. The face and legs are outside the mask, so a sheep
+   keeps its grey face whatever colour its owner chose. */
+.sheepart__fleece {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--fleece, transparent);
+  mix-blend-mode: multiply;
+  -webkit-mask-image: var(--fleece-mask);
+  mask-image: var(--fleece-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  pointer-events: none;
+}
+
+/* The raddle blotch on the flank. Opaque rather than multiplied, because it is
+   the one thing that must read on a black fleece as clearly as on a white one —
+   real raddle is a dye stick, and it covers. Masked all the same, so it can
+   never spray past the wool onto the face or the field.
+
+   Invisible until marked: this is the authored moment of the question phase. */
+.sheepart__raddle {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 11% 13% at 33% 48%,
+    var(--raddle, transparent) 0 62%,
+    transparent 74%
+  );
+  -webkit-mask-image: var(--fleece-mask);
+  mask-image: var(--fleece-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  pointer-events: none;
+}
+
+.sheepart__hat {
+  position: absolute;
+  /* Placement names the hat's centre, and rotation must pivot about that same
+     point or tuning `rot` would drag the hat across the head. */
+  transform-origin: 50% 50%;
+  height: auto;
+  pointer-events: none;
+}
+
+/* The mark landing. Scale on the animal, the dye fading up on top of it. */
+.sheepart[data-marked='true'] .sheepart__box {
+  animation: sheepart-jolt var(--t-base, 320ms) var(--ease-out-expo, ease-out) both;
+}
+
+.sheepart[data-marked='true'] .sheepart__raddle {
+  animation: sheepart-spray var(--t-base, 320ms) var(--ease-out-expo, ease-out) both;
+}
+
+@keyframes sheepart-jolt {
+  0%   { scale: 1; }
+  60%  { scale: 1.06; }
+  100% { scale: 1; }
+}
+
+@keyframes sheepart-spray {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheepart[data-marked='true'] .sheepart__box { animation: none; }
+  .sheepart[data-marked='true'] .sheepart__raddle { animation: none; opacity: 1; }
+}

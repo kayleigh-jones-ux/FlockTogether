@@ -7,7 +7,8 @@
 
 import { connect, loadSprites, countdown } from '/shared/net.js';
 import { raddleVar, raddleVarForRank } from '/shared/raddle.js';
-import { colourById, hatById, colourToken, HAT_BOX } from '/shared/look.js';
+import { colourById, hatById, colourToken } from '/shared/look.js';
+import { loadArt, headroomFor, sheepArtHTML } from '/shared/sheep-art.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const bind = (name) => document.querySelector(`[data-bind="${name}"]`);
@@ -114,24 +115,20 @@ function fleeceNeedsRim(colour) {
   return needs;
 }
 
-/* Every hat is authored in a 60x60 box whose bottom centre sits on the crown,
-   which is ABOVE the sprite's own 132x104 space. So a hatted sheep needs its
-   viewBox opened upward by HAT_BOX rather than being allowed to overflow: the
-   lobby flock and every paddock clip their overflow, and a sliced-off crown
-   reads as a rendering fault. A whole list shares one box, hatted or not,
-   because sheep sitting at different heights reads as one too — and a list
-   with no hats in it at all keeps the original box, so a flock of unchosen
-   sheep is pixel-for-pixel what it was. */
-const wantsHeadroom = (people) => people.some((who) => !!(lookOf(who) || {}).hat);
+/* Hats stick out of the sheep's own box and the trimmed art gives them no
+   shared one to stick out of, so the room above is measured rather than
+   assumed — see headroomFor. The lobby flock and every paddock clip their
+   overflow, and a sliced-off crown reads as a rendering fault.
 
-function sheepSvg(cls, look, headroom) {
+   A whole list shares one number, because sheep sitting at different heights
+   reads as a fault too, and a list with no hats in it reserves nothing at all
+   — so a flock of unchosen sheep sits exactly where it always did. */
+const headroomOf = (looks) =>
+  headroomFor(looks.map((look) => ((look || {}).hat || {}).id).filter(Boolean));
+
+function sheepArt(cls, look, headroom, marked) {
   const hat = look && look.hat;
-  const top = headroom ? HAT_BOX.y : 0;
-  return `<svg class="${cls}" viewBox="0 ${top} 132 ${104 - top}" aria-hidden="true"><use href="#sp-sheep"/>${
-    hat
-      ? `<use class="sheep__hat" href="#sp-hat-${hat.id}" x="${HAT_BOX.x}" y="${HAT_BOX.y}" width="${HAT_BOX.size}" height="${HAT_BOX.size}"/>`
-      : ''
-  }</svg>`;
+  return sheepArtHTML({ className: cls, hatId: hat ? hat.id : '', headroom, marked });
 }
 
 function sheepMarkup(p, { marked, headroom }) {
@@ -141,7 +138,7 @@ function sheepMarkup(p, { marked, headroom }) {
         data-marked="${marked ? 'true' : 'false'}"
         data-deep="${fleeceNeedsRim(look && look.colour) ? 'true' : 'false'}"
         data-connected="${p.connected === false ? 'false' : 'true'}">
-      ${sheepSvg('sheep__svg', look, headroom)}
+      ${sheepArt('sheep__art', look, headroom, marked)}
       <span class="sheep__name">${esc(p.name)}</span>
     </li>`;
 }
@@ -220,7 +217,7 @@ function renderLobby(s) {
 
   renderChoosing(s);
 
-  const headroom = wantsHeadroom(s.players);
+  const headroom = headroomOf(s.players.map(lookOf));
   setHTML(
     bind('lobbyFlock'),
     s.players.map((p) => sheepMarkup(p, { marked: false, headroom })).join(''),
@@ -262,7 +259,7 @@ function renderQuestion(s) {
   const total = s.players.filter((p) => p.connected !== false).length;
   text(bind('answerTally'), `${answered} of ${total} marked`);
 
-  const headroom = wantsHeadroom(s.players);
+  const headroom = headroomOf(s.players.map(lookOf));
   setHTML(
     bind('waitingFlock'),
     s.players.map((p) => sheepMarkup(p, { marked: p.answered, headroom })).join(''),
@@ -386,7 +383,7 @@ function renderReveal(s) {
      case the server ever sends it inline, then off the player it belongs to. */
   const playerById = new Map(s.players.map((p) => [p.id, p]));
   const lookForAnswer = (a) => lookOf(a) || lookOf(playerById.get(a.playerId)) || null;
-  const headroom = groups.some((g) => g.answers.some((a) => !!(lookForAnswer(a) || {}).hat));
+  const headroom = headroomOf(groups.flatMap((g) => g.answers.map(lookForAnswer)));
 
   const html = groups
     .map((g, i) => {
@@ -405,7 +402,7 @@ function renderReveal(s) {
           const style = fleeceStyle(look);
           return `<li class="pad-sheep"${style ? ` style="${style}"` : ''}
               data-deep="${fleeceNeedsRim(look && look.colour) ? 'true' : 'false'}">
-              ${sheepSvg('pad-sheep__svg', look, headroom)}
+              ${sheepArt('pad-sheep__art', look, headroom, false)}
               <span class="pad-sheep__text">${esc(a.text)}</span>
               <span class="pad-sheep__who">${esc(a.name)}</span>
             </li>`;
@@ -543,7 +540,11 @@ function render(s) {
 
 /* --- Wire up ------------------------------------------------------------ */
 
-await loadSprites();
+/* Sprites still carry the rosette, the tally and the gate. The sheep and the
+   forty hats come from the art manifest, and it must be in hand before the
+   first flock is painted: without it every hat is assumed square and sits
+   wrong for one frame. */
+await Promise.all([loadSprites(), loadArt()]);
 
 /* The display's own room, remembered per tab. If this tab's socket drops we
    must re-attach to the SAME paddock: asking for a new one would hand out a

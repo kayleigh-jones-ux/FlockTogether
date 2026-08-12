@@ -9,6 +9,7 @@
 <meta name="robots" content="noindex">
 <title>Flock Together — your phone</title>
 <link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/sheep-art.css">
 <link rel="stylesheet" href="/play.css">
 <link rel="preload" href="/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <script type="module" src="/play.js"></script>
@@ -88,14 +89,17 @@
       <div class="look-head">
         <h2 class="look-title" id="look-h">Make your sheep</h2>
         <div class="look-stage">
-          <!-- Taller than the sheep's own 132x104 box: the hat box sits 30
-               units above the crown, and the root svg clips what it cannot
-               see. The sheep is placed 1:1 so the crown stays under the hat,
-               and play.js sizes every .use-hat from HAT_BOX in look.js. -->
-          <svg class="look-sheep" id="look-sheep" viewBox="-4 -34 146 142" aria-hidden="true">
-            <use class="use-sheep" href="#sp-sheep" x="0" y="0" width="132" height="104"/>
-            <use class="use-hat" id="look-hat" hidden/>
-          </svg>
+          <!-- Generated art, layered by shared/sheep-art.css and painted by
+               play.js through paintSheepArt. The pose and its mask are written
+               here as well as there so the first frame is a sheep rather than a
+               broken image; everything after is JS. -->
+          <span class="sheepart look-sheep" id="look-sheep" data-pose="sheep-idle" aria-hidden="true">
+            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
+              <span class="sheepart__fleece"></span>
+              <span class="sheepart__raddle"></span>
+            </span>
+          </span>
           <p class="look-name" id="look-name">&nbsp;</p>
         </div>
       </div>
@@ -139,10 +143,13 @@
           <span class="tag-name" id="tag-big-name"></span>
         </p>
         <p class="flockline">
-          <svg class="ico ico--sheep" viewBox="-4 -34 146 142" aria-hidden="true">
-            <use class="use-sheep" href="#sp-sheep" x="0" y="0" width="132" height="104"/>
-            <use class="use-hat" id="lobby-hat" hidden/>
-          </svg>
+          <span class="sheepart ico--sheep" id="lobby-sheep" data-pose="sheep-idle" aria-hidden="true">
+            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
+              <span class="sheepart__fleece"></span>
+              <span class="sheepart__raddle"></span>
+            </span>
+          </span>
           <span id="flock-count">You're first in the paddock.</span>
         </p>
         <p class="legend choosing" id="choosing-note">&nbsp;</p>
@@ -168,10 +175,13 @@
         </div>
 
         <div class="flank" id="flank">
-          <svg class="sheep" id="sheep" viewBox="-4 -34 146 142" aria-hidden="true">
-            <use class="use-sheep" href="#sp-sheep" x="0" y="0" width="132" height="104"/>
-            <use class="use-hat" id="sheep-hat" hidden/>
-          </svg>
+          <span class="sheepart sheep" id="sheep" data-pose="sheep-idle" aria-hidden="true">
+            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
+              <span class="sheepart__fleece"></span>
+              <span class="sheepart__raddle"></span>
+            </span>
+          </span>
         </div>
       </div>
 

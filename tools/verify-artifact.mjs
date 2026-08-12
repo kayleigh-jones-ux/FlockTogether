@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
    copy typed in here: a check with its own idea of which hats exist would pass
    a bench that is missing the one hat nobody remembered to draw. */
 import { FLEECE_COLOURS, HATS } from '../public/shared/look.js';
+import { PLACEMENTS } from '../public/shared/hat-placement.js';
 
 const h = readFileSync(new URL('../flock-together-bench.html', import.meta.url), 'utf8');
 let bad = 0;
@@ -105,29 +106,27 @@ for (const [n, d] of [['display', tv], ['phone', pl]]) {
   chk(n + ': storage guard present', d.includes('sessionStorage'));
   chk(n + ': both fonts inlined in this frame', d.split('data:font/woff2;base64,').length - 1 === 2);
 
-  /* A hat is referenced by id alone (`#sp-hat-<id>`), so a missing symbol is
-     not an error anywhere — it is a sheep that renders bare-headed and a
-     player told they are wearing something they cannot see. All twenty or the
-     picker is lying. */
-  /* The surfaces still draw `#sp-hat-<id>`, so a hat renders only if its symbol
-     is here. The generated art has overtaken the symbol set — twenty props are
-     raster-only — and until tv.js and play.js are switched to it those twenty
-     draw nothing at all. That is tracked as a known gap rather than asserted
-     away: what IS asserted is that every symbol the sheet claims to have made
-     it in, and that the symbol set has not silently shrunk. */
-  const drawn = HATS.filter((hat) => d.includes('id="sp-hat-' + hat.id + '"'));
-  const rasterOnly = HATS.filter((hat) => !d.includes('id="sp-hat-' + hat.id + '"'));
-  chk(n + ': every hat symbol that exists is inlined', drawn.length >= 20,
-    drawn.length + ' of ' + HATS.length + ' hats have a symbol');
-  if (rasterOnly.length) {
-    console.log(
-      '      ' + n + ': ' + rasterOnly.length +
-        ' hats are raster-only and cannot render until the surfaces move to public/art — ' +
-        rasterOnly.map((h) => h.id).join(', '),
-    );
-  }
-  chk(n + ': hats are authored to the one 60x60 box',
-    (d.match(/viewBox="0 0 60 60"/g) || []).length >= drawn.length);
+  /* A hat is drawn from its own art, placed by its own tuned entry. A hat
+     missing from the inlined map is not an error anywhere at runtime — the src
+     resolves to empty and the sheep renders bare-headed, which is a player
+     told they are wearing something nobody else can see. This is the check
+     that used to pass with twenty hats invisible, so it asserts all forty. */
+  const missingArt = HATS.filter((hat) => !d.includes(`"hat-${hat.id}":"data:image/webp`));
+  chk(n + `: all ${HATS.length} hats have their art inlined`,
+    missingArt.length === 0, missingArt.map((h) => h.id).join(', '));
+
+  const untuned = HATS.filter((hat) => !PLACEMENTS[hat.id]);
+  chk(n + ': every hat has a tuned placement to be drawn by',
+    untuned.length === 0, untuned.map((h) => h.id).join(', '));
+
+  /* The sheep itself, and the wool mask that makes the fleece colour land on
+     wool and nowhere else. Without the mask the tint covers the whole animal,
+     face included, which is the failure the mask exists to prevent. */
+  chk(n + ': the sheep art is inlined', d.includes('"sheep-idle":"data:image/webp'));
+  chk(n + ': the fleece mask is inlined', d.includes('"sheep-idle-fleece":"data:image/webp'));
+  chk(n + ': the layer stack came with it', d.includes('.sheepart__fleece'));
+  chk(n + ': the fleece is multiplied through the mask',
+    /\.sheepart__fleece\s*\{[^}]*mix-blend-mode:\s*multiply/.test(d));
 
   /* The fleece is driven by a custom property, and the token it reads is
      derived from the colour id — so a colour whose token never made it into
@@ -139,25 +138,15 @@ for (const [n, d] of [['display', tv], ['phone', pl]]) {
   chk(n + ': all ' + FLEECE_COLOURS.length + ' fleece tokens inlined, with look.js\'s hexes',
     missingTokens.length === 0, missingTokens.map((c) => c.id).join(', '));
 
-  /* Everything below is asserted against the sheep symbol itself, not the whole
-     document: the stylesheets mention --fleece too, and a check that any copy
-     of the string survived would pass a sheep whose fleece went back to a
-     hardcoded fill. */
-  const sheep = /<symbol id="sp-sheep"[\s\S]*?<\/symbol>/.exec(d);
-  chk(n + ': the sheep symbol survived', !!sheep);
-  const sheepSvg = sheep ? sheep[0] : '';
-  chk(n + ': the sheep reads its fleece from the property',
-    /fill="var\(--fleece,[^"]*\)"/.test(sheepSvg));
-
-  /* The face: two eyes and a nose. Counted by distinct eye positions rather
-     than by element, so how an eye is built stays the author's business while
-     a sheep that lost one still fails. */
-  const eyes = new Set([...sheepSvg.matchAll(/<circle[^>]*cx="([\d.]+)"/g)].map((m) => m[1]));
-  chk(n + ': the sheep has two eyes', eyes.size >= 2, [...eyes].join('/'));
-  chk(n + ': and a nose', /<(ellipse|path)[^>]*fill="var\(--hedge\)"/.test(sheepSvg));
-  /* A gradient or a filter would be the first in the whole sprite sheet. */
-  chk(n + ': the face brought no gradients or filters with it',
-    !/gradient|filter=/i.test(sheepSvg));
+  /* The sprite sheet still carries the rosette, the gate, the tally and the
+     eartag, so it still has to arrive — but nothing a player sees reads
+     `sp-sheep` or `sp-hat-*` any more, and there is deliberately no assertion
+     here about either. The sheep's own face is inside a webp now and cannot be
+     counted; what replaced those checks is `npm run hats`, which measures the
+     art itself rather than a drawing of it. */
+  for (const symbol of ['sp-rosette', 'sp-gate', 'sp-tally']) {
+    chk(`${n}: ${symbol} survived`, d.includes(`id="${symbol}"`));
+  }
 
   /* The surfaces destructure the look module off the transport shim, so a name
      they import that the shim never set arrives as undefined and dies deep

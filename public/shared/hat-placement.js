@@ -53,8 +53,10 @@ export const DEFAULT_PLACEMENT = Object.freeze({
 
 /* Layer numbers, shared so the admin bench and the two surfaces cannot disagree
    about what "behind" means. The fleece tint sits between the art and anything
-   drawn over it, because it must colour the wool without colouring the hat. */
-export const LAYER = Object.freeze({ behind: 0, sheep: 1, fleece: 2, hat: 3 });
+   drawn over it, because it must colour the wool without colouring the hat.
+   The raddle mark sits above the tint and below the hat: it is dye sprayed onto
+   an already-coloured fleece, and a hat must never be sprayed with it. */
+export const LAYER = Object.freeze({ behind: 0, sheep: 1, fleece: 2, raddle: 3, hat: 4 });
 
 /* Tuned by eye in /admin, 2026-08-11. All forty, every one with per-pose
    overrides — the heads move more between poses than they look like they do,

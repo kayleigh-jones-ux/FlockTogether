@@ -13,13 +13,14 @@ import { raddleFor } from '/shared/raddle.js';
 import {
   FLEECE_COLOURS,
   HATS,
-  HAT_BOX,
   colourById,
   hatById,
   colourToken,
   lookKey,
   validateLook,
 } from '/shared/look.js';
+import { placementFor } from '/shared/hat-placement.js';
+import { loadArt, paintSheepArt } from '/shared/sheep-art.js';
 
 /* ------------------------------------------------------------------ scaffolding */
 
@@ -50,7 +51,6 @@ const el = {
   joinGo: $('join-go'),
 
   lookSheep: $('look-sheep'),
-  lookHat: $('look-hat'),
   lookName: $('look-name'),
   colourGrid: $('colour-grid'),
   hatGrid: $('hat-grid'),
@@ -66,10 +66,10 @@ const el = {
 
   flockCount: $('flock-count'),
   choosingNote: $('choosing-note'),
-  lobbyHat: $('lobby-hat'),
+  lobbySheep: $('lobby-sheep'),
 
   question: $('question'),
-  sheepHat: $('sheep-hat'),
+  sheep: $('sheep'),
   clock: $('clock'),
   clockLabel: $('clock-label'),
   flank: $('flank'),
@@ -426,8 +426,6 @@ el.joinForm.addEventListener('submit', (event) => {
    because one pair using it has gone: a colour is only spent once every hat
    against it is taken, and a hat once every colour is. */
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
 const colourChips = new Map();
 const hatChips = new Map();
 
@@ -443,25 +441,12 @@ function isTaken(colorId, hatId) {
 const colourSpent = (colorId) => HATS.every((hat) => isTaken(colorId, hat.id));
 const hatSpent = (hatId) => FLEECE_COLOURS.every((colour) => isTaken(colour.id, hatId));
 
-/* look.js owns where a hat sits on a sheep. Reading HAT_BOX here rather than
-   writing 78/-30/60 into the markup keeps that one place true. */
-function placeHats() {
-  for (const use of document.querySelectorAll('.use-hat')) {
-    use.setAttribute('x', String(HAT_BOX.x));
-    use.setAttribute('y', String(HAT_BOX.y));
-    use.setAttribute('width', String(HAT_BOX.size));
-    use.setAttribute('height', String(HAT_BOX.size));
-  }
-}
-
-function setHat(use, hatId) {
-  if (!use) return;
-  if (!hatId) {
-    use.setAttribute('hidden', '');
-    return;
-  }
-  use.setAttribute('href', `#sp-hat-${hatId}`);
-  use.removeAttribute('hidden');
+/* hat-placement.js owns where a hat sits on a sheep, per hat and per pose.
+   Nothing about position is written here: paintSheepArt reads the tuned
+   placement, so the /admin bench and this surface cannot disagree about where
+   a rubber duck goes. */
+function setHat(host, hatId) {
+  paintSheepArt(host, { hatId });
 }
 
 /* tokens.css owns every colour value; look.js's own hex rides along only as
@@ -478,8 +463,8 @@ function applyLook(look) {
   const hat = look ? hatById(look.hatId) : null;
   if (colour) el.body.style.setProperty('--fleece', fleeceValue(colour));
   else el.body.style.removeProperty('--fleece');
-  setHat(el.lobbyHat, hat ? hat.id : '');
-  setHat(el.sheepHat, hat ? hat.id : '');
+  setHat(el.lobbySheep, hat ? hat.id : '');
+  setHat(el.sheep, hat ? hat.id : '');
 }
 
 /* Sticky messages are the ones a repaint must not talk over: a rejection or a
@@ -588,19 +573,23 @@ function hatChip(hat) {
   chip.type = 'button';
   chip.className = 'chip chip--hat';
 
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('class', 'chip-hat');
-  svg.setAttribute('viewBox', `0 0 ${HAT_BOX.size} ${HAT_BOX.size}`);
-  svg.setAttribute('aria-hidden', 'true');
-  const use = document.createElementNS(SVG_NS, 'use');
-  use.setAttribute('href', `#sp-hat-${hat.id}`);
-  svg.append(use);
+  /* The chip shows the hat as the sheep will wear it, flip included — a duck
+     facing one way in the picker and the other way on the animal reads as two
+     different hats. Nothing else about the placement applies here: a chip has
+     no sheep to sit on. */
+  const thumb = document.createElement('img');
+  thumb.className = 'chip-hat';
+  thumb.src = `/art/hat-${hat.id}.png`;
+  thumb.alt = '';
+  thumb.loading = 'lazy';
+  thumb.draggable = false;
+  if (placementFor(hat.id).flip) thumb.style.transform = 'scaleX(-1)';
 
   const name = document.createElement('span');
   name.className = 'chip-name';
   name.textContent = hat.name;
 
-  chip.append(svg, name);
+  chip.append(thumb, name);
   chip.addEventListener('click', () => {
     if (hatSpent(hat.id)) {
       lookNote(`Every colour is taken with the ${hat.name}. Pick another hat.`, true, true);
@@ -664,7 +653,7 @@ function paintLook() {
   if (!colour || !hat) return;
 
   el.lookSheep.style.setProperty('--fleece', fleeceValue(colour));
-  setHat(el.lookHat, hat.id);
+  setHat(el.lookSheep, hat.id);
   setText(el.lookName, `${colour.name} · ${hat.name}`);
 
   for (const c of FLEECE_COLOURS) {
@@ -1423,7 +1412,6 @@ function boot() {
   // Built once, before anything can ask for it: sixty controls whose state is
   // repainted in place, so a look.taken frame never rebuilds what is under a
   // player's thumb.
-  placeHats();
   buildPicker();
 
   setScreen('join');
@@ -1495,5 +1483,9 @@ function boot() {
   });
 }
 
-await loadSprites(); // symbols must exist before the first <use> is painted
+/* Sprites still carry the eartag, the gate and the tally. The sheep and the
+   forty hats are art, and the manifest carries the aspect ratio every hat is
+   placed by — so both must land before the picker paints, or the first hat a
+   player sees is assumed square and sits wrong. */
+await Promise.all([loadSprites(), loadArt()]);
 boot();

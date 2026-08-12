@@ -31,14 +31,6 @@
   display: none !important;
 }
 
-/* The hat rides on the sheep in the sheep's own coordinate space (HAT_BOX in
-   shared/look.js). `color` is set on the <use> itself rather than on the svg
-   because the sheep around it drives the raddle blotch with `color`, and a hat
-   must not be sprayed with dye when the answer lands. */
-.use-hat {
-  color: var(--hedge);
-}
-
 html {
   height: 100%;
 }
@@ -464,10 +456,11 @@ body {
   gap: var(--s-1);
 }
 
+/* The sheep is generated art, layered by shared/sheep-art.css. --fleece is set
+   on this element by play.js; the wool mask does the rest, so the face and the
+   legs keep their own grey whatever colour is chosen. */
 .look-sheep {
   width: min(52vw, 11rem);
-  height: auto;
-  fill: var(--enamel); /* the fleece path takes --fleece; ink stays enamel */
 }
 
 /* Names what they are looking at, so it is Archivo: this labels, it does not
@@ -632,8 +625,6 @@ body {
   height: auto;
   background: var(--enamel-shade);
   border-radius: 2px;
-  fill: var(--enamel);
-  color: var(--hedge);
 }
 
 /* Chosen: hazard ground, and a tick — never the ring alone, because a colour
@@ -739,7 +730,9 @@ body {
   fill: var(--enamel);
 }
 
-.ico--sheep { width: 3.4rem; color: transparent; }
+/* Art rather than a sprite, so it carries .ico's flex-none itself rather than
+   the fill and colour the other three icons inherit. */
+.ico--sheep { width: 3.4rem; flex: none; }
 .ico--gate  { width: 2.6rem; fill: none; }
 .ico--tally { width: 2.2rem; fill: none; color: var(--growth); }
 
@@ -838,17 +831,21 @@ body {
 
 .sheep {
   width: min(62%, 15rem);
-  height: auto;
   /* On a short phone the flock shrinks rather than the send lever getting
-     squeezed off the bottom. The viewBox keeps the sheep in proportion. */
+     squeezed off the bottom. The art keeps the sheep in proportion. */
   max-height: 100%;
-  fill: var(--enamel); /* fleece and head inherit; strokes stay hedge ink */
-  color: transparent;
+  --raddle: var(--mark);
 }
 
-.flank.marked .sheep {
-  color: var(--mark);
-  animation: spray var(--t-slow) var(--ease-gate) both;
+/* The dye landing on the wool. The layer and the keyframes are shared with the
+   display in shared/sheep-art.css; only the timing is this surface's, because
+   here the mark is the answer committing and it is allowed to take longer. */
+.flank.marked .sheep .sheepart__box {
+  animation: sheepart-jolt var(--t-slow) var(--ease-gate) both;
+}
+
+.flank.marked .sheep .sheepart__raddle {
+  animation: sheepart-spray var(--t-slow) var(--ease-gate) both;
 }
 
 /* A soft radial bloom behind the fleece, standing in for the dye mark. */
@@ -867,12 +864,6 @@ body {
 
 .flank.marked::after {
   animation: splat var(--t-slow) var(--ease-out-expo) both;
-}
-
-@keyframes spray {
-  0%   { color: transparent; transform: scale(1); }
-  35%  { color: color-mix(in srgb, var(--mark) 70%, var(--enamel)); transform: scale(1.05); }
-  100% { color: var(--mark); transform: scale(1); }
 }
 
 @keyframes splat {
@@ -1108,7 +1099,10 @@ body {
   .latch[disabled] { transform: none; }
   .screen.is-on { animation: none; }
   .dog { animation: none; }
-  .flank.marked .sheep { animation: none; color: var(--mark); }
+  /* The mark is drawn on rather than travelling onto the fleece: the dye is
+     already there, and the bloom that carried it never happens. */
+  .flank.marked .sheep .sheepart__box { animation: none; }
+  .flank.marked .sheep .sheepart__raddle { animation: none; opacity: 1; }
   .flank.marked::after { animation: none; opacity: 0; }
   .rosette { animation: none; }
   .screen--question.urgent .slate {

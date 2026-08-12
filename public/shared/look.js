@@ -88,11 +88,13 @@ export const FLEECE_COLOURS = Object.freeze([
 ]);
 
 /* --- Hats ----------------------------------------------------------------
- * Twenty, each a symbol in sprites.svg with the id `sp-hat-<id>`. Every hat
- * symbol shares one viewBox and one anchor point so a hat can be swapped
- * without re-positioning it on the sheep — see the HAT_ANCHOR note below.
+ * Forty, each drawn from `public/art/hat-<id>.png` and placed on the sheep by
+ * the tuned entry in shared/hat-placement.js. The first twenty also exist as
+ * `sp-hat-<id>` symbols in sprites.svg — the shape the game shipped with, kept
+ * for the test bench, which still builds the SVG sheep. Nothing a player sees
+ * reads them any more.
  *
- * `tall` marks hats whose silhouette runs high above the anchor. The reveal
+ * `tall` marks hats whose silhouette runs high above the crown. The reveal
  * gives a sheep very little headroom inside a paddock, so tall hats are the
  * first thing clipped when a cell is tight.
  */
@@ -143,21 +145,24 @@ export const HATS = Object.freeze([
   { id: 'ufo',             name: 'UFO',             tall: true },
 ]);
 
-/* Adding a hat means THREE places, and they are checked against each other by
+/* Adding a hat means FOUR places, and they are checked against each other by
  * `npm run hats` — nothing here is a list you can update on its own:
  *   1. this array                          — what a player may pick
- *   2. sprites.svg `sp-hat-<id>`           — what they actually see
- *   3. asset-manifest.mjs HAT_DESCRIPTIONS — the words that generate its art
- * An id present here but missing from sprites.svg is the worst of the three: it
- * is not an error anywhere at runtime, it is a player wearing something nobody
- * else can see. */
+ *   2. asset-manifest.mjs HAT_DESCRIPTIONS — the words that generate its art
+ *   3. public/art/hat-<id>.png             — what they actually see
+ *   4. hat-placement.js PLACEMENTS         — where it sits, tuned in /admin
+ * An id present here but missing from the art is the worst of the four: it is
+ * not an error anywhere at runtime, it is a player wearing something nobody
+ * else can see. That is exactly what half the hats did until the surfaces were
+ * moved off sprites.svg. */
 
-/* Every hat symbol is authored in a 60x60 box whose BOTTOM CENTRE (30,60) sits
- * on the sheep's crown. The sheep sprite is 132x104 with its head centred near
- * (112,52) and the crown at roughly (108,30), so a hat is placed with
- *   <use href="#sp-hat-x" x="78" y="-30" width="60" height="60"/>
- * inside the sheep's own coordinate space. Authoring every hat to that one box
- * is what makes the hat swappable by id alone. */
+/* The 60x60 box every SVG hat symbol was authored to, whose BOTTOM CENTRE
+ * (30,60) sits on the sheep's crown at (108,30) of the sprite's own 132x104.
+ * Authoring every symbol to one box is what made a hat swappable by id alone
+ * with no per-hat placement — and it is exactly what generated art cannot do,
+ * since every asset is trimmed to its own ink. The surfaces place from
+ * hat-placement.js now; this is read only by the test bench, which still
+ * builds the SVG sheep. */
 export const HAT_BOX = Object.freeze({ size: 60, x: 78, y: -30 });
 
 const COLOUR_BY_ID = new Map(FLEECE_COLOURS.map((c) => [c.id, c]));

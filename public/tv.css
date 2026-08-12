@@ -272,38 +272,18 @@
   gap: 3px;
 }
 
-/* A sprite dropped in with <use> lives in a shadow tree, which no selector
-   here can reach, so the sheep is painted entirely through properties that
-   INHERIT into it: `fill` carries the fleece and `color` carries the raddle
-   dye. --fleece is set per sheep by tv.js from the colour that player chose;
-   anyone who never chose falls back to enamel, which is the fleece this
-   display has always drawn. */
-.sheep__svg {
+/* The sheep is generated art, layered in shared/sheep-art.css. What is left
+   here is what this display adds on top of it: the drop shadow that lifts an
+   animal off the field, and the pale rim a deep fleece needs. --fleece is set
+   per sheep by tv.js from the colour that player chose; anyone who never chose
+   sets nothing at all and keeps the art's own enamel wool, which is the fleece
+   this display has always drawn. */
+.sheep__art {
   inline-size: 100%;
-  fill: var(--fleece, var(--enamel));
-  color: transparent;
+}
+
+.sheep__art .sheepart__box {
   filter: drop-shadow(0 4px 5px rgb(10 24 8 / 0.42));
-}
-
-/* The raddle blotch is invisible until marked. Marking is the one authored
-   moment of the question phase. */
-.sheep[data-marked='true'] .sheep__svg {
-  animation: spray var(--t-base) var(--ease-out-expo) both;
-}
-
-@keyframes spray {
-  0%   { color: transparent; scale: 1; }
-  60%  { color: var(--raddle); scale: 1.06; }
-  100% { color: var(--raddle); scale: 1; }
-}
-
-/* The hat is a second symbol placed in the sheep's own coordinate space, so
-   without this it would inherit the fleece fill and the dye colour and
-   disappear into the animal. It carries its own paint; straw stands in for
-   any part of a hat that asks for the inherited one. */
-.sheep__hat {
-  fill: var(--stubble);
-  color: var(--stubble);
 }
 
 /* The ink outline is the only thing holding a fleece apart from the field
@@ -313,8 +293,11 @@
    colour against the ink token and flags the ones that fail; they get a pale
    rim outside the ink, so the silhouette is carried by a light line no
    pasture or paddock tint can match. Nothing else is touched, and the tint
-   itself is untouched everywhere. */
-.sheep[data-deep='true'] .sheep__svg {
+   itself is untouched everywhere.
+
+   The rim goes on the whole composited animal, hat included: with trimmed art
+   the hat is part of the silhouette rather than a symbol floating over it. */
+.sheep[data-deep='true'] .sheep__art .sheepart__box {
   filter:
     drop-shadow(0 0 1.5px var(--enamel))
     drop-shadow(0 0 1.5px var(--enamel))
@@ -617,19 +600,23 @@
   color: var(--hedge);
 }
 
-/* Same two inherited properties as the flock: fleece from the player, dye
-   from the field they ended up in. Here the dye is always shown — being in a
-   paddock at all is what it records. */
-.pad-sheep__svg {
+/* Same two properties as the flock: fleece from the player, dye from the field
+   they ended up in. Here the dye is always shown — being in a paddock at all is
+   what it records — so the raddle layer is simply on, with no mark animation to
+   replay every time the map re-renders. */
+.pad-sheep__art {
   inline-size: clamp(18px, 1.7vw, 34px);
   flex: 0 0 auto;
-  fill: var(--fleece, var(--enamel));
-  color: var(--tint);
+  --raddle: var(--tint);
+}
+
+.pad-sheep__art .sheepart__raddle {
+  opacity: 1;
 }
 
 /* A deep fleece on a deep tint, at the size a paddock sheep actually renders,
    is where the ink outline gives out soonest. Same pale rim, tighter. */
-.pad-sheep[data-deep='true'] .pad-sheep__svg {
+.pad-sheep[data-deep='true'] .pad-sheep__art .sheepart__box {
   filter:
     drop-shadow(0 0 1px var(--enamel))
     drop-shadow(0 0 1px var(--enamel));
@@ -665,11 +652,11 @@
   min-inline-size: 0;
 }
 
-/* The hat is drawn inside the sheep's own svg, so when a field gets too tight
-   to carry sprite detail the hat goes with the sheep rather than surviving as
+/* The hat is drawn inside the sheep's own box, so when a field gets too tight
+   to carry that detail the hat goes with the sheep rather than surviving as
    a floating detail on a field that has already given up on detail. */
 @container (max-height: 150px) {
-  .pad-sheep__svg { display: none; }
+  .pad-sheep__art { display: none; }
   .paddock__flock { justify-content: flex-start; align-content: flex-start; }
 }
 
@@ -955,13 +942,9 @@
     animation: none;
   }
 
-  /* Already sprayed, already settled: the dye is drawn on rather than
-     travelling onto the fleece. */
-  .sheep[data-marked='true'] .sheep__svg {
-    animation: none;
-    color: var(--raddle);
-    scale: 1;
-  }
+  /* The mark is already sprayed and already settled — the dye is drawn on
+     rather than travelling onto the fleece. Handled once for both surfaces in
+     shared/sheep-art.css, since the same sheep is on the phone at the time. */
 
   .clock[data-state='urgent'] {
     animation: none;

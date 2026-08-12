@@ -55,20 +55,26 @@
 
   <!-- LOBBY ------------------------------------------------------------- -->
   <section class="scene scene--lobby" data-scene="lobby" hidden>
-    <div class="joinsign enamel-sign">
-      <p class="legend joinsign__eyebrow">Scan to join the flock</p>
-      <div class="joinsign__qr" data-bind="qr"></div>
-      <p class="joinsign__url" data-bind="joinUrl"></p>
-      <p class="joinsign__code">
-        <span class="legend">or enter code</span>
-        <strong class="numerals" data-bind="roomBig">····</strong>
-      </p>
-    </div>
 
-    <div class="lobbyflock">
-      <h2 class="headline" data-bind="lobbyHeadline">Waiting for the flock</h2>
-      <p class="lobbyflock__note legend" data-bind="lobbyNote">Two sheep needed to open the gate</p>
-      <ul class="flock flock--lobby" data-bind="lobbyFlock"></ul>
+    <!-- THE COLUMN THE HOST READS OFF THE SCREEN. The join sign and the set
+         code are one thing now: both are read aloud or typed in by the person
+         standing at the machine, and neither is about any particular player.
+         The set picker used to sit under the flock, which put a host control in
+         among fifty sheep — so the one field a host has to look at was the one
+         thing competing with the animals for the same space, and it drifted
+         further down the screen with every phone that joined. Column, not sign:
+         the picker is a dark ink plate and the sign is white enamel, and an ink
+         plate inside an enamel sign reads as a hole cut in it. They stack. -->
+    <div class="joincol">
+      <div class="joinsign enamel-sign">
+        <p class="legend joinsign__eyebrow">Scan to join the flock</p>
+        <div class="joinsign__qr" data-bind="qr"></div>
+        <p class="joinsign__url" data-bind="joinUrl"></p>
+        <p class="joinsign__code">
+          <span class="legend">or enter code</span>
+          <strong class="numerals" data-bind="roomBig">····</strong>
+        </p>
+      </div>
 
       <!-- Which questions this game draws from. Empty = the full bank; a 6-char
            set code narrows it to that custom set. -->
@@ -81,6 +87,41 @@
           <button class="setpick__btn setpick__btn--clear" type="button" data-action="pack-clear" hidden>Full bank</button>
         </div>
         <p class="setpick__status" data-bind="packStatus">Using the full question bank</p>
+      </div>
+    </div>
+
+    <div class="lobbyflock">
+      <h2 class="headline" data-bind="lobbyHeadline">Waiting for the flock</h2>
+      <p class="lobbyflock__note legend" data-bind="lobbyNote">Two sheep needed to open the gate</p>
+
+      <!-- THE HOST, PINNED. Fifty sheep do not fit one screen, so the flock
+           below scrolls — and the moment a list scrolls, the one player the room
+           has to be able to find is the one who can be scrolled out of sight.
+           The host holds the controls: everybody is waiting on them, the note
+           above names them, and a room that cannot see which sheep that is has
+           to take the note's word for it.
+           So the host stands outside the scroller, in the same spot every time,
+           and tv.js drops them from the list below — nobody is drawn twice. No
+           label here on purpose: the sheep already wears the HOST badge, and a
+           caption beside it would be the third place on this screen saying the
+           same thing. Hidden until somebody has locked in and become host. -->
+      <ul class="hostpin" data-bind="hostPin" hidden></ul>
+
+      <ul class="flock flock--lobby" data-bind="lobbyFlock"></ul>
+
+      <!-- STILL AT THE GATE. Joined, named, and not yet locked to a fleece and a
+           hat, so there is no sheep to draw — the server sends these people with
+           an id and a name and deliberately no look at all (see ChoosingPlayer
+           in worker/protocol.ts: a colour that reached this screen before it was
+           committed could be spoiled here and then lost to somebody else's
+           claim). They used to be a number in a sentence, which meant a host
+           watched four phones join and read three sheep.
+           They are drawn OUTSIDE the flock, not mixed into it, because the
+           flock is what the headcount above counts and what the game will
+           actually start with. This pen is people at the gate. -->
+      <div class="gatepen" data-bind="gatePen" hidden>
+        <p class="legend gatepen__label" data-bind="gateLabel"></p>
+        <ul class="flock flock--gate" data-bind="gateFlock"></ul>
       </div>
 
       <!-- The gate is not opened from here any more. The first phone to lock in
@@ -119,11 +160,41 @@
 
   <!-- GROUPING ---------------------------------------------------------- -->
   <section class="scene scene--grouping" data-scene="grouping" hidden>
-    <!-- The outrun is the whole field, not a wobble under the headline: the dog
-         casts right round the flock and comes back. It is a track laid over the
-         scene, behind the copy and deaf to the pointer. -->
+    <!-- THE DOG IS ART. It was #sp-dog out of sprites.svg — a flat two-tone
+         symbol that slid round a rectangle. It is Kayleigh's border collie now,
+         and it WORKS: casts wide right, comes round the head of the flock,
+         checks, drops into the eye, walks them down the field and breaks for
+         home. The track is laid over the scene, behind the copy and deaf to
+         the pointer. (sprites.svg keeps #sp-dog — play.html still draws it.)
+
+         Four nested elements because four different things move, and each owns
+         exactly one property so they compose instead of overwriting each other:
+           .outrun        the track. container-type: size, so the circuit is
+                          measured off the TRACK and not the viewport — a
+                          portrait display gives the header a different share
+                          and a path in vw/vh runs the dog off the bottom of it.
+           .outrun__dog   WHERE it is        — animates `translate`
+           .outrun__body  WHICH WAY it faces — animates `scale` (pivot through 0)
+           .outrun__pose  HOW it is moving   — animates `opacity` (which of the
+                          two poses is showing) and its own gait bob.
+         The shadow hangs off .outrun__dog rather than off the body, so it
+         travels with the dog and stays flat on the ground while the animal
+         bounces above it. That is the whole reason the gallop reads as a
+         gallop rather than as a picture being moved.
+
+         Both poses are stacked and cross-faded rather than swapped in JS: a
+         `src` swap would show a blank frame on the first switch, and this scene
+         is only on screen for a few seconds. The gallop is in flow and sets the
+         box height; the crouch is absolute and bottom-aligned, so the two share
+         a ground line and the dog does not hop when it changes pose. -->
     <div class="outrun" aria-hidden="true">
-      <svg class="outrun__dog" viewBox="0 0 140 96"><use href="#sp-dog"/></svg>
+      <div class="outrun__dog">
+        <span class="outrun__shadow"></span>
+        <span class="outrun__body">
+          <img class="outrun__pose outrun__pose--run" src="/art/dog-run.png" alt="" draggable="false">
+          <img class="outrun__pose outrun__pose--eye" src="/art/dog-herding.png" alt="" draggable="false">
+        </span>
+      </div>
     </div>
 
     <div class="working">

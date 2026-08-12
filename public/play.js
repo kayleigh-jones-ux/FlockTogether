@@ -13,14 +13,16 @@ import { raddleFor } from '/shared/raddle.js';
 import {
   FLEECE_COLOURS,
   HATS,
+  HAT_OPTIONS,
   colourById,
   hatById,
   colourToken,
+  isBareHead,
   lookKey,
   validateLook,
 } from '/shared/look.js';
 import { placementFor } from '/shared/hat-placement.js';
-import { loadArt, paintSheepArt } from '/shared/sheep-art.js';
+import { loadArt, paintSheepArt, headroomFor, DEFAULT_POSE } from '/shared/sheep-art.js';
 
 /* ------------------------------------------------------------------ scaffolding */
 
@@ -103,6 +105,10 @@ const el = {
   flame: $('flame'),
   scoreUnit: $('score-unit'),
   standing: $('standing'),
+  above: $('above'),
+  aboveSheep: $('above-sheep'),
+  aboveLead: $('above-lead'),
+  aboveLine: $('above-line'),
   scoresSub: $('scores-sub'),
   scoresNote: $('scores-note'),
   scoresGo: $('scores-go'),
@@ -171,6 +177,13 @@ let draftDirty = false;       // they have touched the picker since it opened
 let taken = new Set();        // 'colorId/hatId' keys, from look.taken
 let pickerOpen = false;       // reopened from the lobby by a locked player
 let lookPending = false;      // a player.look is in flight
+/* The pair we actually SENT, kept because `draft` is not a record of it.
+   A rejection has to poison the pair the server refused, and by the time it
+   arrives the draft has usually moved off that pair — the taken-frame handler
+   moves it, and nothing stops the player tapping chips while a send is in
+   flight. Marking `draft` instead struck out a pair that was free, for the rest
+   of the session. */
+let lookSent = null;
 let lockedLocal = false;      // look.ok seen; the next state frame overrules it
 let lookAckTimer = null;
 let scrollToPick = false;     // bring their current chip into view once
@@ -449,9 +462,17 @@ el.joinForm.addEventListener('submit', (event) => {
 
 /* ------------------------------------------------------------------ the look
    A fleece colour and a hat, chosen before they are part of the flock. The
-   pair is what has to be unique, so nothing here greys out a whole colour
-   because one pair using it has gone: a colour is only spent once every hat
-   against it is taken, and a hat once every colour is. */
+   pair is what has to be unique, so a chip is blocked for one of two quite
+   different reasons and the picker keeps them apart.
+
+   SPENT is about the option itself: every partner it has is gone, so no move on
+   the other half of the pair can rescue it. A colour is spent only once every
+   hat against it is taken, and a hat once every colour is — one pair going does
+   not grey out a whole colour.
+
+   CLASH is about this pair only: this exact colour-and-hat is already somebody
+   in the paddock, and picking a different partner fixes it. Both refuse the
+   pick; only the words differ. */
 
 const colourChips = new Map();
 const hatChips = new Map();
@@ -465,16 +486,95 @@ function isTaken(colorId, hatId) {
   return taken.has(key);
 }
 
-const colourSpent = (colorId) => HATS.every((hat) => isTaken(colorId, hat.id));
+/* HAT_OPTIONS, not HATS: bare is a pickable head like any other (see NO_HAT in
+   look.js), so a colour is not spent until it is gone with a bare head too.
+   Measuring against HATS would have called a colour spent while one pairing of
+   it — the bare one — was still free, and struck out a chip that works. */
+const colourSpent = (colorId) => HAT_OPTIONS.every((hat) => isTaken(colorId, hat.id));
 const hatSpent = (hatId) => FLEECE_COLOURS.every((colour) => isTaken(colour.id, hatId));
+
+/* --- what blocks a chip, asked in ONE place ------------------------------
+ *
+ * This pair of functions is the whole of the fix for the bug that let a player
+ * pick a clash. There used to be two answers to "is this chip available", and
+ * they disagreed: the paint asked `isTaken(colour, hat)` and drew a clash chip
+ * struck out, while the click handler asked only `colourSpent`/`hatSpent` — so
+ * a struck-out chip was still fully live, pick() went through on it, and the
+ * player found out at lock-in when the server came back with LOOK_TAKEN. Two
+ * codepaths deciding the same thing is what made that possible, so now there is
+ * one, and the paint and the refusal both read it.
+ *
+ * '' means pickable. 'spent' means every partner is gone, so the OTHER half of
+ * the pair cannot rescue it. 'clash' means this exact pair is gone and the
+ * other half can. Spent is checked first because it is the stronger fact and
+ * the way out of it is different.
+ */
+function colourBlocked(colorId) {
+  if (colourSpent(colorId)) return 'spent';
+  if (draft && isTaken(colorId, draft.hatId)) return 'clash';
+  return '';
+}
+
+function hatBlocked(hatId) {
+  if (hatSpent(hatId)) return 'spent';
+  if (draft && isTaken(draft.colorId, hatId)) return 'clash';
+  return '';
+}
+
+/* Bare is the one option whose name will not take a "the" in front of it:
+   "taken with the Bobble hat" reads, "taken with the No hat" does not. Every
+   sentence in the picker that names a hat goes through one of these three so
+   the bare head reads like English wherever it turns up. */
+const withHat = (hat) => (isBareHead(hat.id) ? 'with no hat' : `with the ${hat.name}`);
+
+const everyColourWith = (hat) =>
+  isBareHead(hat.id)
+    ? 'Every colour is taken bare-headed.'
+    : `Every colour is taken with the ${hat.name}.`;
+
+const pairSentence = (colour, hat) =>
+  isBareHead(hat.id)
+    ? `Someone is already ${colour.name} with no hat.`
+    : `Someone is already ${colour.name} wearing the ${hat.name}.`;
 
 /* hat-placement.js owns where a hat sits on a sheep, per hat and per pose.
    Nothing about position is written here: paintSheepArt reads the tuned
    placement, so the /admin bench and this surface cannot disagree about where
-   a rubber duck goes. */
-function setHat(host, hatId) {
-  paintSheepArt(host, { hatId });
+   a rubber duck goes.
+
+   `headroom` left null means paintSheepArt measures the space above for THIS
+   hat alone, which is right for a sheep that only ever wears one. The picker
+   passes previewHeadroom instead — see below. */
+function setHat(host, hatId, headroom = null) {
+  paintSheepArt(host, { hatId, headroom });
 }
+
+/* --- the preview stands still -------------------------------------------
+ *
+ * Headroom is the room a hat needs above the sheep, and headroomFor() measures
+ * it from the tuned placement and the art's own aspect. Measured per hat it is
+ * genuinely different per hat — on the idle pose a ten-gallon rises 26.7% of
+ * the sheep's width above the box and sunglasses rise nothing at all — and
+ * since it is applied as padding-top on the sheep, the animal stepped up and
+ * down the screen as a thumb ran through the grid. The player is trying to
+ * compare hats, and the sheep moving is the loudest thing on the screen while
+ * they do it.
+ *
+ * So the picker reserves the WORST CASE ACROSS EVERY OPTION, once, and never
+ * changes it: same call, whole list instead of one id. The sheep is nailed to
+ * one spot for all forty options and only the hat changes. It costs the
+ * difference — about 27% of the preview's width of empty space above a pair of
+ * sunglasses — and that is the price of the thing not jumping.
+ *
+ * Only the picker needs this. Every other sheep on this surface wears one hat
+ * for as long as it is on screen, so measuring it alone is both tighter and
+ * stable; a lobby flock is one list sharing one number already.
+ *
+ * Filled in by buildPicker() rather than at module scope, because headroomFor
+ * reads aspect ratios out of the art manifest and the manifest is only loaded
+ * by the await at the foot of this file. Measured any earlier, every hat is
+ * assumed square and the number is wrong. */
+let previewHeadroom = 0;
 
 /* tokens.css owns every colour value; look.js's own hex rides along only as
    the fallback, so a picker painted before that sheet lands is still a picker
@@ -499,8 +599,22 @@ function applyLook(look) {
    rather than being wiped by the next unrelated frame from the room. */
 let stickyNote = false;
 
+/* Deliberately not setText for the sticky ones. setText no-ops when the words
+   are unchanged, and the message that most needs saying again is the identical
+   one: a blocked chip tapped twice, because a control that did nothing visible
+   is exactly the control a thumb tries again. #look-note is the only aria-live
+   region on this screen, so no mutation is no announcement, and the second tap
+   is answered by silence.
+
+   Alternating one trailing space is the smallest mutation that cannot be diffed
+   away to "nothing changed" before the accessibility tree sees it; it is not
+   spoken and does not print. Only sticky messages get it — those are the ones a
+   player caused by touching something. The ambient rule and the clash sentence
+   are rewritten by every repaint, and forcing a mutation on those would make an
+   unrelated frame from the room talk over whatever is being read out. */
 function lookNote(message, warn, sticky) {
-  setText(el.lookNote, message);
+  if (sticky && el.lookNote.textContent === message) el.lookNote.textContent = `${message} `;
+  else setText(el.lookNote, message);
   el.lookNote.classList.toggle('is-warn', !!warn);
   stickyNote = !!sticky;
 }
@@ -583,9 +697,24 @@ function colourChip(colour) {
   name.textContent = colour.name;
 
   chip.append(swatch, name);
+  /* The refusal, not just the strike-through. Every branch that turns a chip
+     back says out loud, in the one line this screen speaks through, why it did
+     and which half of the pair to move — so a control that is deactivated is
+     never a control that has gone quiet. */
   chip.addEventListener('click', () => {
-    if (colourSpent(colour.id)) {
+    const block = colourBlocked(colour.id);
+    if (block === 'spent') {
       lookNote(`Every hat is taken with ${colour.name}. Pick another colour.`, true, true);
+      return;
+    }
+    if (block === 'clash') {
+      const hat = hatById(draft.hatId);
+      /* Always the hat, never "or another colour": a colour that is not spent
+         has at least one free hat by definition, so moving the hat is an escape
+         that is always there. Offering the colour instead would be a lie in the
+         one case that matters — a hat every one of the thirty-six colours is
+         already taken with, where nothing in this grid is pickable at all. */
+      lookNote(`${pairSentence(colour, hat)} Try a different hat.`, true, true);
       return;
     }
     pick({ colorId: colour.id });
@@ -600,26 +729,44 @@ function hatChip(hat) {
   chip.type = 'button';
   chip.className = 'chip chip--hat';
 
-  /* The chip shows the hat as the sheep will wear it, flip included — a duck
-     facing one way in the picker and the other way on the animal reads as two
-     different hats. Nothing else about the placement applies here: a chip has
-     no sheep to sit on. */
-  const thumb = document.createElement('img');
-  thumb.className = 'chip-hat';
-  thumb.src = `/art/hat-${hat.id}.png`;
-  thumb.alt = '';
-  thumb.loading = 'lazy';
-  thumb.draggable = false;
-  if (placementFor(hat.id).flip) thumb.style.transform = 'scaleX(-1)';
+  let art;
+  if (isBareHead(hat.id)) {
+    /* Bare has no art and never will: it is deliberately not in HATS, so there
+       is no prompt behind it, no /art/hat-none.png and no tuned placement, and
+       `npm run hats` has nothing to check. Its mark is therefore drawn in CSS —
+       an empty slot the size and shape of a hat thumb. See .chip-bare in
+       play.css for why it is an empty slot and not a drawn object or a slash. */
+    art = document.createElement('span');
+    art.className = 'chip-bare';
+  } else {
+    /* The chip shows the hat as the sheep will wear it, flip included — a duck
+       facing one way in the picker and the other way on the animal reads as two
+       different hats. Nothing else about the placement applies here: a chip has
+       no sheep to sit on. */
+    art = document.createElement('img');
+    art.className = 'chip-hat';
+    art.src = `/art/hat-${hat.id}.png`;
+    art.alt = '';
+    art.loading = 'lazy';
+    art.draggable = false;
+    if (placementFor(hat.id).flip) art.style.transform = 'scaleX(-1)';
+  }
 
   const name = document.createElement('span');
   name.className = 'chip-name';
   name.textContent = hat.name;
 
-  chip.append(thumb, name);
+  chip.append(art, name);
   chip.addEventListener('click', () => {
-    if (hatSpent(hat.id)) {
-      lookNote(`Every colour is taken with the ${hat.name}. Pick another hat.`, true, true);
+    const block = hatBlocked(hat.id);
+    if (block === 'spent') {
+      lookNote(`${everyColourWith(hat)} Pick another hat.`, true, true);
+      return;
+    }
+    if (block === 'clash') {
+      // The mirror of the colour chip's refusal, and true for the same reason:
+      // a hat that is not spent has at least one free colour left.
+      lookNote(`${pairSentence(colourById(draft.colorId), hat)} Try a different colour.`, true, true);
       return;
     }
     pick({ hatId: hat.id });
@@ -657,20 +804,60 @@ function buildPicker() {
     el.colourGrid.append(strip);
   }
 
-  for (const hat of HATS) el.hatGrid.append(hatChip(hat));
+  /* HAT_OPTIONS, so bare is the first chip in the grid. First because it is the
+     shortest question this screen asks — "do you want anything on your head at
+     all?" — and a player who does not should not have to scroll past all
+     thirty-nine of them to say so. look.js already puts it at the head of the
+     list; this only has to not sort it. */
+  for (const hat of HAT_OPTIONS) el.hatGrid.append(hatChip(hat));
+
+  // The manifest is loaded by now (see the await at the foot of this file), so
+  // this is the first moment the worst-case rise can be measured truthfully.
+  previewHeadroom = headroomFor(HAT_OPTIONS.map((h) => h.id), DEFAULT_POSE);
 }
 
 /* --- painting the state onto them --------------------------------------- */
 
-function dressChip(chip, name, chosen, spent, clash, why) {
+/* `block` is '' | 'clash' | 'spent', straight from colourBlocked/hatBlocked —
+ * the same call the click handler makes, which is the point.
+ *
+ * STILL aria-disabled, not disabled, and the instruction to actually deactivate
+ * the control is honoured elsewhere: the handler refuses the pick outright and
+ * play.css takes the pointer, the press and the reward off the chip. What the
+ * `disabled` attribute would add on top of that is not deactivation, it is
+ * silence — it takes the chip out of the tab order and out of hit-testing, so
+ * the click handler that is the ONLY thing able to say why can never run, and a
+ * screen-reader user swiping the grid never lands on the chip to be told at all.
+ * The old comment here was right about that and it is kept.
+ *
+ * So a blocked chip is dead to the touch and still explains itself, twice:
+ *   - to a screen reader, with no interaction at all, because the reason is
+ *     folded into its accessible name ("Cobalt — taken with the Bowler") and
+ *     aria-disabled announces it as unavailable when it is reached;
+ *   - on screen, the moment it is touched, in #look-note — the one line this
+ *     screen speaks through — as a sticky message that the next repaint is not
+ *     allowed to talk over.
+ * The strike-through stays as the at-a-glance half of the same fact. */
+/* The chip they are WEARING is never dressed as unavailable, whatever the pair
+ * it is half of has become. Pressed and unavailable at once is a contradiction
+ * to read out — "Cobalt, taken with the Bowler, pressed, unavailable" — and it
+ * is also wrong about what to do next: the way out of a clash is to move the
+ * OTHER half, so the chip being struck out is the half that is fine. Both
+ * selected chips going grey at once says "everything you have chosen is wrong",
+ * when the truth is that one of the two has to move and either will do.
+ *
+ * The clash itself is not swallowed. It is stated where it belongs — in
+ * #look-note, about the pair rather than about a chip — and the lock-in lever
+ * refuses it. Tapping the worn chip still explains itself: colourBlocked and
+ * hatBlocked are unchanged, so the handler names the pair and says which half
+ * to move. */
+function dressChip(chip, name, chosen, block, why) {
   if (!chip) return;
   chip.setAttribute('aria-pressed', chosen ? 'true' : 'false');
-  chip.dataset.state = spent ? 'spent' : clash ? 'clash' : 'free';
-  /* aria-disabled, not disabled: a control nobody can reach is a control that
-     cannot tell anybody why it is unavailable. The click handler refuses it
-     and says the same thing out loud. */
-  chip.setAttribute('aria-disabled', spent ? 'true' : 'false');
-  if (spent || clash) chip.setAttribute('aria-label', `${name} — ${why}`);
+  const shown = chosen ? '' : block;
+  chip.dataset.state = shown || 'free';
+  chip.setAttribute('aria-disabled', shown ? 'true' : 'false');
+  if (shown) chip.setAttribute('aria-label', `${name} — ${why}`);
   else chip.removeAttribute('aria-label');
 }
 
@@ -680,37 +867,50 @@ function paintLook() {
   if (!colour || !hat) return;
 
   el.lookSheep.style.setProperty('--fleece', fleeceValue(colour));
-  setHat(el.lookSheep, hat.id);
+  // The one constant number, so the sheep does not step about as hats change.
+  setHat(el.lookSheep, hat.id, previewHeadroom);
   setText(el.lookName, `${colour.name} · ${hat.name}`);
 
   for (const c of FLEECE_COLOURS) {
-    const spent = colourSpent(c.id);
-    const clash = !spent && isTaken(c.id, hat.id);
+    const block = colourBlocked(c.id);
     dressChip(
-      colourChips.get(c.id), c.name, c.id === colour.id, spent, clash,
-      spent ? 'taken with every hat' : `taken with the ${hat.name}`
+      colourChips.get(c.id), c.name, c.id === colour.id, block,
+      block === 'spent' ? 'taken with every hat' : `taken ${withHat(hat)}`
     );
   }
 
-  for (const h of HATS) {
-    const spent = hatSpent(h.id);
-    const clash = !spent && isTaken(colour.id, h.id);
+  for (const h of HAT_OPTIONS) {
+    const block = hatBlocked(h.id);
     dressChip(
-      hatChips.get(h.id), h.name, h.id === hat.id, spent, clash,
-      spent ? 'taken with every colour' : `taken with ${colour.name}`
+      hatChips.get(h.id), h.name, h.id === hat.id, block,
+      block === 'spent' ? 'taken with every colour' : `taken with ${colour.name}`
     );
   }
 
-  // Never talk over a rejection that is still standing.
-  if (lookPending || stickyNote) return;
+  // The lever is dressed by the same paint as the chips, so it cannot drift out
+  // of step with them. See gateConfirm.
+  gateConfirm();
+
+  /* A send in flight outranks everything: the frame answering it is the fact,
+     and until it lands there is nothing truer to say.
+
+     After that, the pair they are WEARING outranks a sticky message. Sticky is
+     set by every chip refusal and every failed send, and those are all about a
+     chip the player is NOT wearing — so leaving one standing meant the one line
+     this screen speaks through kept repeating a stale refusal while the sheep on
+     screen had quietly become somebody else's. A message about the sheep they
+     have on outranks a message about a chip they have not.
+
+     The clash sentence is not itself sticky: it is recomputed by every paint, so
+     it clears itself the moment the pair comes free instead of pinning a warning
+     that has stopped being true. */
+  if (lookPending) return;
   if (isTaken(colour.id, hat.id)) {
-    lookNote(
-      `Someone is already ${colour.name} wearing the ${hat.name}. Change the colour or the hat.`,
-      true
-    );
-  } else {
-    lookNote(LOOK_RULE, false);
+    lookNote(`${pairSentence(colour, hat)} Change the colour or the hat.`, true);
+    return;
   }
+  if (stickyNote) return;
+  lookNote(LOOK_RULE, false);
 }
 
 function pick(part) {
@@ -726,7 +926,12 @@ function pick(part) {
 
 /* The opening suggestion, and only that. raddle.js still hashes the playerId
    to one of eight dyes; it is no longer what they wear, but it is what stops
-   the picker opening on the same sheep for all twenty of them. */
+   the picker opening on the same sheep for all fifty of them.
+
+   Drawn from HATS rather than HAT_OPTIONS on purpose: bare is a choice worth
+   making, not a default worth being handed, and a picker that opens on a sheep
+   wearing nothing looks like a picker that has not loaded yet. They will find
+   it — it is the first chip in the grid. */
 function suggestLook() {
   const seed = me.playerId ? raddleFor(me.playerId).index : 1;
   const colour = FLEECE_COLOURS[((seed - 1) * 3 + 1) % FLEECE_COLOURS.length];
@@ -735,21 +940,24 @@ function suggestLook() {
 }
 
 /* Move the hat before the colour: a suggestion that clashes should keep the
-   fleece it opened on. 600 pairs against a 20-player cap means the last
-   fallback is unreachable, but it still has to return a look. */
+   fleece it opened on. This one DOES search HAT_OPTIONS — it is looking for a
+   free pair rather than offering an opinion, and bare is thirty-six pairs it
+   would otherwise pretend do not exist. 36 colours x 40 options = 1440 pairs
+   against a 50-player cap means the last fallback is unreachable, but it still
+   has to return a look. */
 function firstFree(colorId, hatId) {
   if (!isTaken(colorId, hatId)) return { colorId, hatId };
 
-  const fromHat = Math.max(0, HATS.findIndex((h) => h.id === hatId));
-  for (let i = 1; i < HATS.length; i += 1) {
-    const hat = HATS[(fromHat + i) % HATS.length];
+  const fromHat = Math.max(0, HAT_OPTIONS.findIndex((h) => h.id === hatId));
+  for (let i = 1; i < HAT_OPTIONS.length; i += 1) {
+    const hat = HAT_OPTIONS[(fromHat + i) % HAT_OPTIONS.length];
     if (!isTaken(colorId, hat.id)) return { colorId, hatId: hat.id };
   }
 
   const fromColour = Math.max(0, FLEECE_COLOURS.findIndex((c) => c.id === colorId));
   for (let i = 1; i <= FLEECE_COLOURS.length; i += 1) {
     const colour = FLEECE_COLOURS[(fromColour + i) % FLEECE_COLOURS.length];
-    for (const hat of HATS) {
+    for (const hat of HAT_OPTIONS) {
       if (!isTaken(colour.id, hat.id)) return { colorId: colour.id, hatId: hat.id };
     }
   }
@@ -757,15 +965,81 @@ function firstFree(colorId, hatId) {
   return { colorId, hatId };
 }
 
+/* --- a draft that has gone under it --------------------------------------
+ *
+ * The pair on screen is not a decision the player gets to keep. Fifty phones
+ * are picking at once against one room, so the pair they are looking at can be
+ * somebody else's before they reach the lever — and it is not the rare case:
+ * suggestLook seeds from raddleFor().index, which is bounded to eight, so nine
+ * players opening the picker together GUARANTEES a duplicate by pigeonhole and
+ * MAX_PLAYERS is fifty.
+ *
+ * So a clash that arrives is answered by moving, not by leaving them parked on
+ * a pair the room will refuse. Anything else is a dead end: the draft never
+ * moves, the next tap sends the identical doomed frame, and it does that
+ * forever. firstFree keeps the fleece and walks the hats, so the move is the
+ * smallest one that works.
+ *
+ * Moving the picker under a thumb without a word would be its own bug, so every
+ * caller says what happened and what they are wearing now.
+ */
+function draftTaken() {
+  return !!draft && isTaken(draft.colorId, draft.hatId);
+}
+
+function moveDraftOffClash() {
+  if (!draftTaken()) return false;
+  const moved = firstFree(draft.colorId, draft.hatId);
+  // firstFree returns the pair it was given when nothing at all is free — 1440
+  // pairs against a 50-player cap says that cannot happen, but a move that did
+  // not move must not be announced as one.
+  if (lookKey(moved) === lookKey(draft)) return false;
+  draft = moved;
+  draftDirty = true;
+  return true;
+}
+
+function wearingNow() {
+  const colour = colourById(draft.colorId);
+  const hat = hatById(draft.hatId);
+  return `You are ${colour.name} ${withHat(hat)} now — send that, or pick your own.`;
+}
+
 /* --- confirming --------------------------------------------------------- */
 
+/* THE GATE. The lever asks the same question the chips do, out of the same
+   call, for the same reason the paint and the click handler were made to share
+   one: two codepaths deciding whether a pair may be sent is what let a struck-
+   out pair go down the wire. The chips were disabled on a clash and the lever
+   was not, so both halves of the pair could be struck through on screen while
+   the lever underneath them was still live and still sending.
+
+   Every path that turns the lever back on comes through here rather than
+   setting it true, because "was it sendable when I last looked" is never the
+   question — the room moves between paints. */
+function gateConfirm() {
+  el.lookGo.disabled = lookPending || draftTaken();
+}
+
 function restoreConfirm() {
-  el.lookGo.disabled = false;
+  gateConfirm();
   setText(el.lookGo, isLocked() ? 'Change my sheep' : "That's my sheep");
 }
 
 function confirmLook() {
   if (lookPending || !draft) return;
+
+  /* The disabled attribute is the visible half of the gate; this is the half
+     that cannot be raced. A look.taken frame can land between the last paint and
+     the thumb coming down, and validateLook only ever checked the SHAPE of the
+     pair — it has never known anything about who is already wearing it. */
+  if (draftTaken()) {
+    const colour = colourById(draft.colorId);
+    const hat = hatById(draft.hatId);
+    lookNote(`${pairSentence(colour, hat)} Change the colour or the hat.`, true, true);
+    gateConfirm();
+    return;
+  }
 
   const checked = validateLook(draft);
   if (checked.error) {
@@ -779,7 +1053,8 @@ function confirmLook() {
   }
 
   lookPending = true;
-  el.lookGo.disabled = true;
+  lookSent = { colorId: checked.look.colorId, hatId: checked.look.hatId };
+  gateConfirm();
   setText(el.lookGo, 'Marking you up…');
   lookNote('Taking that to the paddock…', false);
   // Bound the wait: an ack that cannot arrive must not leave the lever dead.
@@ -787,6 +1062,10 @@ function confirmLook() {
   lookAckTimer = setTimeout(() => {
     if (!lookPending) return;
     lookPending = false;
+    /* No verdict ever came, so we know nothing about that pair — forgetting the
+       send is the point. Keeping it would let a later, unrelated rejection
+       poison a pair this one was never told about. */
+    lookSent = null;
     restoreConfirm();
     lookNote('No word back from the paddock. Try that again.', true, true);
   }, HANDSHAKE_MS);
@@ -1327,6 +1606,67 @@ function scorePose(you, total) {
   return 'sheep-confused';
 }
 
+/* --- who is immediately above you ----------------------------------------
+ *
+ * The scoreboard's one social fact, and the only one this surface should carry:
+ * the big screen already has the whole board, so the phone's job is to name the
+ * single player worth catching rather than reprint a table nobody can read
+ * one-handed at a party.
+ *
+ * `rank` is a STRICT TOTAL ORDER on both YouView and PublicPlayer — the server
+ * breaks ties on cumulative answer cost, which never comes down the wire — so
+ * the player at rank - 1 is exactly one person and is unambiguous. It also
+ * cannot be worked out here any other way, and players[] is in JOIN order, so
+ * this is a search for a rank, never an index into the array.
+ *
+ * Their sheep is drawn MUCH smaller than the player's own (see .above-sheep in
+ * play.css): it is somebody else's animal on a screen about you, and it has to
+ * read as a glance up the field rather than as a second contender for the
+ * middle of the screen.
+ *
+ * Both halves of them are untrusted. The NAME is theirs to type, so it only
+ * ever goes in through setText — a text node cannot become markup, which is the
+ * same guarantee tv.js's esc() gives and one fewer place to forget it. The LOOK
+ * arrives over the same socket and both ids end up somewhere that would carry
+ * an injection — the colour inside a custom property, the hat inside an image
+ * URL — so it goes back through validateLook exactly as tv.js does, and an id
+ * this build has never heard of is treated as no look rather than passed on.
+ */
+function renderAbove(place, players, isFinal) {
+  if (place <= 1) {
+    /* Nothing above them. On the FINAL board the rosette and "First in the
+       flock" have already said this, louder and in the right tense — "keep it
+       up" is advice for a game that is still running — so it is said once. */
+    if (isFinal) { show(el.above, false); return; }
+    show(el.aboveSheep, false);
+    show(el.aboveLead, false);
+    setText(el.aboveLine, 'You are on top of the flock, keep it up!');
+    show(el.above, true);
+    return;
+  }
+
+  const ahead = players.find((p) => Number(p.rank) === place - 1);
+  /* A frame can carry a rank whose player is not in players[] for one paint —
+     a disconnect landing between the ranking and the serialising. Say nothing
+     rather than name the wrong person or invent a placeholder. */
+  if (!ahead) { show(el.above, false); return; }
+
+  const checked = ahead.look ? validateLook(ahead.look) : null;
+  const colour = checked && !checked.error ? colourById(checked.look.colorId) : null;
+  /* transparent, not removeProperty: --fleece is set on <body> to THIS player's
+     colour, so clearing it here would let the sheep above them inherit their
+     fleece and quietly become a second copy of their own animal. Transparent
+     leaves the plain enamel art, which is what an unknown look should look
+     like. */
+  el.aboveSheep.style.setProperty('--fleece', colour ? fleeceValue(colour) : 'transparent');
+  setHat(el.aboveSheep, checked && !checked.error ? checked.look.hatId : '');
+
+  show(el.aboveSheep, true);
+  show(el.aboveLead, true);
+  setText(el.aboveLine, ahead.name || 'Someone');
+  show(el.above, true);
+}
+
 function renderScores(you) {
   const isFinal = state.phase === 'final' || state.scoreboardReason === 'final';
   const players = state.players || [];
@@ -1368,6 +1708,8 @@ function renderScores(you) {
     setText(el.standing, total > 0 ? `${ordinal(place)} of ${total}` : '');
     setText(el.scoresSub, `${run}The whole board is on the big screen.`);
   }
+
+  renderAbove(place, players, isFinal);
 
   // 'final' is not gated — there is nothing left to advance to.
   paintGate('scores', !!state.awaitingHost && state.phase === 'scores');
@@ -1413,10 +1755,21 @@ function onFrame(frame) {
     return;
   }
 
-  /* Advisory only — the server is the authority and rejects a race anyway —
-     so this never touches what they have chosen, only what is struck out. */
+  /* Advisory about everyone else's sheep — the server is the authority and
+     rejects a race anyway — but not advisory about ours: a set that arrives
+     carrying the pair on screen has just made the player's own selection
+     unsendable, and leaving them on it is leaving them on a dead end (see
+     moveDraftOffClash). */
   if (frame.t === 'look.taken') {
     taken = new Set((Array.isArray(frame.taken) ? frame.taken : []).map(String));
+    const was = draft ? { ...draft } : null;
+    if (moveDraftOffClash()) {
+      lookNote(
+        `${pairSentence(colourById(was.colorId), hatById(was.hatId))} ${wearingNow()}`,
+        true,
+        true
+      );
+    }
     paintLook();
     return;
   }
@@ -1424,6 +1777,7 @@ function onFrame(frame) {
   if (frame.t === 'look.ok') {
     clearTimeout(lookAckTimer);
     lookPending = false;
+    lookSent = null;
     const checked = validateLook(frame.look);
     me.look = checked.error ? (draft ? { ...draft } : null) : checked.look;
     if (me.look) {
@@ -1434,6 +1788,13 @@ function onFrame(frame) {
     pickerOpen = false;
     writeIdentity();
     applyLook(me.look);
+    /* Repaint the grid against the look the server has just confirmed. Every
+       chip was last dressed while this send was in flight, when me.look was
+       still the old pair — and isTaken excuses only me.look — so the strike-
+       throughs and the "taken with" names are one look out of date until this
+       runs. It goes before the note because paintLook writes to #look-note too,
+       and the last word on a confirmed sheep is this one. */
+    paintLook();
     restoreConfirm();
     lookNote('That is your sheep. The big screen has it too.', false);
     if (state) render();
@@ -1485,19 +1846,37 @@ function onError(frame) {
   const code = frame.code || 'BAD_REQUEST';
   const message = JOIN_ERRORS[code] || JOIN_ERRORS.BAD_REQUEST;
 
-  /* A refused look. What they made stays exactly as it is on screen — they
-     are told which half of the pair to move, not sent back to the start. */
+  /* A refused look. The colour and the hat they were working in stay on screen —
+     they are not sent back to the start — but the exact pair the server just
+     refused cannot stay under the lever. Leaving it there is a loop with no way
+     out of it: the lever comes back, nothing about the draft has changed, and
+     the next tap sends the same doomed frame to the same refusal, forever. */
   if (lookPending && LOOK_ERRORS[code]) {
     clearTimeout(lookAckTimer);
     lookPending = false;
-    restoreConfirm();
-    if (code === 'LOOK_TAKEN' && draft) {
-      // Our advisory list was behind the room. Catch it up so the chip they
-      // need to move is struck out before they look for it.
-      taken.add(lookKey(draft));
+    let moved = false;
+    /* The REFUSED pair, which is the one we sent — not whatever is under the
+       thumb now. Those are routinely different: the taken-frame handler moves
+       the draft, and the chips stay live while a send is in flight, so marking
+       the draft here struck out a pair nobody had claimed and left it struck out
+       for the session. Falls back to the draft only if we somehow have no record
+       of the send, which is better than poisoning nothing at all. */
+    const refused = lookSent || draft;
+    if (code === 'LOOK_TAKEN' && refused) {
+      // Our advisory list was behind the room. Catch it up first, so the pair is
+      // struck out before they look for it — and so the move below, and the gate
+      // in restoreConfirm, both read a taken-set that knows about it.
+      taken.add(lookKey(refused));
+      moved = moveDraftOffClash();
     }
-    // Said before the repaint, so the repaint leaves the server's own words up.
-    lookNote(`${frame.message || LOOK_ERRORS[code]}${LOOK_FIX[code] || ''}`, true, true);
+    lookSent = null;
+    restoreConfirm();
+    /* Said before the repaint, so the repaint leaves the server's own words up.
+       LOOK_FIX is the "change the colour or the hat" half of those words, and it
+       is only true while they are still standing on the refused pair — once we
+       have moved them off it, telling them to move is telling them to undo it. */
+    const refusal = frame.message || LOOK_ERRORS[code];
+    lookNote(moved ? `${refusal} ${wearingNow()}` : `${refusal}${LOOK_FIX[code] || ''}`, true, true);
     paintLook();
     return;
   }

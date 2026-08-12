@@ -262,6 +262,56 @@ function renderHeader(s) {
 
 /* --- Lobby -------------------------------------------------------------- */
 
+/* How tightly a flock is packed, chosen by how many are in it. Used by BOTH
+ * the lobby list and the waiting flock on the question screen — same fifty
+ * people, same problem.
+ *
+ * MAX_PLAYERS is 50 and each list is one flex-wrap box, so the only two things
+ * that can give are the size of an animal and the size of the box. The box is
+ * already the whole column; the animal is what is left. Fifty sheep at the size
+ * three sheep are drawn at is not a flock, it is a queue that runs off the
+ * bottom of the screen — so the sheep shrinks in steps as the room fills, and
+ * fifty fit an ordinary laptop without anyone having to scroll at all.
+ *
+ * The thresholds live here, next to the count that picks them; what each step
+ * actually does to the animal, the gaps and the column is tv.css's business.
+ * Four steps rather than a continuous function of n on purpose: a size that
+ * slid a little on every single join would make the whole flock twitch each
+ * time somebody's phone connected, on a screen a room is watching.
+ *
+ * Read as "up to this many". Anything past the last row is `tight`. */
+const DENSITY_STEPS = [
+  [12, 'roomy'],
+  [24, 'packed'],
+  [36, 'dense'],
+];
+
+const densityFor = (n) => {
+  for (const [upTo, name] of DENSITY_STEPS) if (n <= upTo) return name;
+  return 'tight';
+};
+
+/* ONE COUNT, both flocks. This exists because there were two.
+ *
+ * The lobby stamped its list from flock.length — the players with the host
+ * filtered out, because the host is pinned above the scroller — and the question
+ * screen stamped its list from s.players.length, host included, because nobody
+ * is pinned out of that one. Two numbers one apart, read against thresholds at
+ * 12/24/36: at exactly 13, 25 or 37 people in the room the two landed on
+ * different sides of the same step, and the moment the gate opened every sheep
+ * on the display changed size at once. Nothing had happened to the flock; the
+ * two screens had simply counted it differently.
+ *
+ * The headcount in the ROOM is the honest number for both. It is what the
+ * display is being asked to fit, and the lobby is fitting the host too — pinned
+ * outside the scroller is still on the screen, and drawn at full size at that.
+ * Taking it from s in one place is what stops the two drifting again. */
+const densityForRoom = (s) => densityFor(s.players.length);
+
+/* How many sheep were in the scrolling list last paint, so a join can be told
+   from a repaint. Reset on leaving the lobby — see render(). */
+let flockDrawn = -1;
+
 function renderLobby(s) {
   const n = s.players.length;
   text(
@@ -286,47 +336,136 @@ function renderLobby(s) {
         : 'Waiting for the host to open the gate',
   );
 
-  renderChoosing(s);
+  renderGate(s);
   renderPack(s);
+
+  /* THE HOST STANDS OUTSIDE THE SCROLLER, and is therefore taken out of the
+     list below: the flock scrolls now, and the one player a room must always
+     be able to find is exactly the one a scroller can hide. Nobody is drawn
+     twice — this is a filter on the same array, not a second copy of anyone.
+
+     Its own headroom, from its own hat. headroomOf() reserves the space one
+     LIST needs above it so that no sheep in that list floats on a band of
+     nothing (see the note on the function); the pin is a list of one, and
+     handing it the flock's number would hang it in the air whenever somebody
+     down in the flock happened to be wearing a taller hat than the host. */
+  const host = s.hostId ? s.players.find((p) => p.id === s.hostId) : null;
+  const pin = bind('hostPin');
+  pin.hidden = !host;
+  if (host) {
+    setHTML(
+      pin,
+      sheepMarkup(host, {
+        marked: false,
+        headroom: headroomOf([{ look: lookOf(host) }]),
+        host: true,
+      }),
+    );
+  }
+
+  const flock = s.players.filter((p) => p.id !== s.hostId);
+  const list = bind('lobbyFlock');
+  /* From the room, not from this list — see densityForRoom. The host is missing
+     from `flock` and would put the lobby a whole step out from the question
+     screen on the three counts where that one player crosses a threshold. */
+  list.dataset.density = densityForRoom(s);
 
   /* One pose for the whole lobby. Ranks exist from the first frame — everyone
      on nothing, so rank degenerates to join order — and taking thirds of that
      would seat a third of the flock as "confused" before a question has been
      asked. The pose says how the game is going; in the lobby it is not going
      yet. */
-  const headroom = headroomOf(s.players.map((p) => ({ look: lookOf(p) })));
+  const headroom = headroomOf(flock.map((p) => ({ look: lookOf(p) })));
   setHTML(
-    bind('lobbyFlock'),
-    s.players
-      .map((p) => sheepMarkup(p, { marked: false, headroom, host: p.id === s.hostId }))
-      .join(''),
+    list,
+    flock.map((p) => sheepMarkup(p, { marked: false, headroom, host: false })).join(''),
   );
+
+  /* When the list overflows, follow the newest arrival down.
+   *
+   * players[] is JOIN ORDER, so a new sheep is always appended at the end —
+   * which is the end that a scrolled list hides. The person most in need of
+   * seeing their own animal is the one who just this second scanned the QR
+   * code, and nobody in a party gets up to scroll a television.
+   *
+   * Only ON A JOIN, never on a repaint. The lobby is rewritten every time
+   * anybody picks a colour, and a list that snapped to the bottom on all of
+   * those would yank the screen out from under a host who had deliberately
+   * scrolled up to look for somebody.
+   *
+   * And never on the FIRST paint, which is what the -1 is for. A display that
+   * reloads mid-lobby is handed all forty people in one frame, and there is no
+   * newest arrival among them — following that down would open the screen
+   * halfway through the list for no reason anybody in the room could see. The
+   * first frame establishes the count; joins after it are joins. */
+  const grew = flockDrawn >= 0 && flock.length > flockDrawn;
+  flockDrawn = flock.length;
+  if (grew && list.scrollHeight > list.clientHeight) list.scrollTop = list.scrollHeight;
 }
 
-/* Joined, but still at the gate picking a fleece and a hat. The headcount
-   above counts only the flock proper, so without this the host watches four
-   phones join and reads three sheep. It is reassurance, not a status board:
-   one line, no count of who, and gone the moment everyone has chosen. */
-let choosingLine = null;
+/* --- Still at the gate ---------------------------------------------------
+   Joined and named, and not yet locked to a fleece and a hat. The headcount
+   above counts only the flock proper, so without this a host watches four
+   phones join and reads three sheep.
 
-function renderChoosing(s) {
-  const n = Number(s.choosing) || 0;
-  if (!choosingLine) {
-    const note = bind('lobbyNote');
-    if (!note) return;
-    choosingLine = document.createElement('p');
-    /* Same size step as the note it follows — the surface scales `legend` for
-       a television — but tv.css takes the stencil back off it. */
-    choosingLine.className = 'lobbyflock__choosing legend';
-    note.insertAdjacentElement('afterend', choosingLine);
+   They used to be a sentence with a number in it, because a number was all the
+   wire carried. The frame names them now — `choosingPlayers`, id and name and
+   deliberately no look at all, lobby-only and in join order (worker/protocol.ts
+   is the contract) — so each one gets a silhouette of the idle sheep with a
+   question mark on it and their own name underneath. That has to read as
+   "somebody is here, still deciding", which is why it is the real animal
+   emptied out rather than a placeholder shape: the sheep they are about to
+   become, not an error where a sheep should be.
+
+   BOTH fields are read, and they are not redundant. `choosing` is the count and
+   is sent in every phase; `choosingPlayers` is empty outside the lobby by
+   design, and after the gate shuts it could not be honest anyway because #start
+   drops everyone still standing there. Taking the larger of the two is not
+   defensive noise either — it is what keeps the caption true if this display is
+   ever talking to a Worker that sends the count and not the array: the sentence
+   still appears, with no silhouettes under it, which is exactly the old
+   behaviour rather than a lobby that has quietly stopped mentioning them. */
+function renderGate(s) {
+  const pen = bind('gatePen');
+  if (!pen) return;
+
+  const counted = Math.max(0, Number(s.choosing) || 0);
+  const named = Array.isArray(s.choosingPlayers) ? s.choosingPlayers : [];
+  const n = Math.max(counted, named.length);
+
+  pen.hidden = n === 0;
+  if (n === 0) {
+    /* Emptied rather than merely hidden: a hidden pen still holding last
+       frame's silhouettes would flash them back for one paint the next time
+       anybody arrived at the gate. */
+    setHTML(bind('gateFlock'), '');
+    return;
   }
-  choosingLine.hidden = n <= 0;
-  if (n > 0) {
-    text(
-      choosingLine,
-      n === 1 ? 'One more still choosing a sheep' : `${n} more still choosing their sheep`,
-    );
-  }
+
+  text(
+    bind('gateLabel'),
+    n === 1 ? 'One more still choosing a sheep' : `${n} more still choosing their sheep`,
+  );
+  setHTML(bind('gateFlock'), named.map(ghostMarkup).join(''));
+}
+
+/* No look, by definition — so no fleece style, no hat, and no headroom to
+   reserve above one. The pose is sheep-art.js's default idle, which is the same
+   pose the lobby flock stands in: the silhouette has to be recognisably the
+   animal beside it, or it reads as a different creature rather than as an
+   unfinished one. Flattening to a silhouette is tv.css's job (.ghost__art); the
+   art itself comes back through sheep-art.js's own resolver, so the bench keeps
+   drawing the same sheep the game does.
+
+   The name is UNTRUSTED — somebody typed it on a phone — and goes through
+   esc() like every other name on this surface. */
+function ghostMarkup(who) {
+  return `
+    <li class="sheep sheep--ghost">
+      ${sheepArtHTML({ className: 'sheep__art ghost__art', headroom: 0 })}
+      <span class="ghost__mark" aria-hidden="true">?</span>
+      <span class="sheep__name">${esc(who.name)}</span>
+    </li>`;
 }
 
 /* Which question set the next game will draw from. The pack rides on every
@@ -362,8 +501,16 @@ function renderQuestion(s) {
      as unrelated players submitted. What this flock is about is who is still
      out — held back, or brought forward — and nothing else. */
   const headroom = headroomOf(s.players.map((p) => ({ look: lookOf(p) })));
+  const waiting = bind('waitingFlock');
+  /* Same step ladder the lobby uses, off the same count, and for the same
+     reason: this is the same fifty people, and they must not change size on the
+     way between the two screens. The host is NOT pinned out of this list — during
+     a question nobody is waiting on the host, they are waiting on whoever has not
+     answered, and lifting one player out of that list would be a claim about them
+     that is not true. */
+  waiting.dataset.density = densityForRoom(s);
   setHTML(
-    bind('waitingFlock'),
+    waiting,
     s.players.map((p) => sheepMarkup(p, { marked: p.answered, headroom })).join(''),
   );
 
@@ -797,6 +944,13 @@ function render(s) {
   }
 
   if (s.phase !== 'grouping' && inGrouping) endGrouping();
+
+  /* Forget how big the flock was. The lobby's follow-the-newest scroll only
+     fires when the list GREW, and this display outlives a game: if it is ever
+     handed a fresh paddock — the room it was resuming has gone, so it opens a
+     new one — a remembered count of forty would swallow the first thirty-nine
+     joins of the next lobby without the list ever following one of them down. */
+  if (s.phase !== 'lobby') flockDrawn = -1;
 
   switch (s.phase) {
     case 'lobby':

@@ -123,11 +123,21 @@ body {
 
 /* ----------------------------------------------------------- the ear tag */
 
+/* max-width, not just min-width: 0. In the topbar the tag is a row flex item
+   and shrinking is enough, but .tag--large is an item of .stack-mid, a COLUMN
+   flex container, where width is the cross axis and flex-shrink does not reach
+   it — the item is sized to fit-content and .tag-name is `white-space: nowrap`,
+   so its min-content is the whole name however long it is. A 14-character name
+   (NAME_MAX) at the 2.1rem top of .tag--large's clamp measures wider than a
+   320px phone, and the ellipsis does not help because overflow:hidden does not
+   reduce what an element contributes intrinsically. Capping the tag at the
+   column is what makes the ellipsis fire instead of the layout growing. */
 .tag {
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
   min-width: 0;
+  max-width: 100%;
   padding: var(--s-1) var(--s-3) var(--s-1) var(--s-1);
   background: var(--enamel);
   border: var(--line-bold) solid var(--hedge);
@@ -568,26 +578,65 @@ body {
 
 /* Colour families, now that no chip carries a printed name. Three shades stack
    inside a family and the families flow across, so a column reads as one hue
-   from pale to deep — which is the only structure left once the words are gone. */
+   from pale to deep — which is the only structure left once the words are gone.
+
+   TWO families per row, fixed, not auto-fill. `repeat(auto-fill, minmax(5.5rem,
+   1fr))` decided the count from whatever space it found, and it fits as many
+   88px minimums as it can: on the 390px handset most people actually hold that
+   is three families across a 354px column, 110px each, which after two inner
+   gaps and each chip's own border and padding left every swatch about 17px of
+   visible colour. A swatch with no name on it IS the control; 17px of it is a
+   stripe, not a colour anyone can judge. Two is the number this content wants
+   at every phone width, so it is stated rather than discovered.
+
+   The arithmetic, on the narrowest phone anyone will bring (iPhone SE, 320px
+   CSS width, 1rem = 16px), because that is where a fixed column count fails if
+   it is going to:
+
+     320    viewport
+     -32    .pen's own padding, --s-4 each side (safe-area insets are 0 here:
+            portrait, and left/right are only non-zero on a notched landscape)
+     -4     .look-scroll's padding-right, --s-1
+     =284   the width .fam-grid actually gets. Phone scrollbars are overlay and
+            take nothing; a desktop browser eats ~15px more and simply gets
+            narrower swatches, since nothing below is a fixed size.
+     -12    one --s-3 gap between the two families
+     /2     = 136px per family
+     -8     two --s-1 gaps between the three shades (see .fam-shades)
+     /3     = 42.6px per colour chip
+     -6     the chip's --line border, both edges
+     -8     the chip's --s-1 padding, both edges
+     =28.6px of visible colour, 44px tall (.chip-swatch)
+
+   The chip itself is 42.6 x 44 at 320px and 54 x 44 on a 390px phone, so the
+   target stays about a thumb wide at the very worst and comfortably over it
+   everywhere else — against 31 x 44 for the three-per-row layout this replaces.
+   Nothing here can overflow: both tracks are minmax(0, 1fr), so no chip's
+   contents can force the grid wider than the column it sits in. */
 .fam-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--s-3);
 }
 
 .fam {
   display: grid;
   gap: var(--s-1);
+  min-width: 0;
 }
 
 .fam-name {
   color: color-mix(in srgb, var(--enamel) 62%, var(--pasture));
 }
 
+/* Tightened from --s-2 to buy the swatches back the 4px, and because it is the
+   right gap anyway: three shades of one hue are a set, and the system's rule is
+   tight inside a group and generous between them. The --s-3 above still holds
+   the families apart, so the reading is unchanged — only the ratio is. */
 .fam-shades {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--s-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-1);
 }
 
 .hat-grid {
@@ -614,12 +663,23 @@ body {
   touch-action: manipulation;
 }
 
+/* `anywhere`, and it has to be `anywhere` rather than `break-word`, because the
+   two differ in exactly the way that matters here. Both break a word that will
+   not fit; only `anywhere` also drops the word out of the element's MIN-CONTENT
+   width, and min-content is what a grid item hands its track. Without it,
+   "Deerstalker" measures about 82px against a chip whose content box is 62px on
+   a 320px phone, the chip's own auto column is forced out to the word, the
+   overflow lands inside .look-scroll — which is overflow-y:auto, and per spec a
+   visible overflow-x beside a non-visible overflow-y computes to auto — and the
+   hat picker gains a sideways scrollbar. Nothing here is clipped or hidden to
+   fix that; the long name simply wraps, which the chip already allows for. */
 .chip-name {
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 /* 2.75rem is the floor, not the look: with the name gone the swatch IS the
@@ -658,6 +718,43 @@ body {
   border-radius: 2px;
 }
 
+/* --- the bare head ------------------------------------------------------
+ *
+ * "No hat" is a real pick — the first chip in the grid — and it is the one
+ * option that cannot have a thumbnail. There is no /art/hat-none.png and there
+ * never will be: bare is deliberately not in HATS (see NO_HAT in look.js), so
+ * nothing generates art for it, nothing places it, and `npm run hats` has
+ * nothing to check. Its mark is therefore drawn here.
+ *
+ * It is the EMPTY SLOT: the same 2.6rem box every hat thumbnail occupies, in
+ * the same place in the chip, with nothing in it. Two things it deliberately is
+ * not.
+ *
+ * It is not a drawn object — no bare sheep's head, no empty hat peg, no dotted
+ * outline of a hat. At 2.6rem on a phone, anything with a silhouette reads as
+ * one more thing you could put on your head, which is the exact opposite of
+ * what this chip means, and it would sit at the head of a grid of thirty-nine
+ * real objects pretending to be a fortieth.
+ *
+ * And it is not a slash, a crossed circle or a ghosted hat, because a bar drawn
+ * across a thing is already this picker's word for UNAVAILABLE — see the ink
+ * bar over a taken swatch above, and the strike-through below. Bare obeys the
+ * pair rule like any other hat and gets struck out when its pair is gone, so
+ * borrowing the blocked vocabulary for its resting state would make "no hat"
+ * and "no hat is taken" the same picture.
+ *
+ * A dashed edge is the one convention that says deliberately empty rather than
+ * banned or broken, and it survives being 2.6rem wide in a hand. The printed
+ * "No hat" underneath does the naming — the hat grid is the half of the picker
+ * that kept its printed names, so words are already how it is read. */
+.chip-bare {
+  width: 2.6rem;
+  aspect-ratio: 1;
+  background: var(--enamel-shade);
+  border: var(--line-hair) dashed color-mix(in srgb, var(--hedge) 55%, var(--enamel));
+  border-radius: 2px;
+}
+
 /* Chosen: hazard ground, and a tick — never the ring alone, because a colour
    chip is already a rectangle of colour. */
 .chip[aria-pressed='true'] {
@@ -685,15 +782,42 @@ body {
   color: color-mix(in srgb, var(--hedge) 62%, var(--enamel));
 }
 
+/* Spent chips repaint their ground --enamel-shade, and the struck-out ink above
+   was mixed against plain --enamel: 4.80:1 on the ground it was tuned for,
+   3.92:1 on the one it actually lands on, which fails 4.5:1 for 0.95rem/700.
+   Mixed against the darker ground instead, so the ratio holds where it is used.
+   Clash keeps the --enamel ground and is already fine. */
+.chip[data-state='spent'] .chip-name {
+  color: color-mix(in srgb, var(--hedge) 70%, var(--enamel-shade));
+}
+
 .chip[data-state='clash'] .chip-swatch,
 .chip[data-state='clash'] .chip-hat,
+.chip[data-state='clash'] .chip-bare,
 .chip[data-state='spent'] .chip-swatch,
-.chip[data-state='spent'] .chip-hat {
+.chip[data-state='spent'] .chip-hat,
+.chip[data-state='spent'] .chip-bare {
   opacity: 0.4;
 }
 
 .chip[data-state='spent'] {
   background: var(--enamel-shade);
+}
+
+/* The deactivation itself, on the touch side. play.js refuses the pick outright
+   for both blocked states now — a clashing chip used to be struck out and still
+   fully live, so the player picked it and only found out at lock-in, when the
+   server came back with LOOK_TAKEN — and this is that refusal made visible
+   before the thumb comes down: no pointer, and no press.
+
+   It is deliberately NOT the `disabled` attribute (see the note above
+   dressChip). Deactivated has to mean "does nothing and tells you why"; the
+   attribute would take the chip out of hit-testing and out of the tab order,
+   which kills the click handler that does the telling and hides the chip from
+   anyone swiping the grid with a screen reader. So the chip stays reachable and
+   stays mute to the touch. */
+.chip[aria-disabled='true'] {
+  cursor: default;
 }
 
 /* The shared hazard ring is 1.44:1 on enamel, so the chip carries the same
@@ -813,7 +937,14 @@ body {
   line-height: 1.04;
   letter-spacing: -0.02em;
   text-wrap: balance;
-  /* Never truncated: a question longer than the sign scrolls inside it. */
+  /* Never truncated: a question longer than the sign scrolls inside it — but
+     DOWN only. overflow-y:auto makes the computed overflow-x `auto` too, so a
+     single unbreakable word — a URL, a long compound, anything a question pack
+     is free to contain — would hand the sign a sideways scrollbar at 2.7rem
+     type. Breaking the word is the fix; `break-word` rather than `anywhere`
+     because nothing measures this element intrinsically and short words should
+     stay whole. */
+  overflow-wrap: break-word;
   overflow-y: auto;
   overscroll-behavior: contain;
   /* Measured frame, not vh: vh ignores the keyboard, so a vh cap would let
@@ -1034,11 +1165,17 @@ body {
   50%      { transform: translateX(7%) rotate(1.5deg); }
 }
 
+/* The player's own answer, echoed back. It is free text they typed, up to
+   ANSWER_MAX with no spaces required, so it is the most likely single string on
+   this surface to be one 80-character word — and .said sits inside .pen, which
+   is overflow:hidden, so an unbroken one would be silently clipped off the edge
+   of the sign rather than scrolled to. Broken, it wraps. */
 .said {
   padding: var(--s-3) var(--s-4);
   font-size: 0.95rem;
   font-weight: 600;
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .said strong {
@@ -1071,9 +1208,12 @@ body {
   gap: var(--s-3);
 }
 
+/* minmax(0, 1fr), not 1fr: a plain 1fr floors at the item's min-content, and
+   the item is a group label written by the model out of what players typed. One
+   long word in it would push the headcount column off the sign. */
 .group-card {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--s-1) var(--s-3);
   padding: var(--s-3) var(--s-4);
@@ -1090,6 +1230,7 @@ body {
   font-weight: 800;
   font-size: 1.35rem;
   line-height: 1.1;
+  overflow-wrap: anywhere;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1168,6 +1309,67 @@ body {
    element is repainted on every frame that lands. */
 .flame {
   line-height: 1;
+}
+
+/* ------------------------------------------------------ who is above you
+   One line under the standing, naming the single player they are chasing.
+
+   The sheep is the point of the sizing. .score-sheep is min(34vw, 7rem) and
+   this is min(11vw, 2.4rem) — roughly a third of it in each direction, so under
+   a tenth of the area. That gap is doing the work: it is somebody else's animal
+   on a screen that is about this player, and at anything close to parity the
+   two read as a head-to-head rather than as a glance up the field. It is also
+   why the sheep sits to the LEFT of the name and not above it — a stacked pair
+   would build a second centred monument directly under the first.
+
+   Nothing here is nowrap and the row may wrap, because the text half of it is
+   another player's name, typed by them, up to NAME_MAX. It wraps under the
+   sheep on a narrow phone rather than pushing the screen sideways. */
+.above {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-3);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.above-sheep {
+  width: min(11vw, 2.4rem);
+  flex: none;
+}
+
+.above-words {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-1);
+  min-width: 0;
+  text-align: center;
+}
+
+.above-lead {
+  color: color-mix(in srgb, var(--enamel) 62%, var(--pasture));
+}
+
+/* The name itself, or — when they are first and there is nobody above them —
+   the one sentence that says so. Both are short, both are the answer to the
+   same question, so both are said in the same voice. .hero would make this
+   compete with the standing it sits under; this is a step below it.
+
+   That step is the Latch one (1.3rem), borrowed rather than invented: of the
+   sizes DESIGN.md sanctions it is the only fixed one already set in the display
+   face at 800, so it is the same voice at the same weight and lands where this
+   needs to land — under the Hero clamp's 1.6rem floor and clear of Legend above
+   it. The 1.15rem that was here was a thirteenth size on a ramp with twelve. */
+.above-line {
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  line-height: 1.15;
+  color: var(--enamel);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 .scores-foot {
@@ -1295,4 +1497,10 @@ body {
   /* The scoreboard's own shortfall: the sheep gives before the number does,
      because the number is the thing they came to this screen to read. */
   .score-sheep { width: min(22vw, 4rem); }
+
+  /* And the sheep above them gives with it, in the same proportion — the whole
+     point of that animal is how much smaller it is than their own, so the two
+     have to shrink together or the gap closes and it starts to look like a
+     contender. */
+  .above-sheep { width: min(7vw, 1.5rem); }
 }

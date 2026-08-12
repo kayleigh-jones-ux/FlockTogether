@@ -9,6 +9,18 @@
 .tv {
   min-height: 100vh;
   min-height: 100dvh;
+  /* AND NEVER MORE. `overflow: hidden` below has always said this screen does
+     not scroll, but a min-height alone does not make that true — it is a floor,
+     not a ceiling, so a grid whose content wanted more simply got more and the
+     bottom of it went off the end of the display.
+     Nothing showed while every scene was smaller than a screen. It showed the
+     moment the cap became fifty: a flock taller than the paddock grew the body,
+     grew the `1fr` row under it, and so never gave any of the scrollers inside
+     a height to be constrained BY — they had nothing to overflow, so they never
+     overflowed, they just pushed the join sign off the bottom. Capping here is
+     what makes `min-block-size: 0` mean something all the way down. */
+  max-block-size: 100vh;
+  max-block-size: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr;
   /* The ground is the field itself: a saturated pasture, not a neutral page.
@@ -30,9 +42,9 @@
 
    Everything on this screen is toggled the same way — `node.hidden = true`,
    from tv.js — and `hidden` is only a UA-sheet `display: none`, so any authored
-   display beats it. This file used to answer that per rule: .scene[hidden],
-   .lobbyflock__choosing[hidden], .hostwait[hidden], .setpick__btn--clear[hidden],
-   .link[hidden]. That works exactly as long as nobody forgets, and three did.
+   display beats it. This file used to answer that per rule: one companion each
+   for the scene, the choosing line, the host-wait caption, the clear-set button
+   and the link. That works exactly as long as nobody forgets, and three did.
    .lot, .rotation and .missed each declare display:flex with no companion, so
    the header carried 'Paddock ····' from first paint and an empty 'Rotation'
    strip through the whole lobby (a fresh room has totalRounds 0), and the dashed
@@ -43,7 +55,10 @@
    So: one rule, and the five companions deleted along with it. The alternative
    was a sixth, seventh and eighth companion, which fixes today's three and
    leaves the trap armed for whoever adds the next flex container — the fault
-   here was never any one missing rule, it was the pattern that needs one.
+   here was never any one missing rule, it was the pattern that needs one. Two
+   more flex containers have since been added (.hostpin and .gatepen, both
+   toggled from tv.js) and neither needed a line of its own, which is the whole
+   argument made twice.
 
    !important because `[hidden]` and a single class weigh the same, so without it
    this would win only on source order, and a rule that wins on source order
@@ -163,9 +178,64 @@
   gap: clamp(var(--s-5), 4vw, var(--s-9));
 }
 
-.joinsign {
+/* The host's column: the join sign, and under it the set picker. The width
+   lives here now rather than on the sign, so the picker is exactly as wide as
+   the thing it is filed under and the two read as one post in the ground.
+
+   The lean stays on the sign alone. A staked enamel sign leans; a control the
+   host has to type into does not, and tilting an input tilts its caret and its
+   focus ring with it. */
+.joincol {
   flex: 0 0 auto;
   inline-size: clamp(260px, 27vw, 400px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  /* AND IT IS BOUNDED BY THE SCENE, which it has to be told, exactly as the
+     flock beside it does. .scene--lobby centres its items, so this column was
+     sized by its own CONTENT: at 1366x768 the QR box alone is ~320px, and with
+     the eyebrow, the join URL, the room code and the picker filed under it the
+     column comes to more than the scene is tall. A centred item that is too tall
+     overflows at BOTH ends at once, and .tv is `overflow: hidden` under a 100dvh
+     cap — so that overflow was never scrolled, it was sliced, top and bottom,
+     taking the top of the QR code with it. A join sign whose QR is cropped is a
+     game nobody in the room can join, so this may shrink and it may scroll, but
+     it may never be quietly cut.
+
+     Stretched, the column is exactly the scene's height — which is the height a
+     scroller needs before it has anything to overflow (the same argument as
+     .lobbyflock below, and it was always the same trap). justify-content puts
+     back the vertical centring `align-items: center` was doing, and `safe` so
+     the centring stops the moment the content is taller than the box: plain
+     `center` on a scroller pushes the first thing in it out of reach of every
+     scroll position, and the first thing in here is the sign. Declared twice so
+     a browser that cannot parse the keyword keeps the centring it always had.
+
+     The scroll is the BACKSTOP, not the plan. .joinsign__qr is sized off the
+     viewport's block axis so the whole column fits a laptop with room to spare;
+     this is what catches a 1024x600 screenshare, a zoomed browser or a large
+     default font instead of letting any of them crop the sign again.
+
+     The padding is for the LEAN AND THE SHADOW, and it is not decoration:
+     `overflow` clips at the padding box, and the sign is rotated -1.1deg with
+     --lift-sign under it — about 5px of each corner and about 6px of soft shadow
+     sit outside its own box. Without this the scroller would shave both off on
+     every lobby, scrolling or not. It comes out of the column rather than being
+     added to it, so the sign is a touch narrower and the flock keeps its width;
+     a narrower sign also makes the column shorter, which is the direction this
+     whole rule is pushing anyway. */
+  align-self: stretch;
+  min-block-size: 0;
+  justify-content: center;
+  justify-content: safe center;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  padding-inline: var(--s-3);
+  padding-block: var(--s-1);
+}
+
+.joinsign {
+  inline-size: 100%;
   padding: var(--s-5);
   text-align: center;
   /* Staked into the ground, so it leans a touch. */
@@ -177,8 +247,26 @@
   margin-bottom: var(--s-4);
 }
 
+/* The QR is measured against the SCREEN'S HEIGHT as well as the sign's width,
+   because it is the tallest thing on this display and the only one with slack in
+   it. At 27vw the box is ~320px on a 1366x768 laptop and ~300px on a 1280x720
+   one, which is most of a column that then has a room code and a set picker to
+   fit under it — the sign did not overflow because anything was wrong with it,
+   it overflowed because a square sized off the WIDTH knows nothing about how
+   much height is left.
+
+   min() on the inline axis rather than a cap on the block axis: aspect-ratio
+   only holds while one axis is auto, so a max-block-size here would leave the
+   width at 100% and stretch the code into a rectangle — a QR that is not square
+   is a QR that does not scan. Driving the width keeps the square and lets the
+   height follow. Television and desktop are untouched: from about 1080p up the
+   sign's own width is already the smaller of the two, so nothing shrinks there.
+   Centred, because it is no longer always as wide as the sign. */
 .joinsign__qr {
   aspect-ratio: 1;
+  inline-size: min(100%, 32vh);
+  inline-size: min(100%, 32dvh);
+  margin-inline: auto;
   padding: var(--s-3);
   background: var(--enamel);
   border: var(--line) solid var(--hedge);
@@ -216,12 +304,45 @@
   letter-spacing: 0.04em;
 }
 
+/* align-self: stretch is what makes the flock below able to scroll at all, and
+   it is easy to miss why. .scene--lobby is a row with `align-items: center`, so
+   this column was sized by its own CONTENT — which means a flock of fifty made
+   the column taller than the screen and the whole thing was cropped by the
+   .tv overflow, join sign and all. A scroller can only scroll against a height
+   it has been given; there was none. Stretched, the column is exactly the
+   scene's height and the flock has something to be constrained by.
+
+   justify-content: center puts the vertical centring back, because that is what
+   `align-items: center` was doing before and a lobby of three sheep should not
+   suddenly sit up against the headline. It only has an effect while everything
+   fits — once the flock is the one item allowed to shrink (see below) there is
+   no free space left to distribute, which is the correct behaviour in both
+   cases from one declaration. */
 .lobbyflock {
   flex: 1 1 auto;
+  align-self: stretch;
   min-inline-size: 0;
+  /* And the block axis too, which is what the portrait branch needs. There the
+     scene stacks, so this is a COLUMN item and `align-self` no longer controls
+     its height — `flex: 1 1 auto` does, and a flex item will not shrink below
+     its content without this. Landscape does not need it (align-self: stretch
+     has already given a definite height) and is not harmed by it, so it is
+     stated once here rather than twice with a media query between them. */
+  min-block-size: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: var(--s-4);
+  /* The same trap the join column was just fixed for, one column over. Most of
+     what stands here is sized off the INLINE axis — the headline clamp, the
+     pinned host at --sheep-w — so a wide-but-short display grows them while
+     shrinking the box they stand in. Only .flock--lobby can give; once it is at
+     zero the remainder has nowhere to go, and with no overflow here it reaches
+     .tv{overflow:hidden} and is cut off with no scrollbar to say so. Scrolling
+     is the backstop, never the plan: the density steps are what keep a real
+     lobby off it. */
+  overflow: hidden auto;
+  scrollbar-gutter: stable;
 }
 
 /* Field legends are painted on an ink plate rather than straight onto grass:
@@ -240,17 +361,65 @@
   color: var(--enamel);
 }
 
-/* Still at the gate, still picking a fleece. It sits on an ink plate for the
-   same reason the note above it does — enamel drops to 3.6:1 at the lit end
-   of the ground gradient — but on a thinner one, in sentence case, unstencilled
-   and dyed back towards the ground. Same size step as the note; everything
-   that makes a legend shout is what is taken away, so it reads as a footnote
-   to the headcount rather than a second announcement. */
-.lobbyflock__choosing {
+/* --- The host, pinned --------------------------------------------------
+   One sheep, outside the scroller, in the same place all evening.
+
+   It is a `.flock` in everything but scrolling: tv.js builds it with the same
+   sheepMarkup() the list below uses, badge and all, so it is a row of one
+   rather than a second kind of animal that could drift from the first.
+
+   A dashed rule under it rather than a box around it — the host is the head of
+   this flock, not a separate exhibit — and it is the same dashed hedge that
+   divides the QR from the room code on the join sign.
+
+   It sets no --sheep-w, which is the point: the density steps are scoped to
+   .flock--lobby, so as the room fills and the flock shrinks around it the host
+   stays the size it started at. By the time there are fifty players the pinned
+   sheep is twice the size of any animal below it, and the room can pick out who
+   is running the game without reading a word. */
+.hostpin {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  padding-block-end: var(--s-3);
+  border-block-end: var(--line-hair) dashed var(--hedge-soft);
+}
+
+/* --- Still at the gate --------------------------------------------------
+   Joined, named, no look yet. Below the flock rather than inside it, because
+   the flock is what the headcount claims and what the game will start with —
+   these are people at the gate, and #start drops any of them still standing
+   there (worker/protocol.ts). Sized to what it holds and capped, so twenty
+   people all deciding at once cannot squeeze the actual flock off the screen;
+   past the cap the pen scrolls on its own. */
+.gatepen {
+  /* Rigid on purpose. The flock above is the one item in this column that
+     shrinks; a second shrinkable box would take a share of every squeeze and
+     the two would eat each other. Capped instead, and it scrolls inside the
+     cap — so twenty people all deciding at once can never push the flock the
+     game is actually waiting on off the screen. */
+  flex: 0 0 auto;
+  max-block-size: 22vh;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+/* The label carries the count, so the sentence that used to stand on its own
+   above the flock is this pen's caption now — one element saying one thing
+   instead of a line and a pen both reporting the same number.
+
+   It sits on an ink plate for the same reason the note above it does — enamel
+   drops to 3.6:1 at the lit end of the ground gradient — but on a thinner one,
+   in sentence case, unstencilled and dyed back towards the ground. Same size
+   step as the note; everything that makes a legend shout is what is taken
+   away, so it reads as a footnote to the headcount rather than a second
+   announcement. */
+.gatepen__label {
   align-self: flex-start;
   max-inline-size: max-content;
-  /* Pulled up against the note: this is a rider on that line, not a new one. */
-  margin-block-start: calc(var(--s-4) * -0.55);
   padding: 2px var(--s-3);
   border-radius: 2px;
   background: rgb(18 24 15 / 0.45);
@@ -270,24 +439,178 @@
   align-content: flex-start;
 }
 
+/* --- Fifty sheep --------------------------------------------------------
+   MAX_PLAYERS is 50. Both of the flocks below were flex-wrap lists that clipped,
+   which is not a full room — it is a room that silently stops being true. Sheep
+   past the fold did not overflow, they VANISHED, and a player looking for their
+   own animal on the big screen was told, wordlessly, that they were not in the
+   game.
+
+   Two answers, and the order matters. First the list gets DENSER: fifty sheep
+   at the size three sheep are drawn at is not a flock, it is a queue, so the
+   animal shrinks in four steps as the room fills and fifty fit an ordinary
+   laptop without anything moving. Scrolling is the second answer and only the
+   safety net — a portrait tablet, a small screenshared window, a room fuller
+   than the step ladder plans for. Density first, because nobody at a party gets
+   up to scroll a television.
+
+   Both flocks, not just the lobby's. The question screen has the same fifty
+   people on it and is the screen the room stares at for the whole forty-five
+   seconds; a lobby that holds fifty and a question that crops them would be
+   half a fix. They differ only in where they sit and how they align. */
+.flock--lobby,
+.flock--waiting {
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  /* So the columns do not reflow the instant the bar appears. The flocks only:
+     the join column beside them scrolls as a backstop and almost never does, and
+     a gutter reserved on every screen would narrow the sign on every screen to
+     pay for a bar that is hardly ever drawn. */
+  scrollbar-gutter: stable;
+}
+
+/* Dressed in gate paint rather than left as platform chrome: on this screen a
+   strip of system grey would be the only thing in the frame that is not a farm.
+   The join column is on this list because it scrolls too now (see .joincol) —
+   an undressed scroller appearing beside two dressed ones reads as a fault
+   rather than as an affordance. */
+.flock--lobby,
+.flock--waiting,
+.joincol {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hazard) rgb(18 24 15 / 0.35);
+}
+
+.flock--lobby::-webkit-scrollbar,
+.flock--waiting::-webkit-scrollbar,
+.joincol::-webkit-scrollbar {
+  inline-size: 10px;
+}
+
+.flock--lobby::-webkit-scrollbar-track,
+.flock--waiting::-webkit-scrollbar-track,
+.joincol::-webkit-scrollbar-track {
+  background: rgb(18 24 15 / 0.35);
+  border-radius: var(--radius-token);
+}
+
+.flock--lobby::-webkit-scrollbar-thumb,
+.flock--waiting::-webkit-scrollbar-thumb,
+.joincol::-webkit-scrollbar-thumb {
+  background: var(--hazard);
+  border-radius: var(--radius-token);
+}
+
 .flock--lobby {
-  flex: 1 1 auto;
+  /* Grow NO, shrink YES, and it is the only item in the column that does. With
+     `min-block-size: 0` it is also the only one allowed below its content
+     height — every other child keeps flex's automatic minimum and so keeps its
+     text — which makes this the single thing that gives when the room fills.
+     Not `1 1 auto`: growing would make the flock eat the whole column and push
+     the vertical centring above off the top even when three sheep are in it.
+     `align-content: flex-start` comes from .flock and is what makes rows stack
+     from the top of a scroller rather than from its middle. */
+  flex: 0 1 auto;
   min-block-size: 0;
-  overflow: hidden;
 }
 
 .flock--waiting {
   flex: 1 1 auto;
   justify-content: center;
+  /* `safe` so the flock centres while it fits and stops centring the moment it
+     does not. Plain `center` on a scroller puts the overflow at BOTH ends and
+     the top of it out of reach of any scroll position — a flock of fifty would
+     lose its first row with no way to get it back. Declared twice so a browser
+     that cannot parse the keyword keeps the centring it always had. */
   align-content: center;
+  align-content: safe center;
   gap: var(--s-5) var(--s-4);
   padding-block: var(--s-4);
   min-block-size: 0;
 }
 
+/* The step ladder. tv.js counts a flock and stamps one of four names on it; the
+   thresholds live in that file next to the count that picks them. Keyed on the
+   attribute rather than on either flock, so the two cannot drift apart.
+
+   Below `dense` the animal alone drives the column width, as it always did.
+   From `dense` on it stops doing so: the sheep is under 60px and the NAME is
+   what anyone is actually reading — a 38px column would ellipsis every player
+   in the room down to two letters, which loses the one thing a flock of fifty
+   exists to show. So the column gets a floor and the animal is centred in it.
+   The list goes on getting denser; it just stops getting less legible. */
+.flock[data-density='packed'] {
+  gap: var(--s-3) var(--s-2);
+}
+
+.flock[data-density='packed'] .sheep {
+  --sheep-w: clamp(46px, 4.2vw, 74px);
+}
+
+.flock[data-density='dense'] {
+  gap: var(--s-2);
+}
+
+.flock[data-density='dense'] .sheep {
+  --sheep-w: clamp(38px, 3.4vw, 58px);
+}
+
+.flock[data-density='tight'] {
+  gap: var(--s-2) var(--s-1);
+}
+
+.flock[data-density='tight'] .sheep {
+  --sheep-w: clamp(30px, 2.7vw, 46px);
+  gap: 1px;
+}
+
+/* Two widths, not one, and they are different measurements.
+ *
+ * --sheep-w is THE ANIMAL. --sheep-col is the ground it stands on, which is
+ * also the width its name has to fit in. They were the same number, which was
+ * fine while a sheep was never drawn below 58px: at that size the animal is
+ * comfortably wider than a name needs. It stops being true the moment fifty
+ * people are in the room and the animal drops to 38px, because a name does not
+ * shrink with it — the type has a floor and a room has to read it. Splitting
+ * them lets the density steps above shrink the animal without shrinking the
+ * column under it, and anything drawn outside those steps — the host pin, the
+ * podium, a paddock pen — never sets --sheep-col at all and keeps the single
+ * width it always had. (The waiting flock is not in that group, whatever an
+ * earlier note here claimed: renderQuestion stamps data-density on it too, so
+ * the steps and this floor reach it exactly as they reach the lobby. They have
+ * to — it is the same fifty people, and a name has to be readable on the screen
+ * the room stares at for the whole forty-five seconds.)
+ *
+ * --sheep-name-floor is the second half of that argument, and without it the
+ * first half only worked on a laptop. The floors above used to be flat rem —
+ * 4.5rem, 4.25rem — while the name they exist to hold is sized off the viewport
+ * and grows with it. On a large display the type reached its 1.5rem ceiling
+ * inside a column still frozen at ~68px, so a room of forty read as forty
+ * three-letter stubs: the exact illegibility the floor was added to prevent,
+ * arrived at from the other side. The floor is stated in the TYPE'S OWN SIZE
+ * instead, so the two can no longer drift. 6.25 is what 4.5rem was worth at the
+ * bottom of the ramp (4.5 / 0.72), so on anything narrow enough to hold the type
+ * at its floor the column is the number it always was; from there up the ground
+ * rises with the name standing on it. A name gets about eleven characters at
+ * every size now, instead of eleven on one screen and three on the next.
+ *
+ * One floor for all three steps, not one each. It is a property of the type, not
+ * of the density — the steps shrink the ANIMAL, and the quarter-rem that used to
+ * separate `tight` from `dense` bought four pixels and one more number that
+ * could fall out of step with the ramp. */
 .sheep {
   --sheep-w: clamp(58px, 5.4vw, 92px);
-  inline-size: var(--sheep-w);
+  --sheep-name-size: clamp(0.72rem, 1.05vw, 1.5rem);
+  --sheep-name-floor: calc(var(--sheep-name-size) * 6.25);
+  /* The floor belongs HERE, at every density, not only at the dense steps.
+     It was added at `dense` and `tight` alone, which inverted the thing it was
+     for: the animal shrinks with the room but the name does not, so a lobby of
+     six on a 1080p display gave a name 82px of column against 20px type — five
+     or six characters — while a lobby of forty got the floor and eleven. The
+     smaller room read worse than the full one. The floor is a fact about the
+     TYPE, and the type does not care how many sheep are standing next to it. */
+  --sheep-col: max(var(--sheep-w), var(--sheep-name-floor));
+  inline-size: var(--sheep-col);
   /* The host badge is laid over the animal rather than beside it. */
   position: relative;
   display: grid;
@@ -307,7 +630,9 @@
      the animal it belongs to, so it lands on the sheep's back at every one of
      the four sizes this flock is drawn at. */
   grid-area: 1 / 1;
-  inline-size: 100%;
+  /* The animal, not the column. Where the two differ the sheep is centred in
+     its ground by the grid's justify-items rather than stretched to fill it. */
+  inline-size: var(--sheep-w);
 }
 
 /* EVERY sheep on this display carries the same slight dark shadow.
@@ -375,8 +700,11 @@
   font-weight: 700;
   font-stretch: 92%;
   /* Player names carry hue-independent identity, so they scale with the
-     display instead of capping at 13.6px on a 4K panel. */
-  font-size: clamp(0.72rem, 1.05vw, 1.5rem);
+     display instead of capping at 13.6px on a 4K panel. The ramp itself lives on
+     .sheep as --sheep-name-size, because the column the name is ellipsised into
+     is derived from it — one number, so a name and the ground under it cannot
+     grow at different rates again. */
+  font-size: var(--sheep-name-size);
   line-height: 1.1;
   text-align: center;
   color: var(--enamel);
@@ -395,6 +723,71 @@
 
 .sheep[data-connected='false'] .sheep__name {
   text-decoration: line-through;
+}
+
+/* --- The still-choosing silhouette --------------------------------------
+   Somebody is here and has not decided yet. That has to read as PRESENCE, not
+   as a failure — so it is the real sheep, the same /art/sheep-idle.png every
+   locked-in player is drawn from, emptied out rather than replaced by an
+   invented shape. Nothing here knows the filename: tv.js asks sheep-art.js for
+   an ordinary bare idle sheep and this flattens whatever came back, which is
+   what keeps the test bench (it serves the art as data URIs through its own
+   resolver) drawing the same animal the game does.
+
+   brightness(0) crushes the art to black and keeps its ALPHA, so every edge and
+   every antialiased pixel survives; invert(1) lifts that black to white. The
+   result is the sheep's own outline as a flat wash — recognisably the animal,
+   plainly not finished. Slightly transparent, so the pasture shows through and
+   it reads as a space someone is about to fill.
+
+   The drop shadow comes off. It is the one thing on the sheep that says "this
+   animal is standing on the field"; a silhouette that has not been chosen yet
+   should not be lifted off the ground like one that has. */
+.sheep--ghost .ghost__art {
+  filter: brightness(0) invert(1);
+  opacity: 0.42;
+}
+
+.sheep--ghost .sheepart__box {
+  filter: none;
+}
+
+/* The question mark, stencilled on the animal's flank. Sized off the sheep
+   rather than off the type scale — it belongs to the drawing, not to the
+   ramp, and it must hold that proportion at all four of the sizes a sheep is
+   drawn at without a step of its own.
+
+   Ink on the pale wash computes about 6.7:1, so it needs no plate and no
+   halo; and it is placed by grid, on the same 1/1 cell the art and the HOST
+   badge share, so it is measured against the animal it is written on. */
+.ghost__mark {
+  grid-area: 1 / 1;
+  place-self: center;
+  /* position: relative ONLY so this paints on top of the silhouette, and it is
+     not optional. Sharing a grid cell is not enough to decide who is in front:
+     .sheepart is position: relative (shared/sheep-art.css), which puts it in the
+     POSITIONED painting phase, and a static box — however far down the DOM it
+     sits — is painted before every one of those. Without this the ink question
+     mark is drawn UNDER a 42%-opaque white wash and comes out mid-grey on a
+     pale sage sheep: still there, still legible if you are looking for it, and
+     wrong in a way nothing about the markup would explain.
+     The HOST badge next door never hit this only because its `rotate` makes it
+     a stacking context and drags it into the same phase by accident. */
+  position: relative;
+  font-family: var(--face-display);
+  font-weight: 800;
+  font-size: calc(var(--sheep-w) * 0.52);
+  line-height: 1;
+  color: var(--hedge);
+  pointer-events: none;
+}
+
+/* Smaller than the flock proper. These animals are not in the game yet, and
+   the pen must not out-shout the thing it sits under — but the column keeps a
+   floor for the same reason the dense flock does: the name is the content. */
+.flock--gate .sheep {
+  --sheep-w: clamp(40px, 3.6vw, 62px);
+  --sheep-col: max(var(--sheep-w), var(--sheep-name-floor));
 }
 
 /* --- QUESTION ---------------------------------------------------------- */
@@ -489,14 +882,39 @@
   gap: var(--s-3);
 }
 
-/* The outrun. It used to be a 34% wobble under the headline, which is a dog
-   shifting its weight, not a dog working — the outrun is the wide cast right
-   round the flock, and on the one screen with nothing else to look at it may
-   as well be the whole field.
+/* --- The outrun ---------------------------------------------------------
+   The dog is Kayleigh's border collie now, and this is the sequence a collie
+   actually runs, in the order it runs it:
+
+     the cast    0–38%  breaks off the handler's foot, sweeps WIDE right —
+                        never straight at the flock — up the fence line and
+                        round the far side, at a gallop. Wide is the whole
+                        point: a dog that runs up the middle scatters them.
+     the check  38–46%  stops dead at the head of the flock and lies down.
+                        This is the moment the animation was missing. A dog
+                        that never stops is a sprite on a loop; a dog that
+                        stops, holds, and drops into the crouch is working.
+     the drive  46–80%  walks them off the top and down the field on the eye,
+                        slow and low, weight forward.
+     home       80–100% breaks back to the handler at a gallop.
+
+   Which is why it is two poses and not one. dog-run.png gallops; dog-herding
+   .png is the low creeping stalk. They cross-fade at the check and again
+   inside the turn for home — 300ms each, hidden inside a moment the dog is
+   either still or pivoting, so it reads as the animal dropping and rising
+   rather than as one picture dissolving into another.
+
+   The four moving parts are on four elements, one property each, because they
+   compose: `translate` on the dog, `scale` on the body, `opacity` and a gait
+   bob on the poses. Two animations may sit on one element only while they
+   write disjoint properties — see the poses below, which do exactly that.
 
    container-type: size so the circuit is measured off the TRACK rather than
    off the viewport: the header takes a different share of a portrait display,
-   and a path in vw/vh would run the dog off the bottom of one. */
+   and a path in vw/vh would run the dog off the bottom of one. Nothing here is
+   in a list and nothing here is repainted through innerHTML — this markup is
+   authored in tv.html and renderGrouping() never touches it — so keyframes are
+   safe on it in a way they are not on a sheep. */
 .outrun {
   position: absolute;
   inset: clamp(var(--s-3), 2vw, var(--s-6));
@@ -509,23 +927,155 @@
   position: absolute;
   inset-block-start: 0;
   inset-inline-start: 0;
-  inline-size: clamp(90px, 10vw, 190px);
-  animation: outrun 11s linear infinite;
+  /* Bigger than the sprite it replaces. That was a flat two-tone symbol and it
+     was decoration; this is the only thing on the screen, and a drawn animal at
+     144px on a television is a badge rather than a dog. It passes BEHIND the
+     copy (.working owns the higher layer), so there is nothing for the extra
+     size to collide with. */
+  inline-size: clamp(110px, 12vw, 220px);
+  animation: outrun-cast 15s linear infinite;
 }
 
-/* Four legs and two turns. The turn is a scale THROUGH zero rather than a jump
-   between the two facings: given a third of a second it reads as the dog
-   pivoting on the spot, which is what a dog does at the top of an outrun.
-   Percentages in `translate` resolve against the dog's own box, so
-   `100cqw - 100%` is the far edge of the track less the animal standing on it. */
-@keyframes outrun {
-  0%   { translate: 0 0;                                       scale: 1 1; }
-  24%  { translate: calc(100cqw - 100%) 0;                     scale: 1 1; }
-  47%  { translate: calc(100cqw - 100%) calc(100cqh - 100%);   scale: 1 1; }
-  50%  { translate: calc(100cqw - 100%) calc(100cqh - 100%);   scale: -1 1; }
-  74%  { translate: 0 calc(100cqh - 100%);                     scale: -1 1; }
-  97%  { translate: 0 0;                                       scale: -1 1; }
-  100% { translate: 0 0;                                       scale: 1 1; }
+/* The ground the dog is on. It hangs off the travelling element and NOT off the
+   bouncing one, so it stays flat while the animal rises over it — that
+   difference is what makes the gallop read as a gallop instead of as a picture
+   being slid about. aspect-ratio rather than a percentage height: the dog's own
+   height is content-derived, and a percentage against it is not reliably
+   resolvable. */
+.outrun__shadow {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 9%;
+  inline-size: 74%;
+  aspect-ratio: 7;
+  border-radius: 50%;
+  background: rgb(10 24 8 / 0.3);
+  filter: blur(3px);
+}
+
+.outrun__body {
+  position: relative;
+  display: block;
+  animation: outrun-facing 15s linear infinite;
+}
+
+.outrun__pose {
+  inline-size: 100%;
+  block-size: auto;
+}
+
+/* The gallop is in flow and therefore sets the box height; the crouch is taken
+   out of flow and pinned to the bottom, so the two share a ground line and the
+   dog does not hop when it changes pose. `translate` is transform-only, so the
+   gait bob below moves the picture without moving the box either one sits in. */
+.outrun__pose--run {
+  position: relative;
+  animation:
+    outrun-pose-run 15s linear infinite,
+    gait-gallop 330ms ease-in-out infinite;
+}
+
+/* Hidden at rest as well as at 0% of the loop. A running animation does apply
+   on its first frame, but fill-mode is `none` and this scene is unhidden from
+   `display: none` — so a base opacity of 1 here is one paint of two dogs
+   standing in each other before the timeline takes over. */
+.outrun__pose--eye {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-end: 0;
+  opacity: 0;
+  animation:
+    outrun-pose-eye 15s linear infinite,
+    gait-creep 1500ms ease-in-out infinite;
+}
+
+/* WHERE. Percentages inside `translate` resolve against the dog's own box, so
+   `(100cqw - 100%) * f` is the fraction f across a track that already accounts
+   for the animal standing on it — f = 1 puts its nose on the far edge rather
+   than through it.
+
+   Per-keyframe timing functions, and they carry as much of the character as the
+   path does: the dog accelerates off the mark, holds a flat pace round the
+   cast, decelerates into the check, walks the drive at a constant creep, then
+   winds up again for home. A linear circuit is what a sprite does. */
+@keyframes outrun-cast {
+  /* at the handler's foot */
+  0%   { translate: calc((100cqw - 100%) * 0.38) calc(100cqh - 100%);
+         animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4); }
+  /* breaking away, and already bending right rather than going straight on */
+  7%   { translate: calc((100cqw - 100%) * 0.66) calc((100cqh - 100%) * 0.94);
+         animation-timing-function: linear; }
+  15%  { translate: calc((100cqw - 100%) * 0.90) calc((100cqh - 100%) * 0.74);
+         animation-timing-function: linear; }
+  /* out on the fence line, as wide as the field allows */
+  23%  { translate: calc(100cqw - 100%)          calc((100cqh - 100%) * 0.46);
+         animation-timing-function: linear; }
+  31%  { translate: calc((100cqw - 100%) * 0.92) calc((100cqh - 100%) * 0.18);
+         animation-timing-function: var(--ease-out-expo); }
+  /* the head of the flock — and the dog stops */
+  38%  { translate: calc((100cqw - 100%) * 0.70) calc((100cqh - 100%) * 0.04); }
+  46%  { translate: calc((100cqw - 100%) * 0.70) calc((100cqh - 100%) * 0.04);
+         animation-timing-function: linear; }
+  /* the drive: on the eye, walking them off the top and down the field */
+  56%  { translate: calc((100cqw - 100%) * 0.44) calc((100cqh - 100%) * 0.10);
+         animation-timing-function: linear; }
+  66%  { translate: calc((100cqw - 100%) * 0.22) calc((100cqh - 100%) * 0.28);
+         animation-timing-function: linear; }
+  76%  { translate: calc((100cqw - 100%) * 0.16) calc((100cqh - 100%) * 0.56);
+         animation-timing-function: linear; }
+  85%  { translate: calc((100cqw - 100%) * 0.24) calc((100cqh - 100%) * 0.80);
+         animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4); }
+  95%  { translate: calc((100cqw - 100%) * 0.34) calc((100cqh - 100%) * 0.97);
+         animation-timing-function: var(--ease-out-expo); }
+  100% { translate: calc((100cqw - 100%) * 0.38) calc(100cqh - 100%); }
+}
+
+/* WHICH WAY. The turn is a scale THROUGH zero rather than a jump between the
+   two facings: the art is drawn facing right, so -1 is the same dog looking
+   left, and the ~450ms it takes to pass through nothing reads as the animal
+   pivoting on the spot. Both pivots are placed where the dog is already
+   stopped or already turning — at the check, and at the break for home — so
+   nothing pivots mid-stride. */
+@keyframes outrun-facing {
+  0%,  39%  { scale: 1 1; }
+  42%       { scale: 0 1; }
+  45%, 78%  { scale: -1 1; }
+  81%       { scale: 0 1; }
+  84%, 100% { scale: 1 1; }
+}
+
+/* WHICH POSE. Two keyframe sets rather than one shared: they are on different
+   elements, and each element also carries its own gait, so folding them
+   together would mean one of the two poses bobbing at the other's rate. */
+@keyframes outrun-pose-run {
+  0%,  39%  { opacity: 1; }
+  41%, 79%  { opacity: 0; }
+  81%, 100% { opacity: 1; }
+}
+
+@keyframes outrun-pose-eye {
+  0%,  39%  { opacity: 0; }
+  41%, 79%  { opacity: 1; }
+  81%, 100% { opacity: 0; }
+}
+
+/* HOW IT MOVES. Both write `translate` and `rotate` only, so they compose with
+   the `opacity` animations above on the same elements without either
+   overwriting the other. Percentages are of the dog's own box, which is what
+   keeps one number right at every size the track is drawn at.
+
+   A gallop is a suspension: up hard, land, roll. A creeping dog barely leaves
+   the ground and rolls its shoulders instead — same idea, a tenth of the
+   amplitude and five times the period. */
+@keyframes gait-gallop {
+  0%, 100% { translate: 0 0;       rotate: -1.5deg; }
+  30%      { translate: 0 -13%;    rotate: 2.5deg; }
+  62%      { translate: 0 -2%;     rotate: -0.5deg; }
+}
+
+@keyframes gait-creep {
+  0%, 100% { translate: 0 0;         rotate: 0deg; }
+  50%      { translate: -0.8% -1.8%; rotate: 0.6deg; }
 }
 
 /* How far along the sort is. An estimate, drawn as one: it fills toward a hold
@@ -717,21 +1267,41 @@
    In flow, not absolutely positioned: the paddock is a column, so `align-self:
    flex-end` after a flex-1 list of answers IS the bottom-right corner, and the
    answers can never be overlapped by a corner that does not know they are
-   there. */
+   there.
+
+   THEY NO LONGER CROWD. Two negative margins used to pull them over each other
+   on the theory that sheep bunch in a corner, and three would then fit where
+   two otherwise would. On the art they do not read as bunching: the animals are
+   the same silhouette at the same size on the same ground line, so an overlap
+   is not one sheep behind another, it is one sheep with a bite out of it. The
+   fleeces are the whole point of the pen — they say WHO is in this paddock —
+   and an overlapped fleece is a colour you cannot name.
+
+   The width they had to be crowded to fit is bought back off the paddock
+   instead: 24cqw caps each animal against the field it stands in rather than
+   only against the viewport, so three plus their gaps fit any paddock wide
+   enough to be worth drawing them in, and the ones that are not lose a sheep
+   at a time in the container queries below. */
 .paddock__pen {
   flex: 0 0 auto;
   align-self: flex-end;
   display: flex;
   align-items: flex-end;
-  /* They crowd: the last one overlaps the one before, as sheep in a corner do,
-     and three fit where two would otherwise. */
-  margin-inline-start: calc(var(--s-4) * -1);
+  gap: var(--s-2);
+  max-inline-size: 100%;
 }
 
 .pen-sheep {
   flex: 0 0 auto;
-  inline-size: clamp(30px, 3.4vw, 68px);
-  margin-inline-start: calc(var(--s-3) * -1);
+  inline-size: min(clamp(30px, 3.4vw, 68px), 24cqw);
+}
+
+/* One of the three stands a step back. Three animals on one line at one size
+   read as a repeated stamp; breaking the line by a few pixels is enough for the
+   eye to take them as three separate sheep standing in a field. It is the
+   middle one, so the group still reads as a group rather than as a stagger. */
+.pen-sheep:nth-child(2) {
+  margin-block-end: var(--s-1);
 }
 
 .pen-sheep__art {
@@ -780,6 +1350,23 @@
 @container (max-height: 150px) {
   .paddock__pen { display: none; }
   .paddock__flock { justify-content: flex-start; align-content: flex-start; }
+}
+
+/* The same shedding, measured the other way. The rules above only ever asked
+   how SHORT a paddock was, which is the wrong question for a pen that is a row:
+   a tall narrow field passed every one of them and then squeezed three animals
+   into a strip too thin to tell them apart. Now the pen loses its third sheep,
+   and then the pen itself, as the field it stands in gets narrower — the same
+   order of expendability the height queries use, and it keeps the 24cqw cap
+   above from ever shrinking an animal below the size it was drawn to be seen
+   at. Numbers, not taste: at 24cqw each, three sheep plus two --s-2 gaps plus
+   the paddock's own padding stop fitting at about 118px. */
+@container (max-width: 118px) {
+  .pen-sheep:nth-child(3) { display: none; }
+}
+
+@container (max-width: 96px) {
+  .paddock__pen { display: none; }
 }
 
 @container (max-height: 110px) {
@@ -1080,13 +1667,19 @@
 }
 
 /* --- Host control: the question set ------------------------------------
-   A small enamel-signed control, on the same ink plate as the lobby notes so
-   it reads as host chrome rather than part of the flock. */
+   A small control on the same ink plate as the lobby notes, so it reads as host
+   chrome rather than as part of the flock.
+
+   It lives in .joincol now, directly under the join sign — with the QR, the
+   join URL and the room code, which are the other three things on this screen
+   that exist for the person standing at the machine rather than for the sheep.
+   Filed under the sign it takes the column's full width rather than sizing
+   itself, so the two read as one post in the ground instead of a control that
+   happened to land nearby. */
 .setpick {
-  align-self: flex-start;
   display: grid;
   gap: var(--s-2);
-  max-inline-size: min(100%, 460px);
+  inline-size: 100%;
   padding: var(--s-3);
   background: rgb(18 24 15 / 0.55);
   border-radius: 3px;
@@ -1170,9 +1763,29 @@
     justify-content: center;
   }
 
-  .joinsign {
+  /* The whole host column narrows and centres, sign and set picker together —
+     it is one post now, and moving the sign without the thing filed under it
+     would leave the picker standing on its own at full width. */
+  .joincol {
     inline-size: min(100%, 340px);
     align-self: center;
+    /* The cap replaces the stretch. Stacked, this is a COLUMN item, so
+       `align-self` no longer says anything about its height and the bound it was
+       given in landscape is gone — a short window in this branch (a 900x500
+       screenshare is the honest case) would grow the column, squeeze the flock
+       to nothing and then push the sign off the end again. A ceiling stated
+       against the viewport restores it: the column scrolls inside the cap with
+       the overflow it already has, and the flock below keeps a screen to stand
+       on. Stated in vh with dvh after it, as .tv and .gatepen both are. */
+    max-block-size: 58vh;
+    max-block-size: 58dvh;
+  }
+
+  /* A stacked lobby gives the flock the bottom half of a tall screen, and a
+     pen that may take 22vh of it is most of what is left. Here the flock comes
+     first and the gate is a strip under it. */
+  .gatepen {
+    max-block-size: 14vh;
   }
 
   .askrow {
@@ -1204,10 +1817,24 @@
    the dog holds still. The flock needs no rule here — mark state is static for
    everyone now, moving or not. */
 @media (prefers-reduced-motion: reduce) {
-  /* No travelling dog. It stands at the foot of the field instead of at the
-     top-left corner the circuit happens to start from, which is where it would
-     otherwise be stranded — a dog parked in a corner reads as a dog that has
-     fallen over.
+  /* NO TRAVEL. The dog stands at the foot of the field holding its flock,
+     rather than at the top-left corner the circuit happens to start from, which
+     is where it would otherwise be stranded — a dog parked in a corner reads as
+     a dog that has fallen over.
+
+     And it stands in the CROUCH, not the gallop. A frozen gallop is a dog
+     falling over too: all four legs off the ground with nothing to explain it.
+     dog-herding.png is a dog on its feet, watching, which is the still frame
+     this scene actually wants — the sort is happening whether or not anything
+     on screen is allowed to move.
+
+     Every one of these overrides is load-bearing. tokens.css forces
+     `animation-duration: 1ms !important` on everything under this same query,
+     which does not stop an animation — it lands it on its LAST keyframe. Left
+     alone, outrun-pose-run ends at opacity 1 and outrun-pose-eye at opacity 0,
+     so reduced motion would pick the gallop and hide the crouch: exactly
+     backwards. `animation: none` on the poses also takes their gait bobs with
+     it, since it resets the whole shorthand.
 
      The sort bar keeps whatever value the last state frame gave it: tv.js
      stops driving it from requestAnimationFrame here and samples it once per
@@ -1216,6 +1843,23 @@
   .outrun__dog {
     animation: none;
     translate: calc(50cqw - 50%) calc(100cqh - 100%);
+  }
+
+  .outrun__body {
+    animation: none;
+    scale: 1 1;
+  }
+
+  .outrun__pose {
+    animation: none;
+  }
+
+  .outrun__pose--run {
+    opacity: 0;
+  }
+
+  .outrun__pose--eye {
+    opacity: 1;
   }
 
   .paddock,

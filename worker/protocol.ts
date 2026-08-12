@@ -58,6 +58,44 @@ export interface PublicPlayer {
   look: Look;
 }
 
+/** Somebody who has joined and given a name but has not locked a look yet, so
+ *  the lobby can draw a silhouette with a name under it instead of leaving them
+ *  as a number in a sentence.
+ *
+ *  A SEPARATE ARRAY, not a flag on PublicPlayer, and that is not tidiness — the
+ *  two lists are different lists with different rules and different lifetimes:
+ *
+ *  - players[] is the FLOCK. Every consumer of it, in every phase, assumes each
+ *    row has a look to draw and a rank to stand on. Folding these people in
+ *    would make `look` nullable for all of them and put the first surface that
+ *    forgets the check one repaint away from drawing a colourless sheep on a
+ *    television. It would also drag the still-choosing into the ranking, which
+ *    has to stay a total order over exactly the people who are playing.
+ *  - This list is DELETED at the gate. #start drops anyone still choosing,
+ *    while players[] survives into the game. One array cannot have two
+ *    lifetimes, so there are two.
+ *
+ *  Id and name, and deliberately nothing else. There is no look here, not even
+ *  a partial one: what a phone is currently hovering over in the picker is that
+ *  phone's own business until it locks in, and a colour that reached the TV
+ *  before it was committed could be spoiled on the big screen and then lost to
+ *  somebody else's claim (uniqueness is on the pair, and the loser of that race
+ *  has to pick again). By definition these players have no look, so there is
+ *  nothing to invent and nothing in progress to leak.
+ */
+export interface ChoosingPlayer {
+  /** The same id the flock is keyed by, and that is its whole job: the display
+   *  keys the silhouette on it and can swap that silhouette for the real sheep
+   *  the moment this id appears in players[]. Nobody is ever in both arrays —
+   *  they are exact complements of the roster — so the lobby renders one after
+   *  the other with no dedupe and nobody drawn twice. */
+  id: string;
+  /** UNTRUSTED, exactly as in PublicPlayer: somebody typed it on a phone. The
+   *  server only trims it and cuts it to length; escaping is the surface's job
+   *  (tv.js has esc()). */
+  name: string;
+}
+
 export interface PublicAnswer {
   playerId: string;
   name: string;
@@ -158,8 +196,37 @@ export interface StateFrame {
    *  surfaces compute from players[]. */
   awaitingHost: boolean;
   players: PublicPlayer[];
-  /** Joined but still picking a look, so not yet part of the flock. */
+  /** Joined but still picking a look, so not yet part of the flock. Kept
+   *  alongside the array below rather than left for the surfaces to derive with
+   *  .length: the phone shows only the number and never draws the silhouettes,
+   *  and outside the lobby the array is empty on purpose while this count keeps
+   *  meaning what it always did. Both come off the same test server-side, so
+   *  they cannot disagree — see #stateFor. */
   choosing: number;
+  /** Those same people, named, in JOIN order — one silhouette each for the
+   *  lobby to draw beside the flock, so a host watching four phones join does
+   *  not read three sheep and a sentence.
+   *
+   *  LOBBY ONLY. Empty in every other phase, and empty rather than null so the
+   *  render loop needs no guard — the surfaces already treat groups[] and
+   *  noAnswer[] the same way. Two reasons it is not simply always sent: it is
+   *  dead weight on every frame of every round for up to fifty players once the
+   *  game is running, and after #start it could not be honest anyway, because
+   *  the gate drops everyone who was still choosing. A non-empty array outside
+   *  the lobby would be a claim about people who are no longer in the room.
+   *
+   *  Join order, and it matters: the lobby is repainted through innerHTML every
+   *  time anybody joins or locks in, so a list that reordered itself would make
+   *  the silhouettes swap places under the names. Same reason players[] is
+   *  never sorted.
+   *
+   *  A player who joined and then dropped their socket is STILL HERE. There is
+   *  no `connected` flag on these rows and they are not filtered out: their name
+   *  is reserved against NAME_TAKEN and their seat counts against MAX_PLAYERS
+   *  either way, so hiding them would show a lobby with a free space that is not
+   *  free — and it would put the count and the array at odds, which is the one
+   *  thing this pair must never do. */
+  choosingPlayers: ChoosingPlayer[];
   groups: PublicGroup[];
   noAnswer: Array<{ playerId: string; name: string }>;
   scoreboardReason: ScoreboardReason | null;

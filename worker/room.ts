@@ -1777,9 +1777,20 @@ export class Room extends DurableObject<Env> {
     const players = room?.players ?? [];
     const phase: Phase = room?.phase ?? 'lobby';
     /* players[] is LOCKED players only: an unlocked player has no colour, so
-       there is literally nothing to draw for them. The display gets a count
-       instead so the room knows someone is still deciding. */
+       there is no sheep to draw for them. They are not invisible any more — they
+       go out as choosingPlayers below, with a name and no look, and the lobby
+       draws a silhouette each. */
     const locked = players.filter((p) => p.look && p.locked);
+    /* The EXACT complement of `locked`, from the negation of that same test
+       rather than a second test that happens to agree today. Both the count and
+       the array are built from this one list, so the TV can never be told that
+       four people are choosing and handed three names to draw — which is the
+       failure the count on its own already had a mild version of, and which
+       would be plainly visible the moment there are silhouettes to count.
+       Order is inherited from players[], i.e. join order: the lobby is redrawn
+       through innerHTML on every join and every lock-in, and a list that
+       resorted itself would shuffle the silhouettes under their own names. */
+    const stillChoosing = players.filter((p) => !(p.look && p.locked));
     const revealed = phase === 'reveal' || phase === 'scores' || phase === 'final';
     /* Ranked over exactly the set that goes out in players[], so every rank on
        the wire has a row to belong to and 1..N covers it with no gaps. */
@@ -1831,7 +1842,19 @@ export class Room extends DurableObject<Env> {
         connected: p.connected,
         look: p.look as Look,
       })),
-      choosing: players.length - locked.length,
+      choosing: stillChoosing.length,
+      /* LOBBY ONLY, and empty — not absent, not null — everywhere else, so the
+         surfaces can loop over it unguarded exactly as they do groups[] and
+         noAnswer[]. Sending it in the other phases would be dead weight on
+         every frame of every round, and worse than useless: #start drops
+         everyone still choosing at the gate, so any name in here after the
+         lobby would be a person who is no longer in the room.
+         Id and name only. These players have no look BY DEFINITION, and the
+         half-made one on their picker is not ours to publish — a colour that
+         reached the TV before it was locked could be spoiled on the big screen
+         and then lost anyway to whoever claims that pair first. */
+      choosingPlayers:
+        phase === 'lobby' ? stillChoosing.map((p) => ({ id: p.id, name: p.name })) : [],
       /* Groups (which carry answer text) are emitted only from the reveal on. */
       groups: revealed
         ? (room?.groups ?? []).map((g) => ({

@@ -286,6 +286,33 @@
         </div>
 
         <h2 class="hero" id="standing">&nbsp;</h2>
+
+        <!-- Who is immediately above them, and only that: the whole board is
+             on the big screen, so this phone names the one player worth
+             catching. Their sheep is deliberately a fraction of the size of
+             the player's own above it — somebody else's animal on a screen
+             about you, glanced at up the field.
+
+             It lives inside .stack-mid rather than after it because .screen
+             sends every sibling of .stack-mid to the 'foot' area, and
+             .scores-foot is already standing there; a second child of that
+             area would be laid on top of it.
+
+             Every word in here is written by play.js through setText. The name
+             belongs to another player and is theirs to type, so it is never
+             interpolated into markup — see renderAbove(). -->
+        <p class="above" id="above" hidden>
+          <span class="sheepart above-sheep" id="above-sheep" data-pose="sheep-idle" aria-hidden="true">
+            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
+              <span class="sheepart__fleece"></span>
+            </span>
+          </span>
+          <span class="above-words">
+            <span class="legend above-lead" id="above-lead" hidden>Next up the field</span>
+            <span class="above-line" id="above-line"></span>
+          </span>
+        </p>
       </div>
 
       <div class="scores-foot">

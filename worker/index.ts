@@ -112,12 +112,16 @@ export default {
       return asset(env, request, '/questions.html');
     }
 
-    /* --- the question bank --------------------------------------------- */
+    /* --- the question bank ---------------------------------------------
+       All of these are open, matching the editor: the ADMIN_TOKEN gate was
+       removed by request. `?set=<id>` scopes reads and writes to one custom
+       set; absent, they act on the main bank. */
     if (url.pathname === '/api/questions') {
       const bank = env.QUESTIONS.getByName('bank');
+      const setId = url.searchParams.get('set');
 
       if (request.method === 'GET') {
-        return Response.json(await bank.list());
+        return Response.json(await bank.list(setId));
       }
       if (request.method === 'PUT') {
         let body: unknown;
@@ -126,11 +130,65 @@ export default {
         } catch {
           return Response.json({ error: 'That was not JSON.' }, { status: 400 });
         }
-        const result = await bank.replaceAll((body as { questions?: unknown })?.questions ?? body);
+        const result = await bank.replaceAll((body as { questions?: unknown })?.questions ?? body, setId);
         return Response.json(result, { status: 'error' in result ? 400 : 200 });
       }
       if (request.method === 'POST' && url.searchParams.get('reset') === 'seed') {
         return Response.json(await bank.resetToSeed());
+      }
+      return new Response('Method not allowed.', { status: 405 });
+    }
+
+    /* --- the default answer time --------------------------------------- */
+    if (url.pathname === '/api/settings') {
+      const bank = env.QUESTIONS.getByName('bank');
+      if (request.method === 'GET') {
+        return Response.json(await bank.getSettings());
+      }
+      if (request.method === 'PUT') {
+        let body: unknown;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: 'That was not JSON.' }, { status: 400 });
+        }
+        const result = await bank.setSetting(body);
+        return Response.json(result, { status: 'error' in result ? 400 : 200 });
+      }
+      return new Response('Method not allowed.', { status: 405 });
+    }
+
+    /* --- custom sets ---------------------------------------------------- */
+    if (url.pathname === '/api/sets') {
+      const bank = env.QUESTIONS.getByName('bank');
+      if (request.method === 'GET') {
+        return Response.json({ sets: await bank.listSets() });
+      }
+      if (request.method === 'POST') {
+        const body = await request.json().catch(() => ({}));
+        return Response.json(await bank.createSet(body));
+      }
+      return new Response('Method not allowed.', { status: 405 });
+    }
+
+    if (url.pathname.startsWith('/api/sets/')) {
+      const bank = env.QUESTIONS.getByName('bank');
+      const id = decodeURIComponent(url.pathname.slice('/api/sets/'.length));
+      if (!id) return new Response('Not found.', { status: 404 });
+
+      if (request.method === 'PUT') {
+        let body: unknown;
+        try {
+          body = await request.json();
+        } catch {
+          return Response.json({ error: 'That was not JSON.' }, { status: 400 });
+        }
+        const result = await bank.updateSetMeta(id, body);
+        return Response.json(result, { status: 'error' in result ? 400 : 200 });
+      }
+      if (request.method === 'DELETE') {
+        const result = await bank.deleteSet(id);
+        return Response.json(result, { status: 'error' in result ? 400 : 200 });
       }
       return new Response('Method not allowed.', { status: 405 });
     }

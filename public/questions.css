@@ -4,24 +4,73 @@
 
 .qwork { padding: var(--s-4); display: grid; gap: var(--s-4); max-width: 62rem; }
 
-/* ------------------------------------------------------------------ gate */
+/* ----------------------------------------------------------------- setup */
 
-.gate {
+/* The global + set controls, above the list. A quiet band so the editable list
+   below it stays the loud thing on the page. */
+.setup {
   display: grid;
   gap: var(--s-3);
-  justify-items: start;
-  max-width: 34rem;
-  padding: var(--s-5);
-  border: var(--line) solid #2c3823;
+  padding: var(--s-3) var(--s-4);
+  border: var(--line-hair) solid #1e2718;
   border-radius: 4px;
   background: #0b0e08;
 }
 
-.gate h2 { margin: 0; font-size: 1rem; color: var(--enamel); }
-.gate p { margin: 0; color: #93a086; line-height: 1.5; }
-.gate code { color: var(--hazard); }
-.gate input { width: 100%; }
-.gate__err { color: var(--tractor-red); font-weight: 700; min-height: 1.2em; }
+.setup__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.setup__label { color: var(--enamel); font-weight: 700; }
+.setup__unit { color: #93a086; margin-left: -4px; }
+.setup__hint { color: #7d8a71; }
+.setup__saved { color: var(--hazard); font-weight: 700; min-height: 1.2em; }
+.setup__saved[data-state='bad'] { color: var(--tractor-red); }
+
+.setup__row--pack { border-top: var(--line-hair) solid #1e2718; padding-top: var(--s-3); }
+
+/* ------------------------------------------------------------- set meta */
+
+.setmeta {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s-4);
+  margin-top: var(--s-2);
+  padding: var(--s-3);
+  border: var(--line-hair) solid #2c3823;
+  border-radius: 3px;
+  background: #10160c;
+}
+
+.setmeta__field { display: grid; gap: 4px; }
+.setmeta__field--code { position: relative; }
+.setmeta__cap {
+  font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
+  color: #7d8a71;
+}
+.setmeta__field input[type='text'] {
+  font: inherit; color: var(--buff); background: #141a0f;
+  border: var(--line-hair) solid #2c3823; border-radius: 3px; padding: 6px 8px;
+}
+#set-code {
+  width: 8.5rem; text-transform: uppercase; letter-spacing: 0.18em;
+  font-weight: 800; color: var(--enamel); font-variant-numeric: tabular-nums;
+}
+.setmeta__codehint { font-size: 0.68rem; color: #7d8a71; }
+
+.setmeta__del {
+  margin-left: auto;
+  background: transparent; border-color: #2c3823; color: #93a086;
+}
+.setmeta__del:hover { background: #2a1410; border-color: var(--tractor-red); color: var(--enamel); }
+
+.setmeta__note { flex-basis: 100%; color: #93a086; min-height: 1.2em; }
+.setmeta__note[data-state='bad'] { color: var(--tractor-red); font-weight: 700; }
 
 /* --------------------------------------------------------------- toolbar */
 

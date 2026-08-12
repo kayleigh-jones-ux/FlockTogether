@@ -12,7 +12,7 @@
 
 <header class="bar">
   <h1>Questions</h1>
-  <p class="bar__sub">A blank question is deleted on save. Leave a timer empty to use the room default.</p>
+  <p class="bar__sub">A blank question is deleted on save. Leave a timer empty to use the default.</p>
   <div class="bar__right">
     <span class="tally" id="tally">—</span>
     <button class="btn" id="add">Add question</button>
@@ -21,6 +21,52 @@
 </header>
 
 <main class="qwork">
+
+  <!-- Global + set setup. Populated once the bank loads. -->
+  <section class="setup" id="setup" hidden>
+
+    <div class="setup__row">
+      <label class="setup__label" for="def-secs">Default answer time</label>
+      <input type="number" id="def-secs" min="5" max="300" step="5" placeholder="45">
+      <span class="setup__unit">seconds</span>
+      <span class="setup__hint">Any question without its own timer uses this.</span>
+      <span class="setup__saved" id="def-saved" role="status" aria-live="polite"></span>
+    </div>
+
+    <div class="setup__row setup__row--pack">
+      <label class="setup__label" for="pack">Editing</label>
+      <select id="pack"></select>
+      <button class="btn" id="new-set" type="button">New set</button>
+
+      <!-- Shown only while a custom set is selected. -->
+      <div class="setmeta" id="setmeta" hidden>
+        <label class="setmeta__field">
+          <span class="setmeta__cap">Name</span>
+          <input type="text" id="set-name" maxlength="60" autocomplete="off">
+        </label>
+
+        <label class="setmeta__field setmeta__field--code">
+          <span class="setmeta__cap">Code</span>
+          <input type="text" id="set-code" maxlength="6" spellcheck="false"
+                 autocomplete="off" autocapitalize="characters">
+          <span class="setmeta__codehint">players type this on the TV</span>
+        </label>
+
+        <div class="setmeta__field">
+          <span class="setmeta__cap">Questions per game</span>
+          <div class="seg" id="set-mode" role="group" aria-label="How many questions each game asks">
+            <button type="button" class="seg__btn" data-mode="all" aria-pressed="true">All, in order</button>
+            <button type="button" class="seg__btn" data-mode="random" aria-pressed="false">Random</button>
+          </div>
+          <input type="number" id="set-count" min="1" max="100" step="1" aria-label="How many random questions" hidden>
+        </div>
+
+        <button class="btn setmeta__del" id="del-set" type="button">Delete set</button>
+        <span class="setmeta__note" id="set-note" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+
+  </section>
 
   <section class="editor" id="editor" hidden>
     <div class="qtools">
@@ -33,7 +79,7 @@
       <button class="btn" id="reset">Reset to the shipped pack</button>
     </div>
 
-    <p class="rule">
+    <p class="rule" id="rule">
       A question is good when a room piles onto a handful of obvious answers and
       still leaves room to guess wrong — roughly 3–8 clusters. One sentence,
       answerable in one to three words with a thumb.

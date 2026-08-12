@@ -61,6 +61,15 @@ export interface YouView {
   scoredThisRound: boolean;
 }
 
+/** The custom question set a lobby is armed with, echoed back so the display
+ *  can show which pack the next game will draw from. Null = the main bank. */
+export interface PackInfo {
+  code: string;
+  name: string;
+  /** How many questions the resolved game will actually ask. */
+  size: number;
+}
+
 export interface StateFrame {
   t: 'state';
   room: string;
@@ -77,6 +86,8 @@ export interface StateFrame {
   noAnswer: Array<{ playerId: string; name: string }>;
   scoreboardReason: ScoreboardReason | null;
   groupingSource: GroupingSource | null;
+  /** The armed custom set, or null for the main bank. */
+  pack: PackInfo | null;
   you?: YouView;
 }
 
@@ -90,7 +101,8 @@ export type ErrorCode =
   | 'BAD_REQUEST'
   | 'LOOK_TAKEN'
   | 'BAD_LOOK'
-  | 'NOT_LOCKED';
+  | 'NOT_LOCKED'
+  | 'PACK_NOT_FOUND';
 
 export type ServerFrame =
   | { t: 'room.created'; room: string; joinUrl: string; qr: string }
@@ -107,6 +119,8 @@ export type ClientFrame =
   | { t: 'host.create' }
   | { t: 'host.resume'; room: string }
   | { t: 'host.start' }
+  /** Arm (non-empty code) or clear (empty code) the lobby's custom set. */
+  | { t: 'host.pack'; code: string }
   | { t: 'player.join'; room: string; name: string }
   | { t: 'player.rejoin'; room: string; playerId: string }
   | { t: 'player.look'; colorId: string; hatId: string }

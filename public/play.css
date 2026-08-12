@@ -497,11 +497,41 @@ body {
   gap: var(--s-1);
 }
 
+/* --- the perch: why the sheep is in a box of its own ---------------------
+ *
+ * THIS IS THE SIZE. The sheep inside it is 100% of it, and every step below
+ * that used to resize .look-sheep resizes the perch instead.
+ *
+ * The reason it exists at all is the one trap in the whole art sheep. The room
+ * a hat needs above the animal is written by paintSheepArt as a percentage into
+ * --art-headroom, and shared/sheep-art.css spends it as `padding-top`. A
+ * percentage padding resolves against THE CONTAINING BLOCK's width — never the
+ * element's own — and the sheep's containing block was .look-stage's auto
+ * column, which grid sizes to the widest item in it. That item is .look-name,
+ * the caption naming the colour and the hat, and its width changes with every
+ * word: "Slate blue · UFO" is not "Slate blue · Reading glasses".
+ *
+ * So the picker's one constant number was being spent against a base that moved
+ * on every pick. Measured on a short phone, where .look-sheep is 6rem: the same
+ * 26.741% came out as 30.4px on the fish and 54.1px on the reading glasses — a
+ * 24px step on an animal only 85px tall, which is exactly the stepping the
+ * constant was added to stop. It is not the headroom that moves the sheep. It
+ * is what the percentage is measured against.
+ *
+ * A block of exactly the sheep's width, holding nothing but the sheep, is a
+ * base that cannot move: the padding is now the same pixel value for all forty
+ * options, and the caption can be as long as it likes. Anything given a width
+ * here must keep the sheep at 100% of it, or the trap comes straight back. */
+.look-perch {
+  display: block;
+  width: min(52vw, 11rem);
+}
+
 /* The sheep is generated art, layered by shared/sheep-art.css. --fleece is set
    on this element by play.js; the wool mask does the rest, so the face and the
    legs keep their own grey whatever colour is chosen. */
 .look-sheep {
-  width: min(52vw, 11rem);
+  width: 100%;
 }
 
 /* Names what they are looking at, so it is Archivo: this labels, it does not
@@ -972,10 +1002,13 @@ body {
    lets the urgent figures go tractor-red and stay legible. */
 .rail {
   display: grid;
-  grid-template-columns: auto 1fr;
+  /* Three columns now: the gate, the countdown, and the dog on the end. The
+     clock keeps the 1fr, so it is still the thing that takes the slack and the
+     dog can never squeeze it. */
+  grid-template-columns: auto 1fr auto;
   grid-template-areas:
-    'gate clock'
-    'gate label';
+    'gate clock dog'
+    'gate label dog';
   align-items: center;
   gap: 0 var(--s-3);
   padding: var(--s-2) var(--s-4);
@@ -996,6 +1029,30 @@ body {
 .clock-label {
   grid-area: label;
   color: color-mix(in srgb, var(--enamel) 62%, var(--hedge));
+}
+
+/* --- the dog on the rail -------------------------------------------------
+ *
+ * Sized to be SHORTER than the rail already is, which is the whole discipline
+ * here: the rail's height comes from the clock (2.6rem–3.6rem) stacked on its
+ * label, about 4.4rem of content, and the dog is capped at 3.1rem tall. A cell
+ * shorter than the row it sits in adds nothing to that row, so the rail keeps
+ * its height, .q-mid keeps its track, and the slate and the send lever below
+ * never feel it arrive. The cap is on HEIGHT and not width because the art is
+ * taller than it is wide (273x320) — capping the width is what would let a
+ * portrait animal grow the row.
+ *
+ * `align-self: end` sits it on the floor of the rail, which is what a sitting
+ * dog does, and stops it drifting up beside the numerals as they change size. */
+.rail-dog {
+  grid-area: dog;
+  align-self: end;
+  justify-self: end;
+  height: min(3.1rem, 12vw);
+  width: auto;
+  /* Never a competitor for the question or the slate: it is on the dark rail
+     with the countdown, and the countdown is the bright thing on it. */
+  opacity: 0.92;
 }
 
 /* One authored urgency change, applied once at the 10s threshold. */
@@ -1433,8 +1490,10 @@ body {
   .screen--question .sheep { width: min(46%, 10rem); }
 
   /* The preview gives before the chips do: a picker you cannot reach into is
-     worse than a smaller sheep. */
-  .look-sheep { width: min(38vw, 8rem); }
+     worse than a smaller sheep. The perch is what carries the size — the sheep
+     is 100% of it, and sizing the sheep here instead would put its padding back
+     on the caption's width. See .look-perch. */
+  .look-perch { width: min(38vw, 8rem); }
 }
 
 @container pen (max-height: 620px) {
@@ -1457,8 +1516,21 @@ body {
 
   .flank { display: none; }
 
-  /* The rail collapses to one row: the clock beside the gate. */
-  .rail { grid-template-areas: 'gate clock'; }
+  /* The rail collapses to one row: the clock beside the gate. The columns are
+     restated with it — leaving the third standing would keep a track for a dog
+     that is no longer there, and leaving the dog in an area this template does
+     not name would auto-place it into a row of its own, which is the rail
+     growing downward into the slate. */
+  .rail {
+    grid-template-columns: auto 1fr;
+    grid-template-areas: 'gate clock';
+  }
+
+  /* The dog goes with the flock, and for the same reason: the rail here is one
+     short row, and an animal that has to sit somewhere would have to make room
+     for itself out of the send lever. It is company, and company is the first
+     thing a phone this short can spare. */
+  .rail-dog { display: none; }
 
   .clock { font-size: clamp(1.9rem, 9vw, 2.4rem); }
 
@@ -1491,7 +1563,7 @@ body {
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  .look-sheep { width: min(30vw, 6rem); }
+  .look-perch { width: min(30vw, 6rem); }
   .look-scroll { gap: var(--s-4); }
 
   /* The scoreboard's own shortfall: the sheep gives before the number does,

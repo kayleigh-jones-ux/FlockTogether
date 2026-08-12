@@ -169,7 +169,7 @@ function sheepMarkup(p, { marked, headroom, pose, host }) {
         data-marked="${marked ? 'true' : 'false'}"
         data-host="${host ? 'true' : 'false'}"
         data-connected="${p.connected === false ? 'false' : 'true'}">
-      ${sheepArt('sheep__art', look, headroom, marked, pose)}
+      <span class="sheep__perch">${sheepArt('sheep__art', look, headroom, marked, pose)}</span>
       <span class="sheep__name">${esc(p.name)}</span>
       ${host ? '<span class="sheep__host legend">Host</span>' : ''}
     </li>`;

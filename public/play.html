@@ -89,14 +89,28 @@
       <div class="look-head">
         <h2 class="look-title" id="look-h">Make your sheep</h2>
         <div class="look-stage">
-          <!-- Generated art, layered by shared/sheep-art.css and painted by
-               play.js through paintSheepArt. The pose and its mask are written
-               here as well as there so the first frame is a sheep rather than a
-               broken image; everything after is JS. -->
-          <span class="sheepart look-sheep" id="look-sheep" data-pose="sheep-idle" aria-hidden="true">
-            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
-              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
-              <span class="sheepart__fleece"></span>
+          <!-- The perch is load-bearing, not a wrapper for the sake of one.
+               The headroom a hat needs is written by paintSheepArt as a
+               PERCENTAGE and spent as padding-top, and a percentage padding
+               resolves against the CONTAINING BLOCK's width — not the element's
+               own. With the sheep sitting straight in .look-stage its containing
+               block was the stage's auto column, which is sized by the widest
+               thing in it: the caption below, whose text changes with every hat.
+               One constant percentage against a base that moved with the words
+               is what kept the animal stepping up and down the screen. The perch
+               is a box of exactly the sheep's width and nothing else in it, so
+               the base cannot move and the reserved space is the same for all
+               forty options. See .look-perch in play.css. -->
+          <span class="look-perch">
+            <!-- Generated art, layered by shared/sheep-art.css and painted by
+                 play.js through paintSheepArt. The pose and its mask are written
+                 here as well as there so the first frame is a sheep rather than a
+                 broken image; everything after is JS. -->
+            <span class="sheepart look-sheep" id="look-sheep" data-pose="sheep-idle" aria-hidden="true">
+              <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+                <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
+                <span class="sheepart__fleece"></span>
+              </span>
             </span>
           </span>
           <p class="look-name" id="look-name">&nbsp;</p>
@@ -187,6 +201,19 @@
           <svg class="ico ico--gate" viewBox="0 0 168 104" aria-hidden="true"><use href="#sp-gate"/></svg>
           <span class="numerals clock" id="clock">--</span>
           <span class="legend clock-label" id="clock-label">seconds left</span>
+
+          <!-- The dog sits the round out with you. It is on the rail rather than
+               beside the slate because the rail IS the clock, and what this
+               animal is doing is waiting for it to run down — the same thing the
+               player is doing. Empty alt and nothing said: it is company, not
+               information, and every fact on this screen is already in words
+               above and below it.
+
+               It is a cell of the rail's own grid, not a floating decoration, so
+               it can only ever take space the rail already had — see .rail-dog
+               for the sizing that keeps that true, and why it leaves on a short
+               frame rather than growing the rail into the slate. -->
+          <img class="rail-dog" src="/art/dog-sit.png" alt="" draggable="false">
         </div>
 
         <div class="flank" id="flank">

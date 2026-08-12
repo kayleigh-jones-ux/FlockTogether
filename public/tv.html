@@ -140,10 +140,40 @@
         <h2 class="question enamel-sign" data-bind="question"></h2>
       </div>
 
-      <div class="clock" data-state="calm">
-        <span class="legend clock__label">Gate shuts in</span>
-        <strong class="numerals clock__figures" data-bind="seconds" aria-live="off">45</strong>
-        <span class="legend clock__unit">seconds</span>
+      <!-- THE CLOCK, AND THE DOG SITTING AT THE FOOT OF IT. The collie waits
+           out the round watching the count come down, which is what the animal
+           is for on this screen: the sort has not started, so the working dog
+           of the grouping scene would be a lie, and a dog doing nothing on
+           purpose is the honest picture of a room that has to wait.
+
+           IT IS FILED UNDER THE CLOCK, not dropped into .askrow beside it, and
+           that is the whole reason for this wrapper. A third item in the row
+           would take its width out of .stake — the flex-1 item — so the
+           question, the one thing everybody in the room has to read, would get
+           narrower and the clock would slide left to make room for a dog. Here
+           the post is exactly as wide as the clock has always been (the dog is
+           capped well under it in tv.css), so the question keeps its width to
+           the pixel and the clock does not move at all: it stays first in the
+           post, and .askrow aligns to flex-start, so nothing about the counting
+           figures shifts when the dog arrives.
+
+           In flow rather than hung off the clock absolutely. Out of flow it
+           would cost nothing here and then be drawn straight over the top of
+           the waiting flock, which is fifty players looking for themselves.
+           A row that reserves the space cannot overlap anything. -->
+      <div class="clockpost">
+        <div class="clock" data-state="calm">
+          <span class="legend clock__label">Gate shuts in</span>
+          <strong class="numerals clock__figures" data-bind="seconds" aria-live="off">45</strong>
+          <span class="legend clock__unit">seconds</span>
+        </div>
+
+        <!-- alt="" and nothing else: the clock beside it already says how long
+             is left, and a screen reader announcing a dog would be the third
+             thing on this screen describing the same wait. The aspect-ratio is
+             in tv.css for the reason the outrun carries one — art must never be
+             the only thing holding a box open. -->
+        <img class="clockdog" src="/art/dog-sit.png" alt="" draggable="false">
       </div>
     </div>
 
@@ -184,9 +214,19 @@
 
          Both poses are stacked and cross-faded rather than swapped in JS: a
          `src` swap would show a blank frame on the first switch, and this scene
-         is only on screen for a few seconds. The gallop is in flow and sets the
-         box height; the crouch is absolute and bottom-aligned, so the two share
-         a ground line and the dog does not hop when it changes pose. -->
+         is only on screen for a few seconds. Both are bottom-aligned inside a
+         box whose height is an authored aspect-ratio, so they share a ground
+         line and the dog does not hop when it changes pose.
+
+         NEITHER IMAGE MAY BE LOAD-BEARING FOR THE LAYOUT, and that is a scar.
+         This was one `<svg viewBox="0 0 140 96">`, which carries its ratio in
+         the markup; as two `<img alt="">` the ratio moved into the PNG, the
+         box took its height from whichever pose was in flow, and a gallop that
+         did not paint collapsed the dog to nothing at all — no sprite, no
+         broken-image icon, an empty field beside a headline that looked fine.
+         The ratio is in tv.css now. If a pose is ever added or swapped, the box
+         keeps its own height and the worst a missing file can do is show one
+         fewer dog rather than none. -->
     <div class="outrun" aria-hidden="true">
       <div class="outrun__dog">
         <span class="outrun__shadow"></span>

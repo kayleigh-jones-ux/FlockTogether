@@ -611,7 +611,6 @@
      TYPE, and the type does not care how many sheep are standing next to it. */
   --sheep-col: max(var(--sheep-w), var(--sheep-name-floor));
   inline-size: var(--sheep-col);
-  /* The host badge is laid over the animal rather than beside it. */
   position: relative;
   display: grid;
   justify-items: center;
@@ -623,16 +622,24 @@
    off the field. --fleece is set per sheep by tv.js from the colour that player
    chose; anyone who never chose sets nothing at all and keeps the art's own
    enamel wool, which is the fleece this display has always drawn. */
-.sheep__art {
-  /* Both the art and the badge sit in the first grid row, on top of each
-     other; the name is auto-placed into the row below. Overlaying by grid
-     rather than by absolute positioning means the badge is measured against
-     the animal it belongs to, so it lands on the sheep's back at every one of
-     the four sizes this flock is drawn at. */
+/* The perch exists for one reason, and it is the same trap the phone's picker
+   fell into: the hat headroom is a PERCENTAGE padding, and a percentage padding
+   resolves against the CONTAINING BLOCK's width — never the element's own.
+   headroomFor() measures that percentage against the ANIMAL (--sheep-w), but
+   the sheep's grid cell is --sheep-col wide, which is wider wherever the name
+   floor is doing its job. Spent against the wrong base, every hatted sheep
+   floated on 20-140% more dead air than its hat asked for, and the gap grew
+   exactly as the column did. So the animal gets a block of its own width to
+   stand on, and the percentage lands on the number it was measured from. */
+.sheep__perch {
   grid-area: 1 / 1;
-  /* The animal, not the column. Where the two differ the sheep is centred in
-     its ground by the grid's justify-items rather than stretched to fill it. */
+  display: block;
   inline-size: var(--sheep-w);
+}
+
+.sheep__art {
+  /* Fills the perch, which is already the animal's width. */
+  inline-size: 100%;
 }
 
 /* EVERY sheep on this display carries the same slight dark shadow.
@@ -664,9 +671,27 @@
    would replay on every sheep at once on every change — the exact fault that
    took the sprayed dye mark off this screen. */
 .sheep__host {
-  grid-area: 1 / 1;
+  /* ABOVE THE ANIMAL, AND CLEAR OF ITS HAT.
+     It used to sit in the art's own grid cell, `align-self: end`, which laid a
+     hazard-yellow plate across the sheep's back — on the one animal in the room
+     whose fleece and hat are the thing everybody is trying to memorise. A label
+     that covers the sheep it labels is not a label.
+     A row of its own is what clears the HAT and not merely the body, and it does
+     it without a number anyone has to keep up to date: --art-headroom is
+     padding INSIDE .sheep__art (shared/sheep-art.css), so the crown of a
+     ten-gallon — 26.7% of the sheep's width above the animal's box — is already
+     inside the row below this one. Whatever hat is worn, and whatever
+     headroomOf() measured for it, the badge is above all of it. Reserving
+     clearance here in pixels instead would be the same measurement made twice,
+     and the copy would be wrong the first time a taller hat is drawn.
+     The margin is the clear space Kayleigh asked for, on top of the grid gap;
+     it also covers the 2px drop shadow and the corner the -3deg lifts. */
+  grid-row: 1;
+  grid-column: 1;
   align-self: end;
   justify-self: center;
+  margin-block-end: var(--s-2);
+  max-inline-size: 100%;
   padding: 1px var(--s-2);
   background: var(--hazard);
   color: var(--hedge);
@@ -675,6 +700,24 @@
   box-shadow: 0 2px 0 rgb(18 24 15 / 0.4);
   rotate: -3deg;
   pointer-events: none;
+}
+
+/* And the animal steps down a row to make room for it. Scoped to the badged
+   sheep on purpose: an empty first track on all fifty animals in the flock
+   would be three pixels of dead ground each, paid by every sheep to hold a
+   label only one of them ever wears. tv.js stamps data-host on every sheep it
+   draws, so this keys off the same attribute the badge itself is emitted with
+   and the two cannot come apart. The name is stated rather than left to
+   auto-placement, which would land it in row 3 anyway — but by inference, and
+   inference is what breaks silently when somebody adds a fourth child. */
+.sheep[data-host='true'] .sheep__art {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+.sheep[data-host='true'] .sheep__name {
+  grid-row: 3;
+  grid-column: 1;
 }
 
 /* Who has answered, without a single moving pixel.
@@ -816,6 +859,50 @@
   rotate: -0.5deg;
 }
 
+/* The post the clock is signed to, and the ground the dog sits on. It takes the
+   `flex: 0 0 auto` the clock used to carry in .askrow, so the row is divided
+   exactly as it was before there was a dog: the question keeps every pixel it
+   had, and the clock — first in the post, in a row aligned to flex-start —
+   does not move on either axis.
+   A grid rather than a flex column only so `justify-items` can centre a dog
+   that is narrower than the clock without either of them stretching. */
+.clockpost {
+  flex: 0 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: var(--s-2);
+}
+
+/* Capped well under the clock's own width, which is what keeps the post the
+   clock's size and therefore keeps the question's width unchanged. The clock is
+   never narrower than about 160px in this branch — its legend alone is thirteen
+   tracked capitals inside var(--s-4) padding — so the cap never becomes the
+   thing sizing the post.
+
+   Kept deliberately modest, because the height this costs comes out of the
+   WAITING FLOCK below and nothing else: .askrow is as tall as its tallest item,
+   so a dog under a short question pushes fifty sheep down and shrinks the one
+   box on this screen that is allowed to give. Reserving that space is still the
+   right trade against hanging the dog out of flow and drawing it over the top
+   of players looking for their own animal — but it is a trade, and the size is
+   where it is paid. A tall question pays nothing: the stake is already the
+   taller item and the dog fits beside it for free.
+
+   aspect-ratio for the same reason the outrun dog has one, and it is the same
+   scar: a box whose height comes only from a decoded PNG is a box that can
+   collapse to nothing without a single rule being wrong. Here it would also
+   move the tally and the whole waiting flock up and then down again as the
+   image lands, on the screen the room stares at for forty-five seconds.
+   273x320 is dog-sit.png's own ratio. */
+.clockdog {
+  inline-size: clamp(60px, 5vw, 108px);
+  block-size: auto;
+  aspect-ratio: 273 / 320;
+  /* The same lift every other animal on this display gets, so the collie stands
+     on the field rather than floating on it. */
+  filter: drop-shadow(0 4px 5px rgb(10 24 8 / 0.42));
+}
+
 .clock {
   flex: 0 0 auto;
   display: grid;
@@ -933,15 +1020,40 @@
      copy (.working owns the higher layer), so there is nothing for the extra
      size to collide with. */
   inline-size: clamp(110px, 12vw, 220px);
+  /* AND A HEIGHT OF ITS OWN. This is the line the dog went missing for.
+     The sprite this replaced was `<svg viewBox="0 0 140 96">`, which carries its
+     ratio in the MARKUP: that box had a height before a single byte was
+     fetched, and could not lose one. Swapping it for two `<img>` elements moved
+     the ratio into the PNG, so the only thing giving this box a height became
+     the decoded intrinsic size of dog-run.png — and every other measurement on
+     the track is a percentage of that height. If the gallop does not paint, for
+     any reason at all (a 404 cached from before the art shipped, a failed or
+     deferred decode, images off, a data-saver proxy), the box collapses to zero
+     and `alt=""` means there is no placeholder either: not a broken image,
+     NOTHING, which is exactly what Kayleigh saw. The headline and the bar are
+     untouched by it, which is why they looked fine beside a dog that was gone.
+     320x184 is dog-run.png's own ratio, stated where CSS can act on it. */
+  aspect-ratio: 320 / 184;
+  /* AND A PLACE TO STAND WITH NOTHING RUNNING. inset puts this in the track's
+     top-left corner, which is only ever where the circuit happens to START —
+     the moment the timeline is not running, that corner is where the dog is
+     stranded, and a dog parked in a corner reads as a dog that has fallen over.
+     At the foot of the field, holding its flock, is the honest still frame.
+     The travel keyframes overwrite `translate` outright while they run, so this
+     costs the outrun nothing and is only ever seen when there is no outrun. It
+     used to live in the reduced-motion block alone, which meant it answered for
+     exactly one of the ways an animation can fail to run. */
+  translate: calc(50cqw - 50%) calc(100cqh - 100%);
   animation: outrun-cast 15s linear infinite;
 }
 
 /* The ground the dog is on. It hangs off the travelling element and NOT off the
    bouncing one, so it stays flat while the animal rises over it — that
    difference is what makes the gallop read as a gallop instead of as a picture
-   being slid about. aspect-ratio rather than a percentage height: the dog's own
-   height is content-derived, and a percentage against it is not reliably
-   resolvable. */
+   being slid about. aspect-ratio rather than a percentage height: an ellipse
+   this shallow is a fact about its own width, not a share of the animal's
+   height, so it stays the same shape at every size the track is drawn at
+   without depending on what the dog above it happens to measure. */
 .outrun__shadow {
   position: absolute;
   inset-block-end: 0;
@@ -953,37 +1065,55 @@
   filter: blur(3px);
 }
 
+/* Filling the dog's box rather than being measured by it. Neither pose is in
+   flow any more: the height is the aspect-ratio above, so a pose that has not
+   painted yet costs the track nothing and the box can no longer be sized by the
+   one thing on this screen that is allowed to fail. */
 .outrun__body {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: block;
   animation: outrun-facing 15s linear infinite;
 }
 
+/* Both poses stand on the SAME GROUND LINE — bottom-aligned in a box whose
+   height is fixed — so the dog does not hop when it changes pose, which is what
+   the gallop being in flow used to buy. The two arts are different heights
+   (320x184 and 320x158) and bottom-aligning is what makes that not show.
+   `translate` is transform-only, so the gait bobs below move the picture
+   without moving the box either one sits in. */
 .outrun__pose {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-end: 0;
   inline-size: 100%;
   block-size: auto;
 }
 
-/* The gallop is in flow and therefore sets the box height; the crouch is taken
-   out of flow and pinned to the bottom, so the two share a ground line and the
-   dog does not hop when it changes pose. `translate` is transform-only, so the
-   gait bob below moves the picture without moving the box either one sits in. */
+/* THE CROUCH IS THE POSE AT REST, and this is the second half of the fix.
+   Every single thing about this dog — where it stands, which way it faces,
+   which pose is showing — used to be carried by a keyframe and by nothing else,
+   so the still frame was whatever four animations happened to leave behind. The
+   gallop rested visible only because nobody had written an opacity for it, and
+   the crouch rested at 0 with a keyframe as its only way up: stop the timeline
+   by any means and the dog is a held breath rather than a standing animal.
+   Now the ANIMATION-FREE state is a dog on its feet, watching. A frozen gallop
+   is a dog falling over — all four legs off the ground with nothing to explain
+   it — so the crouch is the right thing to be left holding, and it is the same
+   still frame the reduced-motion branch already asked for, arrived at once
+   instead of re-argued down there.
+   Nothing is lost in motion: a running animation applies from its own first
+   frame, and outrun-pose-run's 0% is opacity 1, so the loop still opens on the
+   gallop. */
 .outrun__pose--run {
-  position: relative;
+  opacity: 0;
   animation:
     outrun-pose-run 15s linear infinite,
     gait-gallop 330ms ease-in-out infinite;
 }
 
-/* Hidden at rest as well as at 0% of the loop. A running animation does apply
-   on its first frame, but fill-mode is `none` and this scene is unhidden from
-   `display: none` — so a base opacity of 1 here is one paint of two dogs
-   standing in each other before the timeline takes over. */
 .outrun__pose--eye {
-  position: absolute;
-  inset-inline-start: 0;
-  inset-block-end: 0;
-  opacity: 0;
+  opacity: 1;
   animation:
     outrun-pose-eye 15s linear infinite,
     gait-creep 1500ms ease-in-out infinite;
@@ -1817,49 +1947,34 @@
    the dog holds still. The flock needs no rule here — mark state is static for
    everyone now, moving or not. */
 @media (prefers-reduced-motion: reduce) {
-  /* NO TRAVEL. The dog stands at the foot of the field holding its flock,
-     rather than at the top-left corner the circuit happens to start from, which
-     is where it would otherwise be stranded — a dog parked in a corner reads as
-     a dog that has fallen over.
+  /* NO TRAVEL — and nothing here has to say where the dog stands or which pose
+     it holds any more. Both are base rules now (.outrun__dog and
+     .outrun__pose--eye), so the still frame is the same one whether the
+     timeline was stopped by this query or by anything else, and there is a
+     single place to change it. All this block still owes is the OFF switch.
 
-     And it stands in the CROUCH, not the gallop. A frozen gallop is a dog
-     falling over too: all four legs off the ground with nothing to explain it.
-     dog-herding.png is a dog on its feet, watching, which is the still frame
-     this scene actually wants — the sort is happening whether or not anything
-     on screen is allowed to move.
+     `animation: none` is what actually stops these, and it has to be the
+     shorthand. tokens.css forces `animation-duration: 1ms !important` on
+     everything under this same query, which does not stop an animation — it
+     lands it on its LAST keyframe. Only clearing the NAME does, and the
+     shorthand takes the gait bobs with it in the same stroke.
 
-     Every one of these overrides is load-bearing. tokens.css forces
-     `animation-duration: 1ms !important` on everything under this same query,
-     which does not stop an animation — it lands it on its LAST keyframe. Left
-     alone, outrun-pose-run ends at opacity 1 and outrun-pose-eye at opacity 0,
-     so reduced motion would pick the gallop and hide the crouch: exactly
-     backwards. `animation: none` on the poses also takes their gait bobs with
-     it, since it resets the whole shorthand.
+     What was here as well — a translate, a scale, and an opacity pair hiding
+     the gallop and raising the crouch — was the whole still frame, authored
+     inside a media query. That is the trap this scene was actually caught in:
+     the ONLY visible dog on the screen depended on a query matching, so every
+     other way a timeline can stop running produced no dog at all. Four
+     declarations moved up into the base rules and none of them is repeated
+     here; a second opinion in a media query is how the two get to disagree.
 
      The sort bar keeps whatever value the last state frame gave it: tv.js
      stops driving it from requestAnimationFrame here and samples it once per
      frame instead, so it still says how far along the sort is without anything
      sliding. */
-  .outrun__dog {
-    animation: none;
-    translate: calc(50cqw - 50%) calc(100cqh - 100%);
-  }
-
-  .outrun__body {
-    animation: none;
-    scale: 1 1;
-  }
-
+  .outrun__dog,
+  .outrun__body,
   .outrun__pose {
     animation: none;
-  }
-
-  .outrun__pose--run {
-    opacity: 0;
-  }
-
-  .outrun__pose--eye {
-    opacity: 1;
   }
 
   .paddock,

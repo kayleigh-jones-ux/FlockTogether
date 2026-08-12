@@ -861,13 +861,65 @@ function dressChip(chip, name, chosen, block, why) {
   else chip.removeAttribute('aria-label');
 }
 
+/* A draft this build cannot name is the one thing on this screen that can go
+ * wrong without saying so, and it takes the whole picker down with it.
+ *
+ * The trap is that a look is a PAIR and a chip only ever moves half of it: if
+ * one half is an id colourById/hatById does not know — a hat dropped between
+ * builds and still sitting in this room's record, a look restored from a phone
+ * that was last here on an older deploy — then every tap on a colour leaves the
+ * unknown hat in place, every tap on a hat leaves the unknown colour, and the
+ * old `if (!colour || !hat) return` bailed before it painted anything. The chip
+ * still took the press, so the picker looked alive and did nothing: no fleece,
+ * no hat, no tick moving, no caption, and not a word about why.
+ *
+ * So an unknown half is repaired rather than returned on. The half we CAN name
+ * is kept — it is very likely the one they just tapped — and the other is put on
+ * the first free partner, which is the same move a clash gets.
+ *
+ * Returns what it had to do, and 'seeded' is deliberately not 'repaired': a
+ * paint that arrives before the picker has been rendered (a look.taken frame
+ * lands the moment we join) legitimately has no draft yet, and telling the
+ * player something went wrong with their sheep because the room said hello is
+ * worse than saying nothing. Only a pair that was half unreadable is worth a
+ * word. */
+function repairDraft() {
+  if (!draft) {
+    draft = me.look ? { ...me.look } : suggestLook();
+    return 'seeded';
+  }
+  const colour = colourById(draft.colorId);
+  const hat = hatById(draft.hatId);
+  if (colour && hat) return '';
+  const fallback = suggestLook();
+  draft = firstFree(
+    colour ? draft.colorId : fallback.colorId,
+    hat ? draft.hatId : fallback.hatId
+  );
+  return 'repaired';
+}
+
 function paintLook() {
-  const colour = draft ? colourById(draft.colorId) : null;
-  const hat = draft ? hatById(draft.hatId) : null;
-  if (!colour || !hat) return;
+  /* Never a silent return. Anything that cannot be drawn is put right first,
+     and the repair is announced, because the sheep the player is looking at has
+     just changed underneath them without them touching it. */
+  const repaired = repairDraft() === 'repaired';
+  const colour = colourById(draft.colorId);
+  const hat = hatById(draft.hatId);
+  /* Belt and braces: repairDraft only ever hands back ids out of FLEECE_COLOURS
+     and HAT_OPTIONS, so this cannot fire — but if it ever did, the screen is
+     dead and the player deserves to be told rather than left tapping. */
+  if (!colour || !hat) {
+    lookNote('Something went wrong building your sheep. Reload the page.', true, true);
+    return;
+  }
 
   el.lookSheep.style.setProperty('--fleece', fleeceValue(colour));
-  // The one constant number, so the sheep does not step about as hats change.
+  /* The one constant number, so the sheep does not step about as hats change.
+     Constant here is only half of it: it is spent as a PERCENTAGE padding, so
+     it also needs a base that does not move, which is what .look-perch in
+     play.css is for. Passing the same number against the caption's width was
+     the reason this sheep still jumped. */
   setHat(el.lookSheep, hat.id, previewHeadroom);
   setText(el.lookName, `${colour.name} · ${hat.name}`);
 
@@ -905,6 +957,13 @@ function paintLook() {
      it clears itself the moment the pair comes free instead of pinning a warning
      that has stopped being true. */
   if (lookPending) return;
+  /* A repair moved the sheep without them asking, so it is said before anything
+     else that is not the answer to a send. It cannot be a clash — the pair came
+     out of firstFree — so the check below would have nothing to say about it. */
+  if (repaired) {
+    lookNote(`We could not find one half of that sheep. ${wearingNow()}`, true, true);
+    return;
+  }
   if (isTaken(colour.id, hat.id)) {
     lookNote(`${pairSentence(colour, hat)} Change the colour or the hat.`, true);
     return;
@@ -913,11 +972,16 @@ function paintLook() {
   lookNote(LOOK_RULE, false);
 }
 
+/* Half a pick, merged onto the half they are keeping.
+   No silent exit on a missing draft: a tap that reaches here is a tap on a chip
+   the handler has already cleared, and answering it with nothing is the failure
+   this screen must never have. paintLook seeds a draft through repairDraft, so
+   the worst case is that the first tap also decides the other half. */
 function pick(part) {
-  if (!draft) return;
+  const base = draft || {};
   draft = {
-    colorId: part.colorId || draft.colorId,
-    hatId: part.hatId || draft.hatId,
+    colorId: part.colorId || base.colorId,
+    hatId: part.hatId || base.hatId,
   };
   draftDirty = true;
   stickyNote = false; // they have answered the last thing we told them

@@ -90,8 +90,16 @@ async function main() {
   await waitFor(() => (host.state?.players?.length ?? 0) === 2, 'two sheep in the flock');
   chk('two players locked into the flock', host.state?.players?.length === 2);
 
-  /* 5. Start. Expect question, roundIndex 0, and the set's total rounds = 2. */
-  send(host, { t: 'host.start' });
+  /* 5. Start — from the HOST'S PHONE, not the display.
+     The TV has no Start button any more: it opens the paddock and arms a pack,
+     and that is the end of its authority. The first player to lock in holds the
+     controls, and this test has to hold them too or the lobby never opens. */
+  const hostPhone = players.find((p) => p.state?.you?.isHost);
+  chk('a phone holds the controls', !!hostPhone,
+    `hostId=${host.state?.hostId} isHost=${players.map((p) => p.state?.you?.isHost).join(',')}`);
+  chk('the host is the first phone to lock in', hostPhone === players[0]);
+
+  send(hostPhone, { t: 'player.start' });
   await waitFor(() => host.state?.phase === 'question', 'round 1 question');
   chk('game started on the custom set', host.state?.phase === 'question' && host.state?.totalRounds === 2,
     `phase=${host.state?.phase} totalRounds=${host.state?.totalRounds}`);
@@ -99,14 +107,34 @@ async function main() {
   /* Answer text must NEVER appear on the wire during the question phase. */
   const leaked = JSON.stringify(host.state).includes('__answer__');
 
+  /* Reveal and scores no longer advance on their own — they wait for the host's
+     Continue, so the room can talk over the answers for as long as it likes.
+     A backstop alarm does eventually move a room whose host has gone silent,
+     but it is two minutes: far longer than this test should sit, and waiting on
+     it would be testing the backstop rather than the gate. So the test taps.
+
+     The stamp matters. player.continue carries the phase the button was drawn
+     on and the server drops it unless the room is still in that phase, which is
+     what stops a double-tap on the reveal skipping the scoreboard behind it. */
+  const release = async (phase) => {
+    if (host.state?.phase !== phase) return;
+    send(hostPhone, { t: 'player.continue', phase });
+    await waitFor(() => host.state?.phase !== phase, `${phase} to release`, 15000);
+  };
+
   const playRound = async (roundIndex, answer) => {
     await waitFor(() => host.state?.phase === 'question' && host.state?.roundIndex === roundIndex, `round ${roundIndex} question`);
     for (const p of players) send(p, { t: 'player.answer', text: answer });
-    // all answered -> ~1.5s grace -> grouping -> reveal
+    // all answered -> ~1.5s grace -> grouping (>= 5s floor) -> reveal
     await waitFor(() => host.state?.phase === 'reveal', `round ${roundIndex} reveal`, 25000);
     const g = host.state.groups || [];
     chk(`round ${roundIndex}: reveal has a scored group`, g.length >= 1 && g.some((x) => x.scored),
       `groups=${g.length}`);
+
+    /* Out of the reveal, and out of the scoreboard behind it if this round
+       raised one — the round is not over until the room is moving again. */
+    await release('reveal');
+    await release('scores');
   };
 
   await playRound(0, 'blue');

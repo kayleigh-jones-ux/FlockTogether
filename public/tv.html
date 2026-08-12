@@ -83,10 +83,12 @@
         <p class="setpick__status" data-bind="packStatus">Using the full question bank</p>
       </div>
 
-      <button class="latch" type="button" data-action="start" disabled>
-        <span class="latch__bar"></span>
-        <span class="latch__text">Open the gate</span>
-      </button>
+      <!-- The gate is not opened from here any more. The first phone to lock in
+           becomes the host and starts the game from their own hand, so this
+           screen has no Start control at all — it states who the room is
+           waiting on (data-bind="lobbyNote" above) and nothing else. A button
+           here would be a second authority for the same decision, and the two
+           would race the moment anyone touched both. -->
     </div>
   </section>
 
@@ -117,10 +119,28 @@
 
   <!-- GROUPING ---------------------------------------------------------- -->
   <section class="scene scene--grouping" data-scene="grouping" hidden>
+    <!-- The outrun is the whole field, not a wobble under the headline: the dog
+         casts right round the flock and comes back. It is a track laid over the
+         scene, behind the copy and deaf to the pointer. -->
+    <div class="outrun" aria-hidden="true">
+      <svg class="outrun__dog" viewBox="0 0 140 96"><use href="#sp-dog"/></svg>
+    </div>
+
     <div class="working">
-      <svg class="working__dog" viewBox="0 0 140 96" aria-hidden="true"><use href="#sp-dog"/></svg>
       <h2 class="headline">The dog's working</h2>
       <p class="working__note legend">Sorting the flock into paddocks</p>
+
+      <!-- An estimate, and drawn as one. Nothing on this screen knows when the
+           shepherd will answer, so the fill eases toward a hold rather than
+           toward an end, and only snaps full when the phase actually turns.
+           tv.js drives it from requestAnimationFrame — countdown() only calls
+           back on whole seconds, which is right for a number and a ratchet for
+           a bar. aria-hidden because the note above already says what is
+           happening, and a value that changes sixty times a second is nothing
+           but noise read aloud. -->
+      <div class="sortbar" data-bind="sortBar" aria-hidden="true">
+        <span class="sortbar__fill"></span>
+      </div>
     </div>
   </section>
 
@@ -133,6 +153,7 @@
       <ul class="missed__list" data-bind="missedList"></ul>
     </div>
     <p class="sourcenote legend" data-bind="sourceNote"></p>
+    <p class="hostwait legend" data-bind="revealHostWait" hidden></p>
   </section>
 
   <!-- SCORES / FINAL ---------------------------------------------------- -->
@@ -142,7 +163,13 @@
         <h2 class="headline record__title" data-bind="recordTitle">Grazing record</h2>
         <p class="legend record__why" data-bind="recordWhy"></p>
       </div>
+      <!-- Top three, big. The order is the server's `rank` and only the
+           server's: ties break on cumulative answer time, which deliberately
+           never goes on the wire, so anything sorted here by score would
+           disagree with the phones about who came second. -->
+      <ol class="podium" data-bind="podium"></ol>
       <ol class="record__rows" data-bind="recordRows"></ol>
+      <p class="hostwait legend" data-bind="recordHostWait" hidden></p>
     </div>
   </section>
 

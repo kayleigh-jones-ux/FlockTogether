@@ -142,11 +142,18 @@
           <span class="tag-name" id="tag-big-name"></span>
         </p>
         <p class="flockline">
-          <span class="sheepart ico--sheep" id="lobby-sheep" data-pose="sheep-idle" aria-hidden="true">
-            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
-              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
-              <span class="sheepart__fleece"></span>
+          <!-- The badge is pinned ONTO the sheep, not set beside it: whoever
+               holds the controls is a fact about that animal, and the join
+               screen has no sheep to put it on. play.js shows it only on the
+               host's own phone. -->
+          <span class="hostmark">
+            <span class="sheepart ico--sheep" id="lobby-sheep" data-pose="sheep-idle" aria-hidden="true">
+              <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+                <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
+                <span class="sheepart__fleece"></span>
+              </span>
             </span>
+            <span class="hostmark-badge legend" id="host-badge" hidden>Host</span>
           </span>
           <span id="flock-count">You're first in the paddock.</span>
         </p>
@@ -155,6 +162,16 @@
 
       <div class="lobby-foot">
         <p class="enamel-sign note" id="lobby-h">Watch the big screen. Your question turns up here.</p>
+
+        <!-- The gate: the host's lever, and the line every other phone reads
+             instead of it. The note is permanently rendered with its height
+             reserved, exactly like #lock-note and #look-note, so a message
+             landing here can never move the lever under a thumb. -->
+        <div class="gate">
+          <p class="gate-note aside" id="lobby-note" role="status" aria-live="polite" aria-atomic="true">&nbsp;</p>
+          <button class="latch" type="button" id="lobby-go" hidden>Start the game</button>
+        </div>
+
         <button class="quiet quiet--onfield" type="button" id="look-reopen">Change your sheep</button>
       </div>
     </section>
@@ -231,6 +248,13 @@
           <span class="legend">Your tally</span>
           <b class="numerals" id="reveal-score">0</b>
         </p>
+
+        <!-- Nothing advances on its own from here: the room is parked until the
+             host taps. Same two parts as the lobby's gate. -->
+        <div class="gate">
+          <p class="gate-note aside" id="reveal-note" role="status" aria-live="polite" aria-atomic="true">&nbsp;</p>
+          <button class="latch" type="button" id="reveal-go" hidden>Carry on</button>
+        </div>
       </div>
     </section>
 
@@ -239,11 +263,39 @@
 
       <div class="stack-mid" aria-live="polite">
         <svg class="rosette rosette--big" id="rosette-final" viewBox="0 0 104 132" aria-hidden="true" hidden><use href="#sp-rosette"/></svg>
-        <p class="bigscore"><b class="numerals" id="big-score">0</b><span class="legend" id="score-unit">points</span></p>
+
+        <!-- The player's own sheep, beside their own number, wearing the face
+             their standing has earned. play.js picks the pose; the markup only
+             has to be a sheep before the first paint, so it opens on idle. -->
+        <div class="score-face">
+          <span class="sheepart score-sheep" id="score-sheep" data-pose="sheep-idle" aria-hidden="true">
+            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
+              <span class="sheepart__fleece"></span>
+            </span>
+          </span>
+          <p class="bigscore">
+            <span class="bigscore-fig">
+              <b class="numerals" id="big-score">0</b>
+              <!-- Decoration on top of what #scores-sub already says in words,
+                   so it is not announced twice. -->
+              <span class="hero flame" id="flame" aria-hidden="true" hidden>🔥</span>
+            </span>
+            <span class="legend" id="score-unit">points</span>
+          </p>
+        </div>
+
         <h2 class="hero" id="standing">&nbsp;</h2>
       </div>
 
-      <p class="aside" id="scores-sub">The whole board is on the big screen.</p>
+      <div class="scores-foot">
+        <p class="aside" id="scores-sub">The whole board is on the big screen.</p>
+
+        <div class="gate">
+          <p class="gate-note aside" id="scores-note" role="status" aria-live="polite" aria-atomic="true">&nbsp;</p>
+          <button class="latch" type="button" id="scores-go" hidden>Next round</button>
+        </div>
+      </div>
     </section>
 
   </main>

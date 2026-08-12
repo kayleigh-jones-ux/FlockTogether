@@ -24,6 +24,35 @@
   overflow: hidden;
 }
 
+/* --- Hidden ------------------------------------------------------------
+   One rule for the whole surface, rather than a companion beside every rule
+   that happens to set a display.
+
+   Everything on this screen is toggled the same way — `node.hidden = true`,
+   from tv.js — and `hidden` is only a UA-sheet `display: none`, so any authored
+   display beats it. This file used to answer that per rule: .scene[hidden],
+   .lobbyflock__choosing[hidden], .hostwait[hidden], .setpick__btn--clear[hidden],
+   .link[hidden]. That works exactly as long as nobody forgets, and three did.
+   .lot, .rotation and .missed each declare display:flex with no companion, so
+   the header carried 'Paddock ····' from first paint and an empty 'Rotation'
+   strip through the whole lobby (a fresh room has totalRounds 0), and the dashed
+   'Missed the gate' pen was drawn empty on every reveal where everybody
+   answered. The toggles in tv.js were right in all three cases; only the
+   stylesheet was missing.
+
+   So: one rule, and the five companions deleted along with it. The alternative
+   was a sixth, seventh and eighth companion, which fixes today's three and
+   leaves the trap armed for whoever adds the next flex container — the fault
+   here was never any one missing rule, it was the pattern that needs one.
+
+   !important because `[hidden]` and a single class weigh the same, so without it
+   this would win only on source order, and a rule that wins on source order
+   stops winning the day someone moves it. Nothing on this display ever wants to
+   be hidden and visible at once, so there is nothing for it to trample.      */
+[hidden] {
+  display: none !important;
+}
+
 /* Legends on the display scale with it; the shared token caps at 0.95rem,
    which is right for a phone and far too small on a television. */
 .tv .legend {
@@ -115,10 +144,6 @@
   padding: clamp(var(--s-4), 2.4vw, var(--s-7));
   display: flex;
   flex-direction: column;
-}
-
-.scene[hidden] {
-  display: none;
 }
 
 .headline {
@@ -236,10 +261,6 @@
   text-transform: none;
 }
 
-.lobbyflock__choosing[hidden] {
-  display: none;
-}
-
 /* --- Flock ------------------------------------------------------------- */
 
 .flock {
@@ -267,23 +288,68 @@
 .sheep {
   --sheep-w: clamp(58px, 5.4vw, 92px);
   inline-size: var(--sheep-w);
+  /* The host badge is laid over the animal rather than beside it. */
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 3px;
 }
 
 /* The sheep is generated art, layered in shared/sheep-art.css. What is left
-   here is what this display adds on top of it: the drop shadow that lifts an
-   animal off the field, and the pale rim a deep fleece needs. --fleece is set
-   per sheep by tv.js from the colour that player chose; anyone who never chose
-   sets nothing at all and keeps the art's own enamel wool, which is the fleece
-   this display has always drawn. */
+   here is what this display adds on top of it: the shadow that lifts an animal
+   off the field. --fleece is set per sheep by tv.js from the colour that player
+   chose; anyone who never chose sets nothing at all and keeps the art's own
+   enamel wool, which is the fleece this display has always drawn. */
 .sheep__art {
+  /* Both the art and the badge sit in the first grid row, on top of each
+     other; the name is auto-placed into the row below. Overlaying by grid
+     rather than by absolute positioning means the badge is measured against
+     the animal it belongs to, so it lands on the sheep's back at every one of
+     the four sizes this flock is drawn at. */
+  grid-area: 1 / 1;
   inline-size: 100%;
 }
 
-.sheep__art .sheepart__box {
-  filter: drop-shadow(0 4px 5px rgb(10 24 8 / 0.42));
+/* EVERY sheep on this display carries the same slight dark shadow.
+ *
+ * What used to be here measured each chosen fleece against hedgerow ink at
+ * load, and gave the dark ones a doubled enamel rim outside the outline. The
+ * measurement was sound — a deep fleece really is near enough the same value
+ * as the ink that the silhouette gives out — but it made a sheep's edge a
+ * function of its colour: two players standing together in one flock were
+ * drawn with different outlines, and a pale halo reads as a glow on a screen
+ * where nothing glows. A shadow underneath separates the animal from the
+ * ground the same way for everyone, so legibility is no longer something a
+ * player can lose by picking the colour they liked.
+ *
+ * Unqualified on purpose: this stylesheet is loaded by the display and nothing
+ * else, and every sheep it draws — flock, paddock pen, podium — wants the same
+ * shadow. The two custom properties are the only thing a smaller sheep needs
+ * to change, because a 4px offset under a 30px animal is a bruise. */
+.sheepart__box {
+  filter: drop-shadow(
+    0 var(--sheep-drop-y, 4px) var(--sheep-drop-blur, 5px) rgb(10 24 8 / 0.42)
+  );
+}
+
+/* Who is holding the controls, stated on the animal itself. The join screen has
+   no sheep to put it on, so this is the lobby's badge and only the lobby's.
+   Static, and it must stay static: the lobby flock is rebuilt through innerHTML
+   every time anyone joins or picks a fleece, so a keyframe hung off data-host
+   would replay on every sheep at once on every change — the exact fault that
+   took the sprayed dye mark off this screen. */
+.sheep__host {
+  grid-area: 1 / 1;
+  align-self: end;
+  justify-self: center;
+  padding: 1px var(--s-2);
+  background: var(--hazard);
+  color: var(--hedge);
+  border: var(--line-hair) solid var(--hedge);
+  border-radius: 2px;
+  box-shadow: 0 2px 0 rgb(18 24 15 / 0.4);
+  rotate: -3deg;
+  pointer-events: none;
 }
 
 /* Who has answered, without a single moving pixel.
@@ -303,24 +369,6 @@
 
 .flock--waiting .sheep[data-marked='false'] .sheep__name {
   opacity: 0.6;
-}
-
-/* The ink outline is the only thing holding a fleece apart from the field
-   behind it, and it stops doing that when the fleece is nearly as dark as the
-   ink itself — the deep band of the palette measures around 2:1 against
-   hedgerow ink, on grounds that are dark too. tv.js measures every chosen
-   colour against the ink token and flags the ones that fail; they get a pale
-   rim outside the ink, so the silhouette is carried by a light line no
-   pasture or paddock tint can match. Nothing else is touched, and the tint
-   itself is untouched everywhere.
-
-   The rim goes on the whole composited animal, hat included: with trimmed art
-   the hat is part of the silhouette rather than a symbol floating over it. */
-.sheep[data-deep='true'] .sheep__art .sheepart__box {
-  filter:
-    drop-shadow(0 0 1.5px var(--enamel))
-    drop-shadow(0 0 1.5px var(--enamel))
-    drop-shadow(0 4px 5px rgb(10 24 8 / 0.42));
 }
 
 .sheep__name {
@@ -424,27 +472,88 @@
 /* --- GROUPING ---------------------------------------------------------- */
 
 .scene--grouping {
+  position: relative;
   align-items: center;
   justify-content: center;
   text-align: center;
+  overflow: hidden;
 }
 
 .working {
+  /* Above the track, and given a stacking context so the dog passes behind the
+     copy rather than across it. */
+  position: relative;
+  z-index: 1;
   display: grid;
   justify-items: center;
   gap: var(--s-3);
 }
 
-.working__dog {
-  inline-size: clamp(120px, 15vw, 240px);
-  /* The outrun: the dog casts wide around the flock. */
-  animation: outrun 2.6s var(--ease-out-expo) infinite;
+/* The outrun. It used to be a 34% wobble under the headline, which is a dog
+   shifting its weight, not a dog working — the outrun is the wide cast right
+   round the flock, and on the one screen with nothing else to look at it may
+   as well be the whole field.
+
+   container-type: size so the circuit is measured off the TRACK rather than
+   off the viewport: the header takes a different share of a portrait display,
+   and a path in vw/vh would run the dog off the bottom of one. */
+.outrun {
+  position: absolute;
+  inset: clamp(var(--s-3), 2vw, var(--s-6));
+  container-type: size;
+  pointer-events: none;
+  z-index: 0;
 }
 
+.outrun__dog {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: clamp(90px, 10vw, 190px);
+  animation: outrun 11s linear infinite;
+}
+
+/* Four legs and two turns. The turn is a scale THROUGH zero rather than a jump
+   between the two facings: given a third of a second it reads as the dog
+   pivoting on the spot, which is what a dog does at the top of an outrun.
+   Percentages in `translate` resolve against the dog's own box, so
+   `100cqw - 100%` is the far edge of the track less the animal standing on it. */
 @keyframes outrun {
-  0%   { translate: -34% 0; scale: 1 1; }
-  50%  { translate: 34% -12%; scale: -1 1; }
-  100% { translate: -34% 0; scale: 1 1; }
+  0%   { translate: 0 0;                                       scale: 1 1; }
+  24%  { translate: calc(100cqw - 100%) 0;                     scale: 1 1; }
+  47%  { translate: calc(100cqw - 100%) calc(100cqh - 100%);   scale: 1 1; }
+  50%  { translate: calc(100cqw - 100%) calc(100cqh - 100%);   scale: -1 1; }
+  74%  { translate: 0 calc(100cqh - 100%);                     scale: -1 1; }
+  97%  { translate: 0 0;                                       scale: -1 1; }
+  100% { translate: 0 0;                                       scale: 1 1; }
+}
+
+/* How far along the sort is. An estimate, drawn as one: it fills toward a hold
+   at 90% rather than toward an end, because nothing on this screen knows when
+   the shepherd will answer. See tv.js for the easing and where its numbers
+   come from — all three arrive on the wire.
+
+   No transition on the fill. requestAnimationFrame writes --sort-fill every
+   frame, and a transition layered on a value that is already being animated
+   only makes it lag the number it was handed. */
+.sortbar {
+  inline-size: min(46vw, 560px);
+  max-inline-size: 100%;
+  block-size: clamp(10px, 0.9vw, 18px);
+  margin-block-start: var(--s-2);
+  background: rgb(18 24 15 / 0.5);
+  border: var(--line-hair) solid var(--hedge);
+  border-radius: var(--radius-token);
+  overflow: hidden;
+}
+
+.sortbar__fill {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  background: var(--hazard);
+  transform-origin: left center;
+  scale: var(--sort-fill, 0) 1;
 }
 
 
@@ -598,20 +707,39 @@
   color: var(--hedge);
 }
 
-/* Fleece from the player. Which field they ended up in is carried by the
-   paddock around them — its tint, its label and its headcount — so the sheep
-   no longer wears a dye mark to say it twice at 18px. */
-.pad-sheep__art {
-  inline-size: clamp(18px, 1.7vw, 34px);
+/* The pen: up to three of the sheep standing in this field, in its bottom-right
+   corner. Every answer used to carry its own sprite inline at 18-34px, next to
+   18px text — at the size this display is actually watched that is a smudge,
+   and a full paddock is a row of smudges. The names and the answers already say
+   who is in the field; the pen only has to be legible, so it gets three animals
+   at three times the size instead of eleven at none.
+
+   In flow, not absolutely positioned: the paddock is a column, so `align-self:
+   flex-end` after a flex-1 list of answers IS the bottom-right corner, and the
+   answers can never be overlapped by a corner that does not know they are
+   there. */
+.paddock__pen {
   flex: 0 0 auto;
+  align-self: flex-end;
+  display: flex;
+  align-items: flex-end;
+  /* They crowd: the last one overlaps the one before, as sheep in a corner do,
+     and three fit where two would otherwise. */
+  margin-inline-start: calc(var(--s-4) * -1);
 }
 
-/* A deep fleece on a deep tint, at the size a paddock sheep actually renders,
-   is where the ink outline gives out soonest. Same pale rim, tighter. */
-.pad-sheep[data-deep='true'] .pad-sheep__art .sheepart__box {
-  filter:
-    drop-shadow(0 0 1px var(--enamel))
-    drop-shadow(0 0 1px var(--enamel));
+.pen-sheep {
+  flex: 0 0 auto;
+  inline-size: clamp(30px, 3.4vw, 68px);
+  margin-inline-start: calc(var(--s-3) * -1);
+}
+
+.pen-sheep__art {
+  /* A tighter shadow than the flock's: a 4px offset under a 30px animal is a
+     bruise rather than a lift. */
+  --sheep-drop-y: 2px;
+  --sheep-drop-blur: 3px;
+  inline-size: 100%;
 }
 
 /* An answer that will not fit is truncated WITH an affordance and keeps its
@@ -646,9 +774,11 @@
 
 /* The hat is drawn inside the sheep's own box, so when a field gets too tight
    to carry that detail the hat goes with the sheep rather than surviving as
-   a floating detail on a field that has already given up on detail. */
+   a floating detail on a field that has already given up on detail. The pen
+   goes whole: three sheep shrunk to fit a 150px-high cell would be the smudge
+   the pen was built to replace. */
 @container (max-height: 150px) {
-  .pad-sheep__art { display: none; }
+  .paddock__pen { display: none; }
   .paddock__flock { justify-content: flex-start; align-content: flex-start; }
 }
 
@@ -742,6 +872,125 @@
   color: var(--earth-deep);
 }
 
+/* --- The podium -------------------------------------------------------- */
+
+/* The top three, at a size that carries to the back of the room, with the
+   winner biggest and in the middle.
+ *
+ * The hierarchy is carried by the ANIMAL and the plinth under it, not by type.
+ * Partly because this surface has a lint against literal font sizes and a
+ * podium built out of four new size steps would be four new violations — but
+ * mostly because on a television a sheep drawn half again as large as its
+ * neighbours is a louder statement than a heading two steps up, and it is the
+ * sheep the room has spent the whole game learning to recognise. */
+.podium {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(var(--s-2), 1.4vw, var(--s-5));
+  padding-block-end: var(--s-4);
+  margin-block-end: var(--s-3);
+  border-block-end: var(--line) solid var(--hedge);
+}
+
+.podium:empty {
+  display: none;
+}
+
+/* The plinth is given a width rather than taking one from its contents. A
+   player is free to be called something long, and a name-shaped column would
+   let one of them push the winner off centre. */
+.plinth {
+  flex: 0 1 auto;
+  inline-size: clamp(96px, 11vw, 180px);
+  display: grid;
+  justify-items: center;
+  gap: var(--s-1);
+}
+
+.plinth[data-place='1'] {
+  inline-size: clamp(128px, 15vw, 250px);
+}
+
+/* Second on the left, first in the middle, third on the right: the shape a
+   room already knows how to read. Only the painting is rearranged — the DOM
+   stays in rank order, so the reading order, the tab order and the ledger
+   below all agree with each other and with the server. */
+.plinth[data-place='1'] { order: 2; }
+.plinth[data-place='2'] { order: 1; }
+.plinth[data-place='3'] { order: 3; }
+
+.plinth__art {
+  inline-size: 74%;
+}
+
+.plinth[data-place='1'] .plinth__art {
+  inline-size: 86%;
+}
+
+/* The plinth proper: an enamel sign on a block, and the winner's block is the
+   tall one. minmax(0, 1fr) rather than an auto column: a name that will not fit
+   has to be allowed to ellipsis, and an auto column would size itself to the
+   whole unbroken string and hang it out of the sign instead. */
+.plinth__block {
+  inline-size: 100%;
+  min-inline-size: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  padding: var(--s-2) var(--s-3);
+  background: var(--enamel);
+  color: var(--hedge);
+  border: var(--line) solid var(--hedge);
+  border-radius: 2px;
+  box-shadow: 0 4px 0 var(--hedge);
+}
+
+.plinth[data-place='1'] .plinth__block {
+  padding-block: var(--s-4);
+  background: color-mix(in oklab, var(--stubble) 50%, var(--enamel));
+  box-shadow: 0 9px 0 var(--hedge);
+}
+
+.plinth__place {
+  color: var(--earth-deep);
+  line-height: 1;
+}
+
+.plinth__name {
+  font-weight: 700;
+  font-stretch: 92%;
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plinth__score {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.plinth__rosette {
+  inline-size: clamp(22px, 2vw, 34px);
+  flex: 0 0 auto;
+  color: var(--tractor-red);
+}
+
+/* Three rounds in a scoring group and the score wears a flame. Reserved-colour
+   discipline holds: this is a glyph, not a tint, so it says nothing the score
+   beside it does not already say twice. */
+.flame {
+  font-style: normal;
+  line-height: 1;
+}
+
+/* --- Fourth and below --------------------------------------------------- */
+
 .record__rows {
   flex: 1 1 auto;
   min-block-size: 0;
@@ -789,6 +1038,10 @@
 }
 
 .record__score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-1);
   font-family: var(--face-ui);
   font-weight: 900;
   font-stretch: 118%;
@@ -798,69 +1051,32 @@
   text-align: right;
 }
 
-.record__row[data-lead='true'] {
-  background: color-mix(in oklab, var(--stubble) 46%, var(--buff));
-  box-shadow: inset 0 0 0 var(--line-hair) var(--tractor-red);
+/* The leader's highlighted row and its rosette are gone from here: the leader
+   is standing on a plinth above, and marking the same player twice on one
+   sheet reads as two different claims about who is winning. */
+
+/* --- Waiting on the host ------------------------------------------------
+   Reveal and the record sheet park until the host's phone releases them, and
+   the room needs to be told it is waiting on a PERSON rather than on a machine
+   that has stalled. Same ink plate the other field legends sit on, so it reads
+   as a caption on the scene and not as an error.
+
+   There is no latch on this screen any more. `.latch` and `.latch__bar` went
+   with the Start button — the gate is opened from the host's phone, and a
+   control here would be a second authority for the same decision. play.css
+   keeps its own latch; they never shared these rules. */
+.hostwait {
+  align-self: center;
+  max-inline-size: max-content;
+  margin-block-start: var(--s-3);
+  padding: 3px var(--s-3);
   border-radius: 2px;
+  background: rgb(18 24 15 / 0.62);
+  color: var(--enamel);
 }
 
-.record__row[data-lead='true'] .record__rosette {
-  inline-size: clamp(22px, 2vw, 34px);
-  color: var(--tractor-red);
-}
-
-/* --- Host control: a gate latch ---------------------------------------- */
-
-.latch {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-5);
-  background: var(--hazard);
-  color: var(--hedge);
-  border: var(--line-bold) solid var(--hedge);
-  border-radius: var(--radius-sign);
-  font-family: var(--face-display);
-  font-weight: 800;
-  font-size: clamp(1rem, 1.5vw, 1.45rem);
-  letter-spacing: -0.02em;
-  cursor: pointer;
-  box-shadow: 0 7px 0 var(--hedge), var(--lift-panel);
-  transition:
-    translate var(--t-fast) var(--ease-out-expo),
-    box-shadow var(--t-fast) var(--ease-out-expo),
-    background-color var(--t-fast) var(--ease-out-expo);
-}
-
-.latch:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--hazard) 84%, var(--enamel));
-}
-
-.latch:active:not(:disabled) {
-  translate: 0 6px;
-  box-shadow: 0 1px 0 var(--hedge);
-}
-
-.latch:disabled {
-  background: var(--steel-dark);
-  color: color-mix(in oklab, var(--hedge) 70%, var(--steel));
-  box-shadow: 0 7px 0 var(--hedge-soft);
-  cursor: not-allowed;
-}
-
-/* The latch bar itself: a steel throw-bolt that slides on press. */
-.latch__bar {
-  inline-size: 30px;
-  block-size: 11px;
-  background: var(--steel);
-  border: var(--line-hair) solid var(--hedge);
-  border-radius: 2px;
-  transition: translate var(--t-fast) var(--ease-out-expo);
-}
-
-.latch:hover:not(:disabled) .latch__bar {
-  translate: 5px 0;
+.hostwait strong {
+  color: var(--hazard);
 }
 
 /* --- Host control: the question set ------------------------------------
@@ -916,7 +1132,6 @@
 .setpick__btn:hover { background: color-mix(in oklab, var(--hedge) 82%, var(--enamel)); }
 
 .setpick__btn--clear { background: transparent; color: var(--stubble-pale); }
-.setpick__btn--clear[hidden] { display: none; }
 
 .setpick__status {
   color: var(--stubble-pale);
@@ -942,10 +1157,6 @@
   text-transform: uppercase;
   box-shadow: var(--lift-panel);
   z-index: 20;
-}
-
-.link[hidden] {
-  display: none;
 }
 
 /* --- Narrow / portrait display ----------------------------------------
@@ -977,14 +1188,34 @@
     gap: var(--s-3);
   }
 
+  /* A portrait monitor still gets a podium, just a narrower one. Three plinths
+     at their television width run off the edge of the record sheet, and a
+     podium that wraps is not a podium. */
+  .plinth {
+    inline-size: clamp(74px, 22vw, 130px);
+  }
+
+  .plinth[data-place='1'] {
+    inline-size: clamp(96px, 28vw, 170px);
+  }
 }
 
 /* Reduced motion: nothing travels. The paddocks are drawn already settled and
    the dog holds still. The flock needs no rule here — mark state is static for
    everyone now, moving or not. */
 @media (prefers-reduced-motion: reduce) {
-  .working__dog {
+  /* No travelling dog. It stands at the foot of the field instead of at the
+     top-left corner the circuit happens to start from, which is where it would
+     otherwise be stranded — a dog parked in a corner reads as a dog that has
+     fallen over.
+
+     The sort bar keeps whatever value the last state frame gave it: tv.js
+     stops driving it from requestAnimationFrame here and samples it once per
+     frame instead, so it still says how far along the sort is without anything
+     sliding. */
+  .outrun__dog {
     animation: none;
+    translate: calc(50cqw - 50%) calc(100cqh - 100%);
   }
 
   .paddock,

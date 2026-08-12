@@ -20,7 +20,9 @@ const el = {
     [...document.querySelectorAll('[data-scene]')].map((n) => [n.dataset.scene, n]),
   ),
   clock: $('.clock'),
-  startBtn: document.querySelector('[data-action="start"]'),
+  /* No start control. The first phone to lock in becomes the host and opens
+     the gate from their own hand; this screen only ever says who that is. */
+  sortBar: bind('sortBar'),
   packInput: document.getElementById('pack-code'),
   packApply: document.querySelector('[data-action="pack-apply"]'),
   packClear: document.querySelector('[data-action="pack-clear"]'),
@@ -33,7 +35,6 @@ const sanitizePack = (v) => String(v || '').toUpperCase().replace(PACK_ALPHABET,
 
 let latest = null;
 let stopClock = null;
-let lastRoundRendered = -1;
 
 /* --- Small helpers ------------------------------------------------------ */
 
@@ -69,56 +70,64 @@ function lookOf(who) {
 const fleeceStyle = (look) =>
   look && look.colour ? `--fleece:var(${colourToken(look.colour.id)}, var(--enamel));` : '';
 
-/* --- Does the ink still separate this fleece from the field? -------------
-   The sheep's outline is hedgerow ink, and it is the only thing holding the
-   fleece apart from the ground it stands on. A fleece from the deep band of
-   the palette is nearly as dark as that ink — measured, around 2:1 — and the
-   pasture and the paddock tints are dark too, so the outline stops being an
-   edge and the sheep collapses into a blotch at video-call scale. Those
-   colours, and only those, get a pale rim outside the ink (see tv.css).
+/* There is deliberately no luminance test here any more.
+ *
+ * This file used to measure every chosen fleece against hedgerow ink and hand
+ * the dark ones a doubled enamel rim outside the outline, on the grounds that
+ * a deep fleece and the ink are near enough the same value that the silhouette
+ * gives out. The measurement was right and the cure was wrong: it made a
+ * sheep's edge a function of its colour, so two players standing side by side
+ * in the same flock were drawn with different outlines, and a pale halo reads
+ * as a glow on a screen where nothing else glows. Every sheep now carries the
+ * same slight dark drop shadow instead (tv.css), which separates the animal
+ * from the field the same way for everyone — legibility stops being something
+ * a player can lose by picking the colour they liked. */
 
-   Measured rather than listed: the fleece hexes come from look.js and the ink
-   from the token it is actually drawn with, so this stays honest if either
-   moves. The floor is 3:1, the same one any non-text graphic has to clear;
-   the margin above it is there because this line is one sprite unit wide by
-   the time a paddock sheep renders inside a screenshared window. Every deep
-   fleece measures 1.0-1.5:1 against the ground, so once the ink goes there is
-   nothing else holding the animal off the field. */
-const INK_SEPARATION = 3.5;
+/* --- Which sheep a player is drawn as -----------------------------------
+   The phone shows each player their own animal on the score screen and this
+   display shows the same player at the same moment, so the rule is copied
+   exactly rather than approximated: the room must never watch one screen call
+   someone happy while the other calls them lost.
 
-const HEX = /^#([0-9a-f]{6})$/i;
+   Thirds of the field by rank, and a streak that overrides all of it. `rank` is
+   a strict TOTAL order from the server (see protocol.ts) — no two players ever
+   share one — which is what makes thirds safe to take: shared ranks would put
+   two people in the same third and leave another third empty. */
+const POSE_TOP = 'sheep-happy';
+const POSE_MID = 'sheep-idle';
+const POSE_LOW = 'sheep-confused';
+const POSE_STREAK = 'sheep-running';
 
-function luminance(value) {
-  const m = HEX.exec(String(value).trim());
-  if (!m) return null;
-  const n = parseInt(m[1], 16);
-  const lin = (byte) => {
-    const c = byte / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+/* Two consecutive scoring rounds and the animal runs; three and it also earns
+   a flame beside its score. Both thresholds are the phone's, and both are
+   stated once here rather than inline at each site that tests them. */
+const STREAK_RUNNING = 2;
+const STREAK_FLAME = 3;
+
+const streakOf = (p) => Number(p && p.streak) || 0;
+
+function poseFor(p, total) {
+  if (!p) return POSE_MID;
+  /* A streak is about momentum, not position: a player climbing from last
+     place is running whatever third they are still standing in. */
+  if (streakOf(p) >= STREAK_RUNNING) return POSE_STREAK;
+  const rank = Number(p.rank) || 0;
+  const n = Number(total) || 0;
+  /* Before anyone has been ranked — the lobby, or a frame from a build that
+     predates `rank` — every sheep stands the way it always did, rather than a
+     third of the flock looking defeated for no reason at all. */
+  if (rank < 1 || n < 1) return POSE_MID;
+  const third = rank / n;
+  return third <= 1 / 3 ? POSE_TOP : third <= 2 / 3 ? POSE_MID : POSE_LOW;
 }
 
-let inkLuminance;
-const rimByColour = new Map();
-
-function fleeceNeedsRim(colour) {
-  if (!colour) return false;
-  const cached = rimByColour.get(colour.id);
-  if (cached !== undefined) return cached;
-  if (inkLuminance === undefined) {
-    inkLuminance = luminance(
-      getComputedStyle(document.documentElement).getPropertyValue('--hedge'),
-    );
-  }
-  const fleece = luminance(colour.hex);
-  /* If either colour is unreadable, leave the sprite exactly as authored. */
-  const needs =
-    fleece !== null &&
-    inkLuminance !== null &&
-    (fleece + 0.05) / (inkLuminance + 0.05) < INK_SEPARATION;
-  rimByColour.set(colour.id, needs);
-  return needs;
+/* The streak flame. A count, not a name, but it still goes through esc() on the
+   way into an attribute: the rule on this surface is that nothing off the wire
+   reaches the DOM unescaped, and an exception is the thing someone forgets. */
+function flameHTML(p) {
+  const streak = streakOf(p);
+  if (streak < STREAK_FLAME) return '';
+  return `<span class="flame" role="img" aria-label="${esc(streak)} rounds in a row">🔥</span>`;
 }
 
 /* Hats stick out of the sheep's own box and the trimmed art gives them no
@@ -128,25 +137,73 @@ function fleeceNeedsRim(colour) {
 
    A whole list shares one number, because sheep sitting at different heights
    reads as a fault too, and a list with no hats in it reserves nothing at all
-   — so a flock of unchosen sheep sits exactly where it always did. */
-const headroomOf = (looks) =>
-  headroomFor(looks.map((look) => ((look || {}).hat || {}).id).filter(Boolean));
+   — so a flock of unchosen sheep sits exactly where it always did.
 
-function sheepArt(cls, look, headroom, marked) {
-  const hat = look && look.hat;
-  return sheepArtHTML({ className: cls, hatId: hat ? hat.id : '', headroom, marked });
+   Poses changed the shape of this: headroomFor measures a hat against the pose
+   it is worn on, and the podium puts a happy sheep next to a confused one. So
+   each pose is measured against its OWN hats and the list reserves the worst of
+   them — still one number, still no sheep floating on a band of nothing. */
+function headroomOf(entries) {
+  const byPose = new Map();
+  for (const e of entries) {
+    const pose = (e && e.pose) || POSE_MID;
+    const id = ((e && e.look && e.look.hat) || {}).id;
+    const ids = byPose.get(pose) || [];
+    if (id) ids.push(id);
+    byPose.set(pose, ids);
+  }
+  let worst = 0;
+  for (const [pose, ids] of byPose) worst = Math.max(worst, headroomFor(ids, pose));
+  return worst;
 }
 
-function sheepMarkup(p, { marked, headroom }) {
+function sheepArt(cls, look, headroom, marked, pose) {
+  const hat = look && look.hat;
+  return sheepArtHTML({ pose, className: cls, hatId: hat ? hat.id : '', headroom, marked });
+}
+
+function sheepMarkup(p, { marked, headroom, pose, host }) {
   const look = lookOf(p);
   return `
     <li class="sheep" style="${fleeceStyle(look)}"
         data-marked="${marked ? 'true' : 'false'}"
-        data-deep="${fleeceNeedsRim(look && look.colour) ? 'true' : 'false'}"
+        data-host="${host ? 'true' : 'false'}"
         data-connected="${p.connected === false ? 'false' : 'true'}">
-      ${sheepArt('sheep__art', look, headroom, marked)}
+      ${sheepArt('sheep__art', look, headroom, marked, pose)}
       <span class="sheep__name">${esc(p.name)}</span>
+      ${host ? '<span class="sheep__host legend">Host</span>' : ''}
     </li>`;
+}
+
+/* Who the room is waiting on, named. Both gates need it — the lobby and every
+   host-gated hold — so the lookup lives once.
+
+   A miss is not an error and must not throw: hostId is always a locked player
+   server-side, but a frame in flight while that player's phone drops names an
+   id that is no longer in players[], and one bad paint is enough to take down
+   the one screen everybody in the room is looking at. No name means the role. */
+function hostName(s) {
+  if (!s || !s.hostId) return null;
+  const host = (s.players || []).find((p) => p.id === s.hostId);
+  return host ? host.name : null;
+}
+
+/* Reveal and the record sheet no longer advance on their own: the room is
+   parked until the host taps Continue on their phone. `awaitingHost` is the
+   server's single word for that (protocol.ts) — every surface reading one flag
+   rather than each re-deriving the gate from phase, which is how one of them
+   ends up disagreeing about whether anything is going to happen. */
+function renderHostWait(node, s) {
+  if (!node) return;
+  node.hidden = !s.awaitingHost;
+  if (!s.awaitingHost) return;
+  const who = hostName(s);
+  setHTML(
+    node,
+    who
+      ? `Waiting for <strong>${esc(who)}</strong> to carry on`
+      : 'Waiting for the host to carry on',
+  );
 }
 
 /* Only rewrite a list when its content actually changed — the display runs for
@@ -214,20 +271,35 @@ function renderLobby(s) {
 
   const min = 2;
   const ready = n >= min;
+  /* The note stopped being an instruction the moment the Start button left.
+     Nobody is standing at this keyboard waiting to be told what to press — the
+     gate is opened from the host's phone — so the line states who the room is
+     waiting on instead. text() sets textContent, so the name needs no escaping
+     here; every other place it lands does. */
+  const who = hostName(s);
   text(
     bind('lobbyNote'),
-    ready ? 'Open the gate when everyone is in' : `${min - n} more needed to open the gate`,
+    !ready
+      ? `${min - n} more needed to open the gate`
+      : who
+        ? `Waiting for ${who} to open the gate`
+        : 'Waiting for the host to open the gate',
   );
-
-  el.startBtn.disabled = !ready;
 
   renderChoosing(s);
   renderPack(s);
 
-  const headroom = headroomOf(s.players.map(lookOf));
+  /* One pose for the whole lobby. Ranks exist from the first frame — everyone
+     on nothing, so rank degenerates to join order — and taking thirds of that
+     would seat a third of the flock as "confused" before a question has been
+     asked. The pose says how the game is going; in the lobby it is not going
+     yet. */
+  const headroom = headroomOf(s.players.map((p) => ({ look: lookOf(p) })));
   setHTML(
     bind('lobbyFlock'),
-    s.players.map((p) => sheepMarkup(p, { marked: false, headroom })).join(''),
+    s.players
+      .map((p) => sheepMarkup(p, { marked: false, headroom, host: p.id === s.hostId }))
+      .join(''),
   );
 }
 
@@ -284,7 +356,12 @@ function renderQuestion(s) {
   const total = s.players.filter((p) => p.connected !== false).length;
   text(bind('answerTally'), `${answered} of ${total} marked`);
 
-  const headroom = headroomOf(s.players.map(lookOf));
+  /* One pose here too, and for a sharper reason than the lobby's: this list is
+     rewritten through innerHTML every time anybody answers, so a pose driven
+     off last round's standings would have sheep changing stance mid-question
+     as unrelated players submitted. What this flock is about is who is still
+     out — held back, or brought forward — and nothing else. */
+  const headroom = headroomOf(s.players.map((p) => ({ look: lookOf(p) })));
   setHTML(
     bind('waitingFlock'),
     s.players.map((p) => sheepMarkup(p, { marked: p.answered, headroom })).join(''),
@@ -401,7 +478,25 @@ function renderReveal(s) {
      case the server ever sends it inline, then off the player it belongs to. */
   const playerById = new Map(s.players.map((p) => [p.id, p]));
   const lookForAnswer = (a) => lookOf(a) || lookOf(playerById.get(a.playerId)) || null;
-  const headroom = headroomOf(groups.flatMap((g) => g.answers.map(lookForAnswer)));
+
+  /* Up to three sheep per field, big, in the bottom-right corner of it.
+     Every answer used to carry its own sprite inline, which put an 18px animal
+     beside 18px text: at the size this display is actually watched — a laptop
+     across a room, or a screenshared window — that is a smudge, and eleven of
+     them are eleven smudges. The names and the answers already say who is in
+     the field, so the pen does not have to be a roll call; it has to be legible.
+     Three is what fits a small paddock without crowding the answers out. */
+  const PEN_MAX = 3;
+  const total = s.players.length;
+  const penOf = (g) => g.answers.slice(0, PEN_MAX);
+  const headroom = headroomOf(
+    groups.flatMap((g) =>
+      penOf(g).map((a) => ({
+        look: lookForAnswer(a),
+        pose: poseFor(playerById.get(a.playerId), total),
+      })),
+    ),
+  );
 
   const html = groups
     .map((g, i) => {
@@ -415,15 +510,25 @@ function renderReveal(s) {
       const rows = 14 + ((i * 37) % 5) * 26;
 
       const answers = g.answers
+        .map(
+          (a) => `<li class="pad-sheep">
+              <span class="pad-sheep__text">${esc(a.text)}</span>
+              <span class="pad-sheep__who">${esc(a.name)}</span>
+            </li>`,
+        )
+        .join('');
+
+      const pen = penOf(g)
         .map((a) => {
           const look = lookForAnswer(a);
           const style = fleeceStyle(look);
-          return `<li class="pad-sheep"${style ? ` style="${style}"` : ''}
-              data-deep="${fleeceNeedsRim(look && look.colour) ? 'true' : 'false'}">
-              ${sheepArt('pad-sheep__art', look, headroom, false)}
-              <span class="pad-sheep__text">${esc(a.text)}</span>
-              <span class="pad-sheep__who">${esc(a.name)}</span>
-            </li>`;
+          return `<li class="pen-sheep"${style ? ` style="${style}"` : ''}>${sheepArt(
+            'pen-sheep__art',
+            look,
+            headroom,
+            false,
+            poseFor(playerById.get(a.playerId), total),
+          )}</li>`;
         })
         .join('');
 
@@ -436,6 +541,7 @@ function renderReveal(s) {
             <strong class="numerals paddock__count">${count}</strong>
           </span>
           <ul class="paddock__flock">${answers}</ul>
+          <ul class="paddock__pen" aria-hidden="true">${pen}</ul>
           <span class="visually-hidden">${
             g.scored ? 'Scored a point' : 'Did not score'
           }, ${count} ${count === 1 ? 'answer' : 'answers'}</span>
@@ -464,6 +570,8 @@ function renderReveal(s) {
         : '',
   );
 
+  renderHostWait(bind('revealHostWait'), s);
+
   void max;
 }
 
@@ -475,43 +583,203 @@ const WHY = {
   final: 'Final count',
 };
 
+/* How many get a plinth. Three is the shape a room already knows how to read;
+   a fourth turns a podium back into a list with big type on it. */
+const PODIUM = 3;
+
+/* The tally strip: a five-bar gate per five points, and a faint one for the
+   remainder. Same marks the paper record has always carried. */
+function tallyHTML(score) {
+  const fives = Math.floor(score / 5);
+  const rest = score % 5;
+  return (
+    Array.from(
+      { length: fives },
+      () => `<svg viewBox="0 0 60 48"><use href="#sp-tally"/></svg>`,
+    ).join('') +
+    (rest ? `<svg class="part" viewBox="0 0 60 48"><use href="#sp-tally"/></svg>` : '')
+  );
+}
+
 function renderRecord(s) {
   const isFinal = s.phase === 'final';
-  const ranked = [...s.players].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
-  const top = ranked.length ? ranked[0].score : 0;
+  const total = s.players.length;
+
+  /* The order is the server's and only the server's.
+     Ties break on cumulative answer time, and that number deliberately never
+     goes on the wire (protocol.ts): shipping it would hand both surfaces the
+     ingredients and let each re-implement the comparator, and the first one
+     that sorts on score alone puts somebody second here and third on their own
+     phone — on a screen the whole room is staring at. `rank` is a strict total
+     order, so sorting by it is the entire job. The rest of the comparator only
+     catches a frame from a build that predates rank, where every rank is 0. */
+  const ranked = [...s.players].sort(
+    (a, b) =>
+      (Number(a.rank) || 0) - (Number(b.rank) || 0) ||
+      b.score - a.score ||
+      a.name.localeCompare(b.name),
+  );
 
   text(bind('recordTitle'), isFinal ? 'Best in show' : 'Grazing record');
   text(bind('recordWhy'), WHY[s.scoreboardReason] ?? '');
 
-  /* Joint places are stated honestly: equal scores share a rank. */
-  let rank = 0;
-  let prev = null;
-  const rows = ranked
-    .map((p, i) => {
-      if (p.score !== prev) {
-        rank = i + 1;
-        prev = p.score;
-      }
-      const lead = isFinal && p.score === top && top > 0;
-      const fives = Math.floor(p.score / 5);
-      const rest = p.score % 5;
-      const tally =
-        Array.from({ length: fives }, () => `<svg viewBox="0 0 60 48"><use href="#sp-tally"/></svg>`).join('') +
-        (rest ? `<svg class="part" viewBox="0 0 60 48"><use href="#sp-tally"/></svg>` : '');
+  /* The plinths. Each player is drawn as the same animal their own phone is
+     showing them at this moment — see poseFor — because the two screens are
+     side by side in the room and a player whose phone says running while the
+     television says lost has been told two different things about themselves.
 
+     data-place is the position on the podium, not the rank: it drives the
+     2-1-3 painting order and the size step, and it has to stay 1..3 even in a
+     three-player game where the ranks happen to agree with it. */
+  const podium = ranked.slice(0, PODIUM);
+  const rest = ranked.slice(PODIUM);
+
+  const headroom = headroomOf(
+    podium.map((p) => ({ look: lookOf(p), pose: poseFor(p, total) })),
+  );
+
+  const plinths = podium
+    .map((p, i) => {
+      const look = lookOf(p);
+      const place = Number(p.rank) || i + 1;
+      /* The rosette is the prize, so it is only ever pinned to a finished
+         game — and never to a nought, which would crown whoever happened to
+         be first in join order before anyone had scored. */
+      const lead = isFinal && i === 0 && p.score > 0;
       return `
-        <li class="record__row" data-lead="${lead ? 'true' : 'false'}">
-          <span class="record__rank">${rank}</span>
+        <li class="plinth" data-place="${i + 1}" style="${fleeceStyle(look)}">
+          ${sheepArt('plinth__art', look, headroom, false, poseFor(p, total))}
+          <span class="plinth__block">
+            <span class="numerals plinth__place">${place}</span>
+            <span class="plinth__name">${esc(p.name)}</span>
+            <span class="numerals plinth__score">${Number(p.score) || 0}${flameHTML(p)}${
+              lead
+                ? `<svg class="plinth__rosette" viewBox="0 0 104 132" aria-hidden="true"><use href="#sp-rosette"/></svg>`
+                : ''
+            }</span>
+          </span>
+        </li>`;
+    })
+    .join('');
+
+  setHTML(bind('podium'), plinths);
+
+  /* Fourth and below, compactly. No sheep and no plinth: the point of the
+     podium is that the top of the field is legible from the back of the room,
+     and that only holds if everything else stays a line of text. */
+  const rows = rest
+    .map((p, i) => {
+      const place = Number(p.rank) || PODIUM + i + 1;
+      const score = Number(p.score) || 0;
+      return `
+        <li class="record__row">
+          <span class="record__rank">${place}</span>
           <span class="record__name">${esc(p.name)}</span>
-          <span class="record__tally" aria-hidden="true">${tally}</span>
-          <span class="record__score">${p.score}${
-            lead ? `<svg class="record__rosette" viewBox="0 0 104 132" aria-hidden="true"><use href="#sp-rosette"/></svg>` : ''
-          }</span>
+          <span class="record__tally" aria-hidden="true">${tallyHTML(score)}</span>
+          <span class="record__score">${score}${flameHTML(p)}</span>
         </li>`;
     })
     .join('');
 
   setHTML(bind('recordRows'), rows);
+
+  renderHostWait(bind('recordHostWait'), s);
+}
+
+/* --- Grouping ------------------------------------------------------------
+   The wait while the shepherd sorts the flock. There is nothing to count down
+   to: the model answers when it answers, and the room will not leave this
+   phase before groupingProgress.minUntil either way. So the bar is an ESTIMATE
+   and it is honest about being one — it eases toward a HOLD at 90% over the
+   server's own budget and then sits there for as long as it takes, rather than
+   creeping to 99% and lying, or jumping to 100% and lying sooner.
+
+   Every number comes off the wire (protocol.ts). expectedMs in particular: the
+   easing constant belongs to whoever knows the API timeout, and a copy of it
+   hardcoded here goes stale the day that budget changes and nobody thinks to
+   look at the display.
+
+   Driven from requestAnimationFrame, never from countdown(). countdown only
+   calls back when the whole second changes, which is exactly right for a
+   number and a ratchet for anything continuous — the same fault that took the
+   swinging gate off the question screen. */
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+/* Where the fill waits for news. */
+const BAR_HOLD = 0.9;
+/* Shape of the ease: about 95% of the way to the hold by the time the budget
+   is spent, which leaves a last sliver of travel for a grouping that runs long
+   — so a slow one still looks alive rather than abandoned. */
+const BAR_SHAPE = 3;
+
+let stopBar = null;
+let inGrouping = false;
+
+function barValue(gp, now) {
+  if (!gp || !gp.startedAt) return 0;
+  /* expectedMs is the server's own grouping budget and is what this should be
+     eased over. A frame that arrives without it falls back to the room's own
+     hold, minUntil - startedAt, because that is the only other duration on the
+     frame — and the room will not leave this phase before minUntil anyway, so
+     easing over it is at least a duration this screen knows to be real.
+
+     The trailing 1 is not a third guess, it is a guard: a frame carrying
+     neither number would otherwise divide by zero or by NaN. One millisecond
+     slams the bar to the hold on its first paint, which is precisely the lie
+     this bar exists not to tell — so it is a floor to fall on, never a budget
+     to plan for. If it is ever seen in the wild, the frame is the bug. */
+  const budget = Math.max(
+    1,
+    Number(gp.expectedMs) || Number(gp.minUntil) - Number(gp.startedAt) || 1,
+  );
+  /* Clamped, because these are epoch stamps compared against a clock this
+     display owns: a browser a second behind the Worker must start the bar at
+     empty rather than at a negative fill. */
+  const elapsed = Math.max(0, now - Number(gp.startedAt));
+  return BAR_HOLD * (1 - Math.exp((-BAR_SHAPE * elapsed) / budget));
+}
+
+/* A custom property rather than a width, so the fill is a composited transform
+   and sixty of these a second cost no layout. Nothing transitions it: a
+   transition on a value that is already being set every frame only lags it. */
+function paintBar(value) {
+  if (el.sortBar) el.sortBar.style.setProperty('--sort-fill', value.toFixed(4));
+}
+
+function renderGrouping(s) {
+  inGrouping = true;
+  const gp = s.groupingProgress || null;
+  if (stopBar) stopBar();
+  stopBar = null;
+
+  /* Reduced motion gets the value the bar has at this instant and nothing
+     else: one paint per state frame, no loop, no easing in flight. It is the
+     same number, sampled instead of animated.
+
+     A null groupingProgress takes the same path deliberately. The server sends
+     it only during this phase, so a null here is a frame that went missing —
+     and a bar with nothing to fill from should sit still rather than invent a
+     rate and keep climbing off its own guess. */
+  if (REDUCED_MOTION.matches || !gp) {
+    paintBar(barValue(gp, Date.now()));
+    return;
+  }
+
+  let raf = requestAnimationFrame(function step() {
+    paintBar(barValue(gp, Date.now()));
+    raf = requestAnimationFrame(step);
+  });
+  stopBar = () => cancelAnimationFrame(raf);
+}
+
+/* The sort landed. Snap the bar the rest of the way before the scene goes: a
+   bar is a claim that work will finish, and one abandoned at 90% leaves the
+   claim unfinished even on the frames nobody is quick enough to catch. */
+function endGrouping() {
+  inGrouping = false;
+  if (stopBar) stopBar();
+  stopBar = null;
+  paintBar(1);
 }
 
 /* --- Render ------------------------------------------------------------- */
@@ -528,21 +796,30 @@ function render(s) {
     stopClock = null;
   }
 
+  if (s.phase !== 'grouping' && inGrouping) endGrouping();
+
   switch (s.phase) {
     case 'lobby':
       renderLobby(s);
       break;
     case 'question':
-      /* Re-arm the clock only when the round actually changed, so a state
-         broadcast mid-round does not restart the gate. */
-      if (s.roundIndex !== lastRoundRendered) {
-        lastRoundRendered = s.roundIndex;
-        renderQuestion(s);
-      } else {
-        renderQuestion(s);
-      }
+      /* Every frame, unguarded. There used to be a round-change test here that
+         claimed to re-arm the clock only when the round actually changed, but
+         both of its branches called renderQuestion(s) — lastRoundRendered was
+         written and never read to any effect. It was scaffolding left behind
+         when the swinging gate came off this screen, and it has gone with it
+         rather than being made real, because there is nothing left for it to
+         protect: startClock() cancels the previous countdown before arming the
+         next, countdown() is rAF-driven off the ABSOLUTE endsAt rather than off
+         a duration measured from the call, and it only writes when the whole
+         second changes. So re-arming mid-round lands on the same number the old
+         one was already showing. A real guard would also have to be right about
+         a frame that arrives with a new endsAt and the same roundIndex, which
+         is one more thing to get wrong for a saving of nothing. */
+      renderQuestion(s);
       break;
     case 'grouping':
+      renderGrouping(s);
       break;
     case 'reveal':
       renderReveal(s);
@@ -625,10 +902,11 @@ const net = connect({
   },
 });
 
-el.startBtn.addEventListener('click', () => {
-  el.startBtn.disabled = true;
-  net.send({ t: 'host.start' });
-});
+/* There is no start handler here any more, and `host.start` has been deleted
+   from the protocol along with the button that sent it. The host's phone sends
+   `player.start`, authorised by comparing that socket's playerId to the room's
+   hostId — the only check that survives a phone reconnecting or the host
+   passing on, neither of which a display-side button could have known about. */
 
 /* Arming a custom set. The server validates the code and echoes the resolved
    set back on the next state frame; a miss comes back as PACK_NOT_FOUND. */
@@ -656,6 +934,7 @@ if (el.packClear) {
 /* A host leaving the tab open all evening should not accumulate timers. */
 window.addEventListener('pagehide', () => {
   if (stopClock) stopClock();
+  if (stopBar) stopBar();
   net.close();
 });
 

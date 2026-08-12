@@ -427,6 +427,37 @@ body {
   color: var(--stubble-pale);
 }
 
+/* ------------------------------------------------------------- the gate
+   One block, on the three screens that wait for a person rather than a clock:
+   the lobby, the reveal and the scoreboard. The host gets the lever; every
+   other phone gets the line. The note is permanently rendered with its height
+   reserved — the same live-region shape as .lock-note and .look-note — so a
+   message arriving here never moves the lever under a thumb. */
+
+.gate {
+  display: grid;
+  gap: var(--s-2);
+}
+
+/* Reserved for two lines of .aside's own type — 0.95rem at 1.35 is 1.2825rem a
+   line — because that is what this note is marked up as, and "Waiting for
+   Christopher to start." wraps to two of them in a phone column. The 1.15rem
+   that used to sit here was .lock-note's figure, which is right there only
+   because .lock-note is 0.85rem type; on this element it was less than a single
+   line, so the first message that arrived grew the note and pushed the .latch
+   below it up under the host's thumb — the exact movement the comment above
+   promises this block prevents. Same 2.6rem .look-note reserves for two lines
+   of the same type, for the same reason. */
+.gate-note {
+  min-height: 2.6rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.gate-note.is-warn {
+  color: var(--stubble-pale);
+}
+
 /* ===================================================== 2. CUSTOMISE =====
    The one screen on this surface with more than one decision on it, so it is
    built as three fixed bands: the sheep they are making, the chips they are
@@ -707,6 +738,41 @@ body {
   display: grid;
   justify-items: center;
   gap: var(--s-2);
+}
+
+/* The sign and the quiet link are content-width; the lever is not. */
+.lobby-foot .gate {
+  justify-self: stretch;
+}
+
+/* ------------------------------------------------------------ the host badge
+   A hazard-painted tag pinned to the fleece, not a caption floating near it:
+   it sits ON the animal, tilted the way a stuck-on tag sits, and carries the
+   same ink edge and lift every other piece of hardware here does. Nothing
+   about it moves — the flock reads as marked or not, never as flashing. */
+
+.hostmark {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.hostmark-badge {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  /* Tracking is tightened from the silkscreen default so four letters stay
+     inside the sheep they are pinned to at the size the lobby draws it. */
+  letter-spacing: 0.06em;
+  padding: 0 var(--s-1);
+  background: var(--hazard);
+  color: var(--hedge);
+  border: var(--line-hair) solid var(--hedge);
+  border-radius: var(--radius-sign);
+  box-shadow: var(--lift-token);
+  white-space: nowrap;
+  transform: translate(-50%, -50%) rotate(-5deg);
+  pointer-events: none;
 }
 
 /* Held even when empty, so the count arriving never nudges the flock line. */
@@ -1066,10 +1132,47 @@ body {
 
 /* =============================================== 6. SCORES / FINAL ====== */
 
+/* The sheep and the number, side by side. The face is a reaction to the figure
+   next to it, so the two read as one thing rather than two stacked ones — and
+   the row buys back the height the gate now takes at the foot. */
+.score-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+/* A long-lived element: play.js repaints it in place through paintSheepArt, so
+   the pose and the hat change without the art being fetched again. */
+.score-sheep {
+  width: min(34vw, 7rem);
+  flex: none;
+}
+
 .bigscore {
   display: grid;
   justify-items: center;
   gap: var(--s-2);
+}
+
+.bigscore-fig {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+/* The streak mark. It borrows the hero voice rather than inventing a size, and
+   nothing about it animates: a streak is either true or it is not, and this
+   element is repainted on every frame that lands. */
+.flame {
+  line-height: 1;
+}
+
+.scores-foot {
+  display: grid;
+  gap: var(--s-3);
 }
 
 .bigscore .numerals {
@@ -1111,6 +1214,7 @@ body {
   .clock { font-size: clamp(2.1rem, 11vw, 2.8rem); }
   .dog { width: min(40%, 9rem); }
   .rosette { width: min(26%, 4.5rem); }
+  .score-sheep { width: min(26vw, 5rem); }
 }
 
 /* ------------------------------------------------------- a short frame
@@ -1187,4 +1291,8 @@ body {
   }
   .look-sheep { width: min(30vw, 6rem); }
   .look-scroll { gap: var(--s-4); }
+
+  /* The scoreboard's own shortfall: the sheep gives before the number does,
+     because the number is the thing they came to this screen to read. */
+  .score-sheep { width: min(22vw, 4rem); }
 }

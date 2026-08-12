@@ -67,6 +67,9 @@ const el = {
   flockCount: $('flock-count'),
   choosingNote: $('choosing-note'),
   lobbySheep: $('lobby-sheep'),
+  hostBadge: $('host-badge'),
+  lobbyNote: $('lobby-note'),
+  lobbyGo: $('lobby-go'),
 
   question: $('question'),
   sheep: $('sheep'),
@@ -91,12 +94,18 @@ const el = {
   groupLabel: $('group-label'),
   groupCount: $('group-count'),
   revealScore: $('reveal-score'),
+  revealNote: $('reveal-note'),
+  revealGo: $('reveal-go'),
 
   rosetteFinal: $('rosette-final'),
+  scoreSheep: $('score-sheep'),
   bigScore: $('big-score'),
+  flame: $('flame'),
   scoreUnit: $('score-unit'),
   standing: $('standing'),
   scoresSub: $('scores-sub'),
+  scoresNote: $('scores-note'),
+  scoresGo: $('scores-go'),
 };
 
 const screens = {
@@ -133,7 +142,12 @@ const store = {
 
 /* ------------------------------------------------------------------ local state */
 
-const me = { playerId: null, room: '', name: '', look: null };
+/* Who this phone is. The playerId is public — it rides in players[] on every
+   state frame the room sends, so anyone who can see a frame can name it and it
+   proves nothing on its own. The token is the half the server minted for us and
+   sent down our socket alone, and it is the only thing a rejoin can be believed
+   on. The two travel together everywhere, including onto disk. */
+const me = { playerId: null, token: '', room: '', name: '', look: null };
 
 /* Which paddock the live socket is actually attached to, and the join waiting
    to go down the next one. Distinct from me.room: me.room is the room we intend
@@ -295,12 +309,22 @@ function applyIdentity() {
 }
 
 /* Persist just enough to rejoin our own flock after a lock screen or a
-   refresh: the id, the room, and the sheep they made. The look rides in the
-   same record because it is the same fact — who this phone is in this room. */
+   refresh: the id, the token that proves the id is ours, the room, and the
+   sheep they made. The look rides in the same record because it is the same
+   fact — who this phone is in this room. The token rides in it for that reason
+   and one more: an id in one record and its token in another is a pair that can
+   come back half-written from a browser that threw on the second write, and a
+   playerId with no token beside it is an identity this phone cannot use. */
 function writeIdentity() {
   if (!me.playerId || !me.room) return;
   remembered = true;
-  store.write(KEY_ID, { playerId: me.playerId, room: me.room, name: me.name, look: me.look });
+  store.write(KEY_ID, {
+    playerId: me.playerId,
+    token: me.token,
+    room: me.room,
+    name: me.name,
+    look: me.look,
+  });
 }
 
 /* Written once on the way in, not on every frame. */
@@ -312,6 +336,9 @@ function rememberIdentity() {
 function forgetIdentity() {
   remembered = false;
   me.playerId = null;
+  // The token dies with the id it belonged to. Keeping it would leave a secret
+  // on this phone for a place in a paddock we are no longer claiming.
+  me.token = '';
   me.look = null;
   draft = null;
   draftDirty = false;
@@ -945,6 +972,146 @@ el.answerForm.addEventListener('submit', (event) => {
   el.answer.blur(); // drop the keyboard so the mark landing is actually seen
 });
 
+/* ------------------------------------------------------------------ the gate
+   Three screens now wait for a person rather than a clock. The lobby waits for
+   the host to start — the big screen has no Start button any more — and the
+   reveal and the scoreboard are parked until the host taps Continue, because
+   neither of them arms an advancing alarm now. One block of markup on each of
+   the three, one function to paint all of them.
+
+   Every word here goes in through setText, so a player name — which is theirs
+   to type and therefore untrusted — is text and can never become markup. */
+
+const gates = {
+  lobby:  { go: el.lobbyGo,  note: el.lobbyNote,  label: 'Start the game', wait: 'to start' },
+  reveal: { go: el.revealGo, note: el.revealNote, label: 'Carry on',       wait: '' },
+  scores: { go: el.scoresGo, note: el.scoresNote, label: 'Next round',     wait: '' },
+};
+
+/* The frame names the host outright. The id comparison behind it is only the
+   floor for a room that has not shipped `isHost` yet. */
+function isHost() {
+  const you = state && state.you;
+  if (!you) return false;
+  if (typeof you.isHost === 'boolean') return you.isHost;
+  return !!(state.hostId && state.hostId === you.id);
+}
+
+/* --- proving this phone is still running --------------------------------
+ *
+ * net.js already sends a heartbeat, but the runtime answers it without ever
+ * waking the Room, so the server cannot tell a host who is thinking from a host
+ * whose tab the OS froze. In the lobby that difference is the whole game: there
+ * is no clock there and no way out except this phone's Start, so a frozen host
+ * used to strand everyone with no recourse.
+ *
+ * So while this phone holds the controls it says so, on a timer, in a frame the
+ * server actually receives. The cost is one small frame every fifteen seconds
+ * from exactly one phone in the room, and only until the game starts.
+ *
+ * Fifteen against the server's forty-five: three chances to be heard before the
+ * lobby gives up, so a single missed beat on a bad connection costs nothing.
+ * A frozen tab stops sending entirely, which is the only case worth acting on —
+ * and a host taking their time keeps sending, so they keep the controls.
+ */
+const LIVENESS_MS = 15000;
+let liveness = null;
+
+function updateLiveness() {
+  /* Only the lobby acts on it; every later phase carries its own deadline, so
+     sending past the lobby would be noise the server throws away. */
+  const wanted = !!net && isHost() && !!state && state.phase === 'lobby';
+  if (wanted && liveness === null) {
+    /* Immediately as well as on the interval: the phone that just became host
+       should not wait a full beat to be counted, and the handover that made it
+       host may have been the lobby giving up on somebody else. */
+    net.send({ t: 'player.alive' });
+    liveness = setInterval(() => {
+      if (net) net.send({ t: 'player.alive' });
+    }, LIVENESS_MS);
+  } else if (!wanted && liveness !== null) {
+    clearInterval(liveness);
+    liveness = null;
+  }
+}
+
+/* A phone that goes away entirely should not leave a timer running behind it. */
+window.addEventListener('pagehide', () => {
+  if (liveness !== null) {
+    clearInterval(liveness);
+    liveness = null;
+  }
+});
+
+/* Whoever everyone else is waiting for. A frame in flight during a disconnect
+   is enough to name a host who is not in players[] for one paint, so a missing
+   name is a missing name and not a fault — the line still has to say something. */
+function hostName() {
+  const id = state && state.hostId;
+  if (!id) return '';
+  const found = (state.players || []).find((p) => p.id === id);
+  return (found && found.name) || '';
+}
+
+/* One release per phase per round. The server drops a second tap silently — the
+   continue frame is stamped with the phase it was drawn on, so a double-tap on
+   the reveal cannot skip the scoreboard — but the lever should not sit there
+   inviting one either. */
+let gateSent = null;
+let gateWarn = '';
+let gateAckTimer = null;
+
+const gateKey = () => (state ? `${state.phase}:${state.roundIndex || 0}` : '');
+
+function paintGate(which, open) {
+  const gate = gates[which];
+  const host = isHost();
+
+  show(gate.go, open && host);
+  setText(gate.go, gate.label);
+  gate.go.disabled = gateSent === gateKey();
+
+  gate.note.classList.toggle('is-warn', !!gateWarn);
+  if (gateWarn) { setText(gate.note, gateWarn); return; }
+  // The host is holding the lever; it says what it does. Nobody else can move
+  // the room, so they are told who can.
+  if (!open || host) { setText(gate.note, ' '); return; }
+
+  const who = hostName() || 'the host';
+  setText(gate.note, gate.wait ? `Waiting for ${who} ${gate.wait}.` : `Waiting for ${who}.`);
+}
+
+function release(which) {
+  if (!state || state.phase !== which || !isHost()) return;
+  if (gateSent === gateKey()) return;
+
+  const frame = which === 'lobby' ? { t: 'player.start' } : { t: 'player.continue', phase: which };
+  if (!net || !net.send(frame)) {
+    gateWarn = 'That did not send — you dropped off for a moment. Try again.';
+    paintGate(which, true);
+    return;
+  }
+
+  gateSent = gateKey();
+  gateWarn = '';
+  paintGate(which, true);
+
+  // Bound the wait, the same way the look and the answer do: the next state
+  // frame is the only acknowledgement, and one that cannot arrive must not
+  // leave the lever dead for the rest of the game.
+  clearTimeout(gateAckTimer);
+  gateAckTimer = setTimeout(() => {
+    if (gateSent !== gateKey()) return;
+    gateSent = null;
+    gateWarn = 'No word back from the paddock. Try that again.';
+    render();
+  }, HANDSHAKE_MS);
+}
+
+el.lobbyGo.addEventListener('click', () => release('lobby'));
+el.revealGo.addEventListener('click', () => release('reveal'));
+el.scoresGo.addEventListener('click', () => release('scores'));
+
 /* ------------------------------------------------------------------ countdown */
 
 function startClock(endsAt) {
@@ -982,6 +1149,11 @@ function render() {
   me.name = you.name || me.name;
   applyIdentity();
 
+  /* Re-evaluated on every frame rather than only when the role changes: the
+     controls can arrive or leave without this phone doing anything, and the
+     phase moving off the lobby is what stops the timer. */
+  updateLiveness();
+
   const total = state.totalRounds || 0;
   if (total > 0 && state.phase !== 'lobby') {
     setText(el.roundI, String((state.roundIndex || 0) + 1));
@@ -994,6 +1166,14 @@ function render() {
   if (state.phase !== 'question') stopClockNow();
   // The picker is a lobby thing. Once the game is running it cannot reopen.
   if (state.phase !== 'lobby') pickerOpen = false;
+
+  /* The room moved, so whatever the gate was holding is last phase's business:
+     the tap has landed, and anything it had to say about it is spent. */
+  if (state.phase !== lastPhase) {
+    clearTimeout(gateAckTimer);
+    gateSent = null;
+    gateWarn = '';
+  }
 
   switch (state.phase) {
     case 'question': renderQuestion(you); setScreen('question'); break;
@@ -1046,6 +1226,11 @@ function renderLobby() {
     el.choosingNote,
     choosing > 0 ? `${choosing} more still choosing` : ' '
   );
+
+  // The badge goes on the sheep, and only on the host's own phone: it is not a
+  // scoreboard of who is in charge, it is this player being told they are.
+  show(el.hostBadge, isHost());
+  paintGate('lobby', true);
 }
 
 function renderQuestion(you) {
@@ -1124,40 +1309,68 @@ function renderReveal(you) {
   }
 
   setText(el.revealScore, String(you.score || 0));
+  paintGate('reveal', !!state.awaitingHost);
+}
+
+/* The face they are wearing on the scoreboard.
+   Rank thirds, exactly as the server orders the field: their place divided by
+   the size of it. A streak overrides all of it — two scoring rounds back to
+   back and the sheep is running, whatever the standing says, because a run is
+   the more interesting fact about them at that moment. */
+function scorePose(you, total) {
+  if ((Number(you.streak) || 0) >= 2) return 'sheep-running';
+  const rank = Number(you.rank) || 0;
+  if (!rank || !total) return 'sheep-idle';
+  const share = rank / total;
+  if (share <= 1 / 3) return 'sheep-happy';
+  if (share <= 2 / 3) return 'sheep-idle';
+  return 'sheep-confused';
 }
 
 function renderScores(you) {
   const isFinal = state.phase === 'final' || state.scoreboardReason === 'final';
   const players = state.players || [];
-  const scores = players.map((p) => p.score || 0);
-  const mine = you.score || 0;
-  const ahead = scores.filter((s) => s > mine).length;
-  const level = Math.max(0, scores.filter((s) => s === mine).length - 1);
-  const place = ahead + 1;
   const total = players.length;
+  const mine = you.score || 0;
+  const streak = Math.max(0, Number(you.streak) || 0);
+
+  /* The server ranks the field — score first, then who answered faster, then
+     join order — and it is a strict total order, so nobody is joint anything
+     any more. It cannot be worked out here either: the answer times that break
+     the ties never come down the wire. Counting the players ahead is only the
+     floor for a frame that arrived without a rank on it. */
+  const place = Number(you.rank) || players.filter((p) => (p.score || 0) > mine).length + 1;
 
   screens.scores.dataset.final = isFinal ? 'true' : 'false';
   setText(el.bigScore, String(mine));
   setText(el.scoreUnit, plural(mine, 'point', 'points'));
 
-  // Ties are stated honestly: joint 2nd is joint 2nd, never rounded to 2nd.
-  const placeText = total > 0 ? `${level > 0 ? 'Joint ' : ''}${ordinal(place)} of ${total}` : '';
+  /* The sheep is long-lived: paintSheepArt swaps the pose and re-places the hat
+     on the element that is already standing there, so the art is not re-fetched
+     and nothing restarts. hat-placement.js has this hat tuned for all four
+     poses, so the pose is the only thing that has to change here. */
+  paintSheepArt(el.scoreSheep, {
+    pose: scorePose(you, total),
+    hatId: me.look ? me.look.hatId : '',
+  });
 
-  if (isFinal) {
-    if (place === 1) {
-      show(el.rosetteFinal, true);
-      setText(el.standing, level > 0 ? `Joint first with ${level} ${plural(level, 'other', 'others')}` : 'First in the flock');
-      setText(el.scoresSub, 'That is the flock you read best. Take the rosette.');
-    } else {
-      show(el.rosetteFinal, false);
-      setText(el.standing, placeText);
-      setText(el.scoresSub, 'The whole board is on the big screen.');
-    }
+  // The flame is the loud half of the streak; the line below says it in words,
+  // which is why the emoji itself is not announced.
+  show(el.flame, streak >= 3);
+  const run = streak >= 3 ? `${streak} rounds in a row. ` : '';
+
+  if (isFinal && place === 1) {
+    show(el.rosetteFinal, true);
+    setText(el.standing, 'First in the flock');
+    setText(el.scoresSub, `${run}That is the flock you read best. Take the rosette.`);
   } else {
     show(el.rosetteFinal, false);
-    setText(el.standing, placeText);
-    setText(el.scoresSub, 'The whole board is on the big screen.');
+    setText(el.standing, total > 0 ? `${ordinal(place)} of ${total}` : '');
+    setText(el.scoresSub, `${run}The whole board is on the big screen.`);
   }
+
+  // 'final' is not gated — there is nothing left to advance to.
+  paintGate('scores', !!state.awaitingHost && state.phase === 'scores');
 }
 
 /* ------------------------------------------------------------------ frames */
@@ -1171,6 +1384,17 @@ function onFrame(frame) {
     me.playerId = frame.playerId || me.playerId;
     me.room = frame.room || me.room;
     me.name = frame.name || me.name;
+    /* The rejoin token, minted on the way in and sent down this socket and no
+       other — it is on no state frame, in no players[] entry, and never on the
+       display. Written to disk the moment it lands rather than left to the
+       usual once-per-session write: the phone that needs it is the one that got
+       locked or refreshed a second later, and a token still sitting in memory
+       when that happens is a token this phone can never prove anything with. */
+    const minted = typeof frame.token === 'string' ? frame.token : '';
+    if (minted && minted !== me.token) {
+      me.token = minted;
+      writeIdentity();
+    }
     rememberIdentity();
     applyIdentity();
     setJoinBusy(false);
@@ -1329,6 +1553,18 @@ function onError(frame) {
     return;
   }
 
+  /* A refused host control. In the lobby that is almost always the player
+     minimum, which the server words better than we could; NOT_HOST means it
+     passed to someone else while their thumb was coming down. Both are things
+     the lever comes back from, said where the lever is. */
+  if (gateSent && state && gateSent === gateKey()) {
+    clearTimeout(gateAckTimer);
+    gateSent = null;
+    gateWarn = frame.message || 'That did not take. Try it again.';
+    render();
+    return;
+  }
+
   // Mid-game rejection — almost always a late answer. Hand the slate back and
   // roll our idea of what the server holds back to what it held before.
   if (pendingSubmit) {
@@ -1395,7 +1631,35 @@ function onStatus(status) {
 }
 
 function identify() {
-  if (me.playerId && me.room) return { t: 'player.rejoin', room: me.room, playerId: me.playerId };
+  /* The token is the whole of the proof; the playerId is only the address. The
+     server refuses a rejoin whose token does not match the one it holds for
+     that player, and it is right to — without it, anyone who has read a state
+     frame knows every id in the room and could ask to be any of them.
+
+     So an identity that has lost its token is not an identity at all. That is a
+     record written by an older build, or a half-written one, and a phone that
+     keeps offering it would sit on "Getting you back in…" through every
+     reconnect for the rest of the evening, being refused each time and never
+     saying so. Drop it here and hand the join form back: joining fresh costs
+     them a name, and a silent forever-rejoin costs them the game. */
+  if (me.playerId && me.room) {
+    if (me.token) {
+      return { t: 'player.rejoin', room: me.room, playerId: me.playerId, token: me.token };
+    }
+    clearTimeout(handshakeTimer);
+    /* The form is what they are being sent back to, so it has to be usable:
+       this phone knows the paddock it was in even though the player may never
+       have typed the code — it arrived on a link — and asking for four
+       characters they have never seen is a dead end, not a fresh start. */
+    if (!el.room.value) el.room.value = me.room;
+    if (!el.name.value) el.name.value = me.name;
+    forgetIdentity();
+    joinState = 'idle';
+    state = null;
+    setJoinBusy(false);
+    setJoinError('We could not prove this phone is yours. Put your name in and throw the latch again.');
+    setScreen('join');
+  }
   /* A join deferred by the reconnect above: the socket is now on the right
      paddock, so this is the first thing it should say. */
   if (pendingJoin) {
@@ -1437,12 +1701,19 @@ function boot() {
     revealRoomField();
   }
 
+  /* The token is as much a part of a usable record as the id is. A record with
+     an id and no token is one this build cannot rejoin on — an older session,
+     or a write that only half landed — and asking anyway would put the phone on
+     "Getting you back in…" for a handshake that can only ever be refused. It is
+     treated as no record at all, so the branch below drops it and they join
+     fresh, which is a name and one tap rather than a screen that never moves. */
   const canRejoin =
-    saved && saved.playerId && saved.room &&
+    saved && saved.playerId && typeof saved.token === 'string' && saved.token && saved.room &&
     (queryRoom.length !== ROOM_LEN || saved.room === queryRoom);
 
   if (canRejoin) {
     me.playerId = saved.playerId;
+    me.token = saved.token;
     me.room = saved.room;
     me.name = saved.name || '';
     remembered = true;

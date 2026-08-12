@@ -105,10 +105,23 @@
             <!-- Generated art, layered by shared/sheep-art.css and painted by
                  play.js through paintSheepArt. The pose and its mask are written
                  here as well as there so the first frame is a sheep rather than a
-                 broken image; everything after is JS. -->
+                 broken image; everything after is JS.
+
+                 THE WIDTH AND HEIGHT ARE THE IDLE POSE'S OWN, 448x396 as the art
+                 build measured it, and they are on all five inline sheep for the
+                 same reason. They are never the drawn size — sheep-art.css sets
+                 width: 100% and height: auto — they are the intrinsic RATIO, and
+                 without one the box has no height until the PNG has decoded. The
+                 fleece is inset: 0 against that box, so for those frames the wool
+                 mask is stretched over nothing and the sheep pops into place when
+                 the art lands. paintSheepArt writes the ratio on every pose swap
+                 for exactly this reason, but the swap is the second paint at the
+                 earliest; the first is this markup, and it has to arrive knowing
+                 its own shape. -->
             <span class="sheepart look-sheep" id="look-sheep" data-pose="sheep-idle" aria-hidden="true">
               <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
-                <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
+                <img class="sheepart__body" src="/art/sheep-idle.png" alt=""
+                     width="448" height="396" draggable="false">
                 <span class="sheepart__fleece"></span>
               </span>
             </span>
@@ -166,7 +179,8 @@
           <span class="hostmark">
             <span class="sheepart ico--sheep" id="lobby-sheep" data-pose="sheep-idle" aria-hidden="true">
               <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
-                <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
+                <img class="sheepart__body" src="/art/sheep-idle.png" alt=""
+                     width="448" height="396" draggable="false">
                 <span class="sheepart__fleece"></span>
               </span>
             </span>
@@ -220,10 +234,21 @@
         </div>
 
         <div class="flank" id="flank">
-          <span class="sheepart sheep" id="sheep" data-pose="sheep-idle" aria-hidden="true">
-            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
-              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
-              <span class="sheepart__fleece"></span>
+          <!-- Perched, like the picker's sheep and for the same reason: the
+               headroom a hat needs is spent as a PERCENTAGE padding, and a
+               percentage padding resolves against the CONTAINING BLOCK's width.
+               The width used to be on the sheep, whose containing block was
+               .flank's whole grid cell — a good number measured against the
+               animal, spent against a box more than half as wide again. The perch is
+               exactly the sheep's width and holds nothing else, so the reserve
+               is the one paintSheepArt measured. See .flank-perch in play.css. -->
+          <span class="flank-perch">
+            <span class="sheepart sheep" id="sheep" data-pose="sheep-idle" aria-hidden="true">
+              <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+                <img class="sheepart__body" src="/art/sheep-idle.png" alt=""
+                     width="448" height="396" draggable="false">
+                <span class="sheepart__fleece"></span>
+              </span>
             </span>
           </span>
         </div>
@@ -298,10 +323,18 @@
              their standing has earned. play.js picks the pose; the markup only
              has to be a sheep before the first paint, so it opens on idle. -->
         <div class="score-face">
-          <span class="sheepart score-sheep" id="score-sheep" data-pose="sheep-idle" aria-hidden="true">
-            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
-              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
-              <span class="sheepart__fleece"></span>
+          <!-- The perch again, and this row is the worst place to be without
+               one: .score-face is a flex row as wide as the stack, so the hat's
+               percentage was resolving against the row rather than against the
+               animal and reserving several times the room it asked for. See
+               .score-perch in play.css. -->
+          <span class="score-perch">
+            <span class="sheepart score-sheep" id="score-sheep" data-pose="sheep-idle" aria-hidden="true">
+              <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+                <img class="sheepart__body" src="/art/sheep-idle.png" alt=""
+                     width="448" height="396" draggable="false">
+                <span class="sheepart__fleece"></span>
+              </span>
             </span>
           </span>
           <p class="bigscore">
@@ -332,10 +365,17 @@
              belongs to another player and is theirs to type, so it is never
              interpolated into markup — see renderAbove(). -->
         <p class="above" id="above" hidden>
-          <span class="sheepart above-sheep" id="above-sheep" data-pose="sheep-idle" aria-hidden="true">
-            <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
-              <img class="sheepart__body" src="/art/sheep-idle.png" alt="" draggable="false">
-              <span class="sheepart__fleece"></span>
+          <!-- Perched like the rest. The animal being tiny is no protection:
+               the headroom percentage is measured against the sheep and was
+               being spent against this whole wrapping row, so the smallest
+               sheep on the phone carried the largest error. See .above-perch. -->
+          <span class="above-perch">
+            <span class="sheepart above-sheep" id="above-sheep" data-pose="sheep-idle" aria-hidden="true">
+              <span class="sheepart__box" style="--fleece-mask:url('/art/sheep-idle-fleece.png')">
+                <img class="sheepart__body" src="/art/sheep-idle.png" alt=""
+                     width="448" height="396" draggable="false">
+                <span class="sheepart__fleece"></span>
+              </span>
             </span>
           </span>
           <span class="above-words">

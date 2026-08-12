@@ -312,12 +312,25 @@
    it has been given; there was none. Stretched, the column is exactly the
    scene's height and the flock has something to be constrained by.
 
-   justify-content: center puts the vertical centring back, because that is what
+   justify-content puts the vertical centring back, because that is what
    `align-items: center` was doing before and a lobby of three sheep should not
    suddenly sit up against the headline. It only has an effect while everything
    fits — once the flock is the one item allowed to shrink (see below) there is
    no free space left to distribute, which is the correct behaviour in both
-   cases from one declaration. */
+   cases from one declaration.
+
+   And `safe`, which is the half that was missing. This box scrolls (see the
+   overflow below), and plain `center` on a scroller puts the overflow at BOTH
+   ends at once — the start edge out of reach of every scroll position, so no
+   amount of scrolling brings it back. The first thing in this column is the
+   HEADLINE the room reads the headcount off, and the flock can only shrink to
+   zero: past that the rigid items alone are taller than the column and the
+   count goes off the top, unreachable. `safe` stops centring the moment the
+   content stops fitting and packs to the start instead. Both sibling scrollers
+   argue this already — .joincol on this axis, .flock--waiting on its
+   align-content — and this was the third one, still centred the unsafe way.
+   Declared twice so a browser that cannot parse the keyword keeps the centring
+   it always had. */
 .lobbyflock {
   flex: 1 1 auto;
   align-self: stretch;
@@ -332,6 +345,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  justify-content: safe center;
   gap: var(--s-4);
   /* The same trap the join column was just fixed for, one column over. Most of
      what stands here is sized off the INLINE axis — the headline clamp, the
@@ -820,9 +834,20 @@
    ramp, and it must hold that proportion at all four of the sizes a sheep is
    drawn at without a step of its own.
 
-   Ink on the pale wash computes about 6.7:1, so it needs no plate and no
-   halo; and it is placed by grid, on the same 1/1 cell the art and the HOST
-   badge share, so it is measured against the animal it is written on. */
+   Ink on the pale wash computes about 6.7:1, so it needs no plate and no halo;
+   and it is placed by grid, in the SAME 1 / 1 CELL THE PERCH HOLDS, so it is
+   drawn across the animal rather than beside it.
+
+   Which only became true when the ghost was given a perch (tv.js). This rule
+   has always named that cell, but the ghost's art used to be emitted bare, with
+   no perch and no placement of its own — so auto-placement found row 1 taken by
+   this mark and dropped the animal into row 2, and the two were never sharing
+   anything. The mark was stencilled on a strip of empty pasture above a sheep,
+   which reads as a stray character rather than as a flank. Nothing here was
+   wrong; there was simply no box in the cell with it.
+   Sizing off --sheep-w is the other half: the perch is exactly that wide, so
+   the proportion the mark holds is a proportion of the animal it is written on
+   and not of the wider column the name is ellipsised into. */
 .ghost__mark {
   grid-area: 1 / 1;
   place-self: center;

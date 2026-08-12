@@ -456,12 +456,30 @@ function renderGate(s) {
    art itself comes back through sheep-art.js's own resolver, so the bench keeps
    drawing the same sheep the game does.
 
+   AND IT STANDS ON THE SAME PERCH EVERY OTHER SHEEP DOES. This one went out
+   without one, on the reasoning that a ghost has no hat and therefore no
+   headroom to resolve against the wrong width — true, and beside the point,
+   because the perch is also what CARRIES THE SIZE. Without it the art was a
+   direct child of .sheep at `inline-size: 100%`, so it filled the grid column —
+   --sheep-col, which the name floor makes wider than the animal — and every
+   silhouette in the pen was drawn broader than the locked-in sheep it is meant
+   to be an unfinished copy of. Worse, .ghost__mark is placed at `grid-area:
+   1 / 1` (tv.css) so the question mark lands ON the flank: the art had no
+   placement of its own, so auto-placement found row 1 already taken and put the
+   animal in row 2 — the mark stencilled on the empty ground ABOVE a sheep it
+   was supposed to be written across. The perch is what holds that cell, so
+   giving the ghost one puts the mark back on the animal and the animal back at
+   the animal's width, in a single structure rather than a second pattern.
+
    The name is UNTRUSTED — somebody typed it on a phone — and goes through
    esc() like every other name on this surface. */
 function ghostMarkup(who) {
   return `
     <li class="sheep sheep--ghost">
-      ${sheepArtHTML({ className: 'sheep__art ghost__art', headroom: 0 })}
+      <span class="sheep__perch">${sheepArtHTML({
+        className: 'sheep__art ghost__art',
+        headroom: 0,
+      })}</span>
       <span class="ghost__mark" aria-hidden="true">?</span>
       <span class="sheep__name">${esc(who.name)}</span>
     </li>`;

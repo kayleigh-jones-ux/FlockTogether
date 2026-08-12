@@ -1111,11 +1111,38 @@ body {
   min-height: 0;
 }
 
-.sheep {
+/* --- the flank's perch --------------------------------------------------
+ *
+ * THIS IS THE SIZE, and the sheep is 100% of it. Same shape as .look-perch,
+ * and here for the same reason: --art-headroom is written by paintSheepArt as
+ * a percentage and spent as padding-top by shared/sheep-art.css, and a
+ * percentage padding resolves against THE CONTAINING BLOCK's width — never the
+ * element's own. With the width sitting on the sheep, its containing block was
+ * still .flank's whole grid area, so a number measured against an animal 62% of
+ * that width was spent against all of it: about 1.6x the room the hat actually
+ * asked for, and more still on a wide phone where the 15rem cap holds the
+ * animal narrower than 62%. Nothing on this screen made the error visible —
+ * .flank centres what it is given, so the sheep just sat low in its own track
+ * with a band of dead air over it that grew with the phone.
+ *
+ * A block of exactly the sheep's width, holding nothing else, is the base the
+ * percentage was measured from. Anything sized here must keep the sheep at
+ * 100% of it, or the trap comes straight back. */
+.flank-perch {
+  display: block;
   width: min(62%, 15rem);
-  /* On a short phone the flock shrinks rather than the send lever getting
-     squeezed off the bottom. The art keeps the sheep in proportion. */
-  max-height: 100%;
+}
+
+/* The flock does not shrink to save the send lever, and a max-height here never
+   made it: .sheepart__body is width: 100% with height: auto, so the art takes
+   its height from its width and a cap on this element is simply overflowed —
+   the picture is drawn at the same size either way. What does keep the lever
+   off the bottom of a short phone is real and lives at the foot of this file:
+   the perch narrows at `@container pen (max-height: 780px)`, and the whole
+   flank leaves at 620px. The prose that used to be here described the cap it
+   sat on; the cap is gone rather than the sentence being kept alive. */
+.sheep {
+  width: 100%;
 }
 
 /* Nothing is sprayed onto the fleece here either — the dye layer is gone from
@@ -1370,11 +1397,24 @@ body {
   min-width: 0;
 }
 
+/* The perch carries the width here too, and .score-face is the worst ground on
+   the phone for going without one: it is a flex row as wide as the stack, so a
+   headroom percentage measured against the ANIMAL and spent against that row
+   reserved several times the space the hat asked for. `align-items: center`
+   then centres the padding along with the art, which drops the sheep down the
+   row — the face is meant to be reacting to the number beside it, and it was
+   riding low against the digits instead. Sized on the perch at every
+   step below, sheep at 100% of it. See .look-perch for the full account. */
+.score-perch {
+  display: block;
+  width: min(34vw, 7rem);
+  flex: none;
+}
+
 /* A long-lived element: play.js repaints it in place through paintSheepArt, so
    the pose and the hat change without the art being fetched again. */
 .score-sheep {
-  width: min(34vw, 7rem);
-  flex: none;
+  width: 100%;
 }
 
 .bigscore {
@@ -1400,8 +1440,9 @@ body {
 /* ------------------------------------------------------ who is above you
    One line under the standing, naming the single player they are chasing.
 
-   The sheep is the point of the sizing. .score-sheep is min(34vw, 7rem) and
-   this is min(11vw, 2.4rem) — roughly a third of it in each direction, so under
+   The sheep is the point of the sizing, and the perches are where that sizing
+   lives. .score-perch is min(34vw, 7rem) and .above-perch is
+   min(11vw, 2.4rem) — roughly a third of it in each direction, so under
    a tenth of the area. That gap is doing the work: it is somebody else's animal
    on a screen that is about this player, and at anything close to parity the
    two read as a head-to-head rather than as a glance up the field. It is also
@@ -1421,9 +1462,33 @@ body {
   min-width: 0;
 }
 
-.above-sheep {
+/* The trap does not scale down with the animal. This is the smallest sheep on
+   the phone and .above is a wrapping flex row as wide as the stack, so the hat's
+   percentage — measured against a 2.4rem sheep — was being spent against the
+   whole row: a reserve several times taller than the animal it belonged to,
+   which `align-items: center` then split around, leaving the sheep low against
+   the name it stands beside and the row taller than either. Perch of the
+   animal's own width, sheep at 100% of it, exactly as .look-perch. */
+.above-perch {
+  display: block;
   width: min(11vw, 2.4rem);
   flex: none;
+}
+
+.above-sheep {
+  width: 100%;
+}
+
+/* And it goes when the sheep goes. This is the one perched sheep play.js hides
+   on its own — renderAbove() puts [hidden] on #above-sheep for the player at
+   the top of the flock, who has nobody above them to draw — and the perch is a
+   flex item with a width of its own, so left standing it would hold an empty
+   column and a gap in front of "You are on top of the flock, keep it up!" and
+   shove the line off centre. Keyed off the sheep's own [hidden] rather than a
+   second class, because play.js already toggles that one and a class it does
+   not know about would never be set. */
+.above-perch:has(> [hidden]) {
+  display: none;
 }
 
 .above-words {
@@ -1498,11 +1563,13 @@ body {
 
 @media (max-height: 620px) {
   .question { max-height: calc(var(--vh, 100dvh) * 0.34); }
-  .sheep { width: min(46%, 10rem); }
+  /* The perches take every step down, never the sheep: sizing the sheep here
+     would hand its headroom percentage back to the parent's width. */
+  .flank-perch { width: min(46%, 10rem); }
   .clock { font-size: clamp(2.1rem, 11vw, 2.8rem); }
   .dog { width: min(40%, 9rem); }
   .rosette { width: min(26%, 4.5rem); }
-  .score-sheep { width: min(26vw, 5rem); }
+  .score-perch { width: min(26vw, 5rem); }
 }
 
 /* ------------------------------------------------------- a short frame
@@ -1516,7 +1583,7 @@ body {
   /* Keep the countdown's room out of the question's reach. The question is
      the one thing here built to scroll, so it is the one thing that gives. */
   .screen--question .question { max-height: calc(var(--vh, 100dvh) * 0.3); }
-  .screen--question .sheep { width: min(46%, 10rem); }
+  .screen--question .flank-perch { width: min(46%, 10rem); }
 
   /* The preview gives before the chips do: a picker you cannot reach into is
      worse than a smaller sheep. The perch is what carries the size — the sheep
@@ -1597,13 +1664,13 @@ body {
 
   /* The scoreboard's own shortfall: the sheep gives before the number does,
      because the number is the thing they came to this screen to read. */
-  .score-sheep { width: min(22vw, 4rem); }
+  .score-perch { width: min(22vw, 4rem); }
 
   /* And the sheep above them gives with it, in the same proportion — the whole
      point of that animal is how much smaller it is than their own, so the two
      have to shrink together or the gap closes and it starts to look like a
      contender. */
-  .above-sheep { width: min(7vw, 1.5rem); }
+  .above-perch { width: min(7vw, 1.5rem); }
 }
 
 /* The two endings, shown only to the host and only at the final board. Stacked
